@@ -20,15 +20,15 @@ android {
             storePassword keystoreProperties['storePassword']
         }
     }
-    compileSdkVersion 33
+    compileSdk 33
     buildToolsVersion "30.0.3"
 
     defaultConfig {
         applicationId "com.dscvit.vitty"
         minSdkVersion 24
         targetSdkVersion 33
-        versionCode 34
-        versionName "2.0.0"
+        versionCode 37
+        versionName "2.0.1"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         signingConfig signingConfigs.release
     }
@@ -48,6 +48,7 @@ android {
     }
 
     buildFeatures {
+        viewBinding true
         dataBinding true
     }
 }
@@ -102,4 +103,6 @@ dependencies {
 
     // Timber for logs
     implementation 'com.jakewharton.timber:timber:4.7.1'
+
+    implementation 'com.google.android.material:material:1.9.0'
 }

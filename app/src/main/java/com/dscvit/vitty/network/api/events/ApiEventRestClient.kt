@@ -1,4 +1,4 @@
-package com.dscvit.vitty.api
+package com.dscvit.vitty.network.api.events
 
 import com.dscvit.vitty.model.EventDetails
 import retrofit2.Call
@@ -33,6 +33,7 @@ class ApiEventRestClient {
                     retrofitEventListener.onSuccess(call, response.body())
                 }
             }
+
             override fun onFailure(call: Call<EventDetails>, t: Throwable) {
                 retrofitEventListener.onError(call, t)
             }

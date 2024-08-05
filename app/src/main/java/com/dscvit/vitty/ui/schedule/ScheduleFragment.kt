@@ -10,12 +10,13 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
+import android.widget.PopupMenu
 import android.widget.RelativeLayout
 import android.widget.TextView
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.content.edit
 import androidx.fragment.app.Fragment
-import androidx.lifecycle.ViewModelProvider
+import coil.load
 import com.dscvit.vitty.BuildConfig
 import com.dscvit.vitty.R
 import com.dscvit.vitty.activity.InstructionsActivity
@@ -41,6 +42,7 @@ class ScheduleFragment : Fragment() {
     private lateinit var prefs: SharedPreferences
     private var uid = ""
     private val db = FirebaseFirestore.getInstance()
+    private var username: String? = null
 
     // This property is only valid between onCreateView and
     // onDestroyView.
@@ -51,11 +53,11 @@ class ScheduleFragment : Fragment() {
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
-        val scheduleViewModel =
-            ViewModelProvider(this)[ScheduleViewModel::class.java]
+        //val scheduleViewModel = ViewModelProvider(this)[ScheduleViewModel::class.java]
 
         _binding = FragmentScheduleBinding.inflate(inflater, container, false)
         val root: View = binding.root
+
 
         prefs = requireContext().getSharedPreferences(Constants.USER_INFO, 0)
         uid = prefs.getString("uid", "").toString()
@@ -115,6 +117,8 @@ class ScheduleFragment : Fragment() {
     }
 
     private fun pageSetup() {
+        username = prefs.getString(Constants.COMMUNITY_USERNAME, "")
+
         val calendar: Calendar = Calendar.getInstance()
         val d = when (calendar.get(Calendar.DAY_OF_WEEK)) {
             Calendar.MONDAY -> 0
@@ -139,53 +143,20 @@ class ScheduleFragment : Fragment() {
 //            UtilFunctions.takeScreenshotAndShare(this, UtilFunctions.getBitmapFromView(rootView))
 //        }
 
-        binding.scheduleToolbar.setOnMenuItemClickListener { menuItem ->
-            when (menuItem.itemId) {
-                R.id.logout -> {
-                    LogoutHelper.logout(requireContext(), requireContext() as Activity, prefs)
-                    true
-                }
-                R.id.settings -> {
-                    startActivity(Intent(context, SettingsActivity::class.java))
-                    true
-                }
-                R.id.support -> {
-                    UtilFunctions.openLink(requireContext(), getString(R.string.telegram_link))
-                    true
-                }
-                R.id.share -> {
-                    val shareIntent = Intent().apply {
-                        action = Intent.ACTION_SEND
-                        type = "text/plain"
-                    }
-                    shareIntent.putExtra(
-                        Intent.EXTRA_TEXT,
-                        getString(R.string.share_text)
-                    )
-                    val pendingIntent = PendingIntent.getBroadcast(
-                        context,
-                        Constants.SHARE_INTENT,
-                        Intent(context, ShareReceiver::class.java),
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
-                            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
-                        else
-                            PendingIntent.FLAG_UPDATE_CURRENT
-                    )
-//                    val broadcastReceiver: BroadcastReceiver = ShareReceiver()
-//                    registerReceiver(broadcastReceiver, IntentFilter(SHARE_ACTION))
-                    startActivity(
-                        Intent.createChooser(
-                            shareIntent,
-                            null,
-                            pendingIntent.intentSender
-                        )
-                    )
-                    true
-                }
-                else -> false
-            }
+
+        val profilePicture = prefs.getString(Constants.COMMUNITY_PICTURE, "")
+        binding.profileImage.load(profilePicture) {
+            crossfade(true)
+            placeholder(R.drawable.ic_gdscvit)
+            error(R.drawable.ic_gdscvit)
         }
-        val pagerAdapter = DayAdapter(this)
+
+        binding.profileImage.setOnClickListener {
+            // Open the existing menu when the ImageView is clicked
+            showPopupMenu(it)
+        }
+
+        val pagerAdapter = DayAdapter(this, username)
         binding.pager.adapter = pagerAdapter
         TabLayoutMediator(
             binding.tabs, binding.pager
@@ -194,6 +165,7 @@ class ScheduleFragment : Fragment() {
 
         binding.pager.currentItem = d
     }
+
 
     private fun firstTimeSetup() {
         val max = 6
@@ -272,13 +244,70 @@ class ScheduleFragment : Fragment() {
     private fun introMessage(pos: Int): List<String> {
         return when (pos) {
             0 -> listOf(getString(R.string.congratulations), getString(R.string.complete_msg))
-            1 -> listOf(getString(R.string.widgets), getString(R.string.about_widgets))
-            2 -> listOf(getString(R.string.notifications), getString(R.string.about_notifications))
-            3 -> listOf(getString(R.string.battery), getString(R.string.about_battery))
-            4 -> listOf(getString(R.string.nav), getString(R.string.about_nav))
-            5 -> listOf(getString(R.string.new_updates), getString(R.string.about_new_updates))
+            1 -> listOf(getString(R.string.new_updates), getString(R.string.about_new_updates))
+            2 -> listOf(getString(R.string.widgets), getString(R.string.about_widgets))
+            3 -> listOf(getString(R.string.notifications), getString(R.string.about_notifications))
+            4 -> listOf(getString(R.string.battery), getString(R.string.about_battery))
+            5 -> listOf(getString(R.string.nav), getString(R.string.about_nav))
             else -> listOf(getString(R.string.final_heading), getString(R.string.about_final))
         }
+    }
+
+    private fun showPopupMenu(view: View) {
+        val popupMenu = PopupMenu(requireContext(), view)
+        val inflater = popupMenu.menuInflater
+        inflater.inflate(R.menu.schedule_menu, popupMenu.menu)
+        popupMenu.setOnMenuItemClickListener { menuItem ->
+            when (menuItem.itemId) {
+                R.id.logout -> {
+                    LogoutHelper.logout(requireContext(), requireContext() as Activity, prefs)
+                    true
+                }
+
+                R.id.settings -> {
+                    startActivity(Intent(context, SettingsActivity::class.java))
+                    true
+                }
+
+                R.id.support -> {
+                    UtilFunctions.openLink(requireContext(), getString(R.string.telegram_link))
+                    true
+                }
+
+                R.id.share -> {
+                    val shareIntent = Intent().apply {
+                        action = Intent.ACTION_SEND
+                        type = "text/plain"
+                    }
+                    shareIntent.putExtra(
+                        Intent.EXTRA_TEXT,
+                        getString(R.string.share_text)
+                    )
+                    val pendingIntent = PendingIntent.getBroadcast(
+                        context,
+                        Constants.SHARE_INTENT,
+                        Intent(context, ShareReceiver::class.java),
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
+                            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
+                        else
+                            PendingIntent.FLAG_UPDATE_CURRENT
+                    )
+//                    val broadcastReceiver: BroadcastReceiver = ShareReceiver()
+//                    registerReceiver(broadcastReceiver, IntentFilter(SHARE_ACTION))
+                    startActivity(
+                        Intent.createChooser(
+                            shareIntent,
+                            null,
+                            pendingIntent.intentSender
+                        )
+                    )
+                    true
+                }
+
+                else -> false
+            }
+        }
+        popupMenu.show()
     }
 
     override fun onStart() {

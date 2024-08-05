@@ -15,12 +15,15 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.edit
 import androidx.databinding.DataBindingUtil
+import androidx.lifecycle.ViewModelProvider
 import com.dscvit.vitty.BuildConfig
 import com.dscvit.vitty.R
 import com.dscvit.vitty.databinding.ActivityInstructionsBinding
 import com.dscvit.vitty.receiver.AlarmReceiver
+import com.dscvit.vitty.ui.auth.AuthViewModel
 import com.dscvit.vitty.util.ArraySaverLoader.loadArray
 import com.dscvit.vitty.util.ArraySaverLoader.saveArray
+import com.dscvit.vitty.util.Constants
 import com.dscvit.vitty.util.Constants.ALARM_INTENT
 import com.dscvit.vitty.util.Constants.EXAM_MODE
 import com.dscvit.vitty.util.Constants.GROUP_ID
@@ -43,6 +46,7 @@ import java.util.Date
 class InstructionsActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityInstructionsBinding
+    private lateinit var authViewModel: AuthViewModel
     private val days =
         listOf("monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday")
     private lateinit var prefs: SharedPreferences
@@ -54,12 +58,14 @@ class InstructionsActivity : AppCompatActivity() {
         binding = DataBindingUtil.setContentView(this, R.layout.activity_instructions)
         prefs = getSharedPreferences(USER_INFO, 0)
         uid = prefs.getString(UID, "").toString()
-
+        authViewModel = ViewModelProvider(this)[AuthViewModel::class.java]
         setupToolbar()
         setGDSCVITChannel()
 
         binding.doneButton.setOnClickListener {
-            setupDoneButton()
+            val token = prefs.getString(Constants.COMMUNITY_TOKEN, null)
+            val username = prefs.getString(Constants.COMMUNITY_USERNAME, null)
+            setupDoneButton(token, username)
         }
     }
 
@@ -78,9 +84,42 @@ class InstructionsActivity : AppCompatActivity() {
         }
     }
 
-    private fun setupDoneButton() {
+    private fun setupDoneButton(token: String?, username: String?) {
         binding.loadingView.visibility = View.VISIBLE
-        db.collection("users")
+
+        Timber.d("done button clicked")
+
+        if (token != null && username != null) {
+            authViewModel.getUserWithTimeTable(token, username)
+        } else {
+            Toast.makeText(this, "Please login again", Toast.LENGTH_LONG)
+                .show()
+        }
+
+        authViewModel.user.observe(this) {
+            Timber.d("user: $it")
+            if (it != null) {
+                val timetableDays = it.timetable?.data
+                if (!timetableDays?.Monday.isNullOrEmpty() || !timetableDays?.Tuesday.isNullOrEmpty() || !timetableDays?.Wednesday.isNullOrEmpty() || !timetableDays?.Thursday.isNullOrEmpty() || !timetableDays?.Friday.isNullOrEmpty()
+                    || !timetableDays?.Saturday.isNullOrEmpty() || !timetableDays?.Sunday.isNullOrEmpty()
+                ) {
+                    binding.loadingView.visibility = View.GONE
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        createNotificationChannels()
+                    } else {
+                        tellUpdated()
+                    }
+                } else {
+                    binding.loadingView.visibility = View.GONE
+                    Toast.makeText(this, getString(R.string.follow_instructions), Toast.LENGTH_LONG)
+                        .show()
+                }
+
+            }
+        }
+
+
+        /*db.collection("users")
             .document(uid)
             .get()
             .addOnSuccessListener { document ->
@@ -95,7 +134,7 @@ class InstructionsActivity : AppCompatActivity() {
                     Toast.makeText(this, getString(R.string.follow_instructions), Toast.LENGTH_LONG)
                         .show()
                 }
-            }
+            }*/
     }
 
     private fun createNotificationChannels() {
@@ -244,6 +283,7 @@ class InstructionsActivity : AppCompatActivity() {
                     LogoutHelper.logout(this, this as Activity, prefs)
                     true
                 }
+
                 else -> false
             }
         }
