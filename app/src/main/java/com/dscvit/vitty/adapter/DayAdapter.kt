@@ -4,7 +4,6 @@ import android.os.Bundle
 import androidx.fragment.app.Fragment
 import androidx.viewpager2.adapter.FragmentStateAdapter
 import com.dscvit.vitty.ui.schedule.DayFragment
-import timber.log.Timber
 
 class DayAdapter(fa: Fragment, private val username: String?, private val isFriendsTimetable: Boolean = false) : FragmentStateAdapter(fa) {
     private val numPages = 7
