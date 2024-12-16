@@ -9,7 +9,7 @@ import java.util.concurrent.TimeUnit
 
 object NetworkClient {
 
-    var retrofit: Retrofit? = null
+    private var retrofit: Retrofit? = null
 
     val retrofitClient: Retrofit
         get() {

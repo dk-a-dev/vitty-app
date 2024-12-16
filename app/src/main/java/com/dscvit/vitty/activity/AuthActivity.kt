@@ -199,7 +199,7 @@ class AuthActivity : AppCompatActivity() {
 
         authViewModel.signInResponse.observe(this) {
             if (it != null) {
-                Timber.d("here--" + it.toString())
+                Timber.d("here--$it")
                 sharedPref.edit().putString(Constants.COMMUNITY_USERNAME, it.username).apply()
                 sharedPref.edit().putString(Constants.COMMUNITY_TOKEN, it.token).apply()
                 sharedPref.edit().putString(Constants.COMMUNITY_NAME, it.name).apply()

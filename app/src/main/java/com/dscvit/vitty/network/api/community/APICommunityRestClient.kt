@@ -22,7 +22,7 @@ class APICommunityRestClient {
     }
 
     private var mApiUser: APICommunity? = null
-    val retrofit = CommunityNetworkClient.retrofitClientCommunity
+    private val retrofit = CommunityNetworkClient.retrofitClientCommunity
 
 
     fun signInWithUsernameRegNo(
@@ -33,7 +33,7 @@ class APICommunityRestClient {
         retrofitSelfUserListener: RetrofitSelfUserListener
     ) {
 
-        mApiUser = retrofit.create<APICommunity>(APICommunity::class.java)
+        mApiUser = retrofit.create(APICommunity::class.java)
 
 
         val requestBody = AuthRequestBody(

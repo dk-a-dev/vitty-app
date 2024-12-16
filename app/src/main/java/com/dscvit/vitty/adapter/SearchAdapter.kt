@@ -1,5 +1,6 @@
 package com.dscvit.vitty.adapter
 
+import android.annotation.SuppressLint
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -26,7 +27,7 @@ class SearchAdapter(
 ) :
     RecyclerView.Adapter<SearchAdapter.ViewHolder>() {
 
-    val mutableDataSet = dataSet.toMutableList()
+    private val mutableDataSet = dataSet.toMutableList()
 
     class ViewHolder(private val binding: CardRequestBinding) :
         RecyclerView.ViewHolder(binding.root) {
@@ -56,6 +57,7 @@ class SearchAdapter(
         )
     }
 
+    @SuppressLint("SetTextI18n")
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val item = mutableDataSet[holder.adapterPosition]
         holder.bind(item)

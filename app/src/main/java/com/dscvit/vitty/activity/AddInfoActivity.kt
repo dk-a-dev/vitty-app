@@ -68,7 +68,7 @@ class AddInfoActivity : AppCompatActivity() {
         }
 
         authViewModel.user.observe(this) {
-            Timber.d("User: ${it}")
+            Timber.d("User: $it")
             if (it != null) {
 
                 val timetableDays = it.timetable?.data
@@ -109,7 +109,7 @@ class AddInfoActivity : AppCompatActivity() {
         })
 
         authViewModel.usernameValidity.observe(this) {
-            Timber.d("Validity: ${it}")
+            Timber.d("Validity: $it")
             if (it != null) {
                 binding.usernameValidity.visibility = View.VISIBLE
                 binding.usernameValidity.text = it.detail
