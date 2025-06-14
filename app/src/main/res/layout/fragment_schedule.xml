@@ -52,6 +52,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_below="@+id/schedule_toolbar"
+            android:layout_marginTop="16dp"
             android:background="@color/tab_back">
 
             <com.google.android.material.tabs.TabLayout
@@ -60,11 +61,11 @@
                 android:layout_height="wrap_content"
                 android:background="@color/tab_back"
                 app:tabIndicator="@drawable/tab_selected_background"
-                app:tabIndicatorColor="@color/tab_selected"
-                app:tabIndicatorGravity="stretch"
+                app:tabIndicatorColor="@color/transparent"
+                app:tabIndicatorGravity="bottom"
                 app:tabMode="scrollable"
                 app:tabRippleColor="@null"
-                app:tabSelectedTextColor="@color/white"
+                app:tabSelectedTextColor="@color/text"
                 app:tabTextAppearance="@style/TabTextAppearance"
                 app:tabTextColor="@color/translucent" />
         </FrameLayout>
