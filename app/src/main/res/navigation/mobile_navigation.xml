@@ -6,6 +6,12 @@
     app:startDestination="@id/navigation_schedule">
 
     <fragment
+        android:id="@+id/navigation_academics"
+        android:name="com.dscvit.vitty.ui.academics.AcademicsFragment"
+        android:label="@string/title_academics"
+        tools:layout="@layout/fragment_academics" />
+
+    <fragment
         android:id="@+id/navigation_schedule"
         android:name="com.dscvit.vitty.ui.schedule.ScheduleFragment"
         android:label="@string/title_schedule"
