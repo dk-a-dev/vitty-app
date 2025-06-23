@@ -17,7 +17,7 @@ val Poppins =
         Font(R.font.poppins_700, FontWeight.Bold),
     )
 
-val AcademicsTypography =
+val VittyTypography =
     Typography(
         headlineLarge =
             TextStyle(
@@ -27,6 +27,14 @@ val AcademicsTypography =
                 lineHeight = 28.sp,
                 letterSpacing = 0.sp,
                 color = TextColor,
+            ),
+        headlineSmall =
+            TextStyle(
+                fontFamily = Poppins,
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 28.sp,
+                lineHeight = 28.sp,
+                letterSpacing = 0.sp,
             ),
         titleLarge =
             TextStyle(

@@ -9,7 +9,15 @@
         android:id="@+id/navigation_academics"
         android:name="com.dscvit.vitty.ui.academics.AcademicsFragment"
         android:label="@string/title_academics"
-        tools:layout="@layout/fragment_academics" />
+        tools:layout="@layout/fragment_academics">
+        <action
+            android:id="@+id/action_navigation_academics_to_coursePageFragment"
+            app:destination="@id/coursePageFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
+    </fragment>
 
     <fragment
         android:id="@+id/navigation_schedule"
@@ -78,6 +86,36 @@
             android:id="@+id/action_allRequestFragment_to_friendFragment"
             app:destination="@id/friendFragment"
             app:enterAnim="@anim/slide_in_right"
+            app:popExitAnim="@anim/slide_out_right" />    </fragment>
+      <fragment
+        android:id="@+id/coursePageFragment"
+        android:name="com.dscvit.vitty.ui.academics.CoursePageFragment"
+        android:label="Course Page"
+        tools:layout="@layout/fragment_course_page">
+        <argument
+            android:name="courseTitle"
+            app:argType="string" />
+        <argument
+            android:name="courseSlot"
+            app:argType="string" />
+        <argument
+            android:name="courseCode"
+            app:argType="string" />
+        <argument
+            android:name="courseSemester"
+            app:argType="string" />
+        <action
+            android:id="@+id/action_coursePageFragment_to_noteFragment"
+            app:destination="@id/noteFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
             app:popExitAnim="@anim/slide_out_right" />
     </fragment>
+    
+    <fragment
+        android:id="@+id/noteFragment"
+        android:name="com.dscvit.vitty.ui.academics.NoteFragment"
+        android:label="Note"
+        tools:layout="@layout/fragment_note" />
 </navigation>

@@ -44,7 +44,7 @@
             android:layout_height="match_parent"
             android:alpha="0.6"
             android:contentDescription="@string/active_background"
-            android:src="@drawable/next_class_background"
+            android:src="@color/transparent"
             android:visibility="invisible" />
 
         <LinearLayout

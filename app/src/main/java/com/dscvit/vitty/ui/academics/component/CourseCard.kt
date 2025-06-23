@@ -1,6 +1,7 @@
 package com.dscvit.vitty.ui.academics.component
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -27,12 +28,16 @@ import com.dscvit.vitty.theme.TextColor
 import com.dscvit.vitty.ui.academics.model.Course
 
 @Composable
-fun CourseCard(course: Course) {
+fun CourseCard(
+    course: Course,
+    onClick: () -> Unit = {}
+) {
     Box(
         Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(20.dp))
             .background(Secondary)
+            .clickable { onClick() }
             .padding(20.dp),
     ) {
         Column {
@@ -54,7 +59,7 @@ fun CourseCard(course: Course) {
             }
             Spacer(Modifier.height(6.dp))
             Text(
-                text = "${course.details} | ${course.semester}",
+                text = course.details,
                 color = Accent,
                 style = MaterialTheme.typography.bodyMedium,
             )

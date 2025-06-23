@@ -115,7 +115,7 @@ class PeriodAdapter(
                 active == holder.adapterPosition
             ) {
                 holder.activePeriod.visibility = View.VISIBLE
-                holder.periodCard.strokeWidth = 1
+                holder.periodCard.strokeWidth = 2
                 holder.periodCard.strokeColor = ContextCompat.getColor(holder.itemView.context, R.color.translucent)
                 active = holder.adapterPosition
             }
