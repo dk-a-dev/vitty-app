@@ -16,6 +16,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -25,6 +26,7 @@ import androidx.compose.ui.unit.sp
 import com.dscvit.vitty.R
 import com.dscvit.vitty.theme.Accent
 import com.dscvit.vitty.theme.Background
+import com.dscvit.vitty.theme.DividerColor
 import com.dscvit.vitty.theme.Green
 import com.dscvit.vitty.theme.Red
 import com.dscvit.vitty.theme.Secondary
@@ -42,7 +44,9 @@ fun CoursePageContent(
 ) {
     var searchQuery by remember { mutableStateOf("") }
     var showBottomModal by remember { mutableStateOf(false) }
+    var showSetReminderModal by remember { mutableStateOf(false) }
     val bottomSheetState = rememberModalBottomSheetState()
+    val setReminderSheetState = rememberModalBottomSheetState()
 
     val reminders =
         listOf(
@@ -113,7 +117,6 @@ fun CoursePageContent(
         }
     }
 
-
     if (showBottomModal) {
         ModalBottomSheet(
             onDismissRequest = { showBottomModal = false },
@@ -131,6 +134,22 @@ fun CoursePageContent(
             AddContentBottomSheet(
                 onDismiss = { showBottomModal = false },
                 onNavigateToNote = onNavigateToNote,
+                onSetReminder = { showSetReminderModal = true },
+            )
+        }
+    }
+
+    if (showSetReminderModal) {
+        ModalBottomSheet(
+            onDismissRequest = { showSetReminderModal = false },
+            sheetState = setReminderSheetState,
+            containerColor = Background,
+            contentColor = TextColor,
+            dragHandle = { },
+        ) {
+            SetReminderBottomSheet(
+                onDismiss = { showSetReminderModal = false },
+                courseTitle = courseTitle,
             )
         }
     }
@@ -144,7 +163,6 @@ private fun CoursePageHeader(onBackClick: () -> Unit) {
                 .fillMaxWidth()
                 .padding(horizontal = 10.dp, vertical = 16.dp),
     ) {
-    
         IconButton(
             onClick = onBackClick,
             modifier = Modifier.align(Alignment.CenterStart),
@@ -156,7 +174,6 @@ private fun CoursePageHeader(onBackClick: () -> Unit) {
             )
         }
 
-    
         Text(
             text = "Course Page",
             style = MaterialTheme.typography.headlineSmall,
@@ -450,6 +467,7 @@ enum class ReminderStatus {
 private fun AddContentBottomSheet(
     onDismiss: () -> Unit,
     onNavigateToNote: () -> Unit,
+    onSetReminder: () -> Unit,
 ) {
     Column(
         modifier =
@@ -473,8 +491,9 @@ private fun AddContentBottomSheet(
                     option = option,
                     onClick = {
                         onDismiss()
-                        if (option.title == "Write Note") {
-                            onNavigateToNote()
+                        when (option.title) {
+                            "Write Note" -> onNavigateToNote()
+                            "Set Reminder" -> onSetReminder()
                         }
                     },
                 )
@@ -528,3 +547,407 @@ data class AddOption(
     val title: String,
     val icon: Int,
 )
+
+@Composable
+private fun SetReminderBottomSheet(
+    onDismiss: () -> Unit,
+    courseTitle: String,
+) {
+    var currentPage by remember { mutableStateOf(0) }
+    var selectedDateMillis by remember { mutableStateOf<Long?>(null) }
+    var isAllDay by remember { mutableStateOf(false) }
+    var fromTime by remember { mutableStateOf("7:00AM") }
+    var toTime by remember { mutableStateOf("6:00AM") }
+    var title by remember { mutableStateOf("") }
+    var description by remember { mutableStateOf("") }
+    var attachmentUrl by remember { mutableStateOf("") }
+
+    when (currentPage) {
+        0 ->
+            FirstPage(
+                selectedDateMillis = selectedDateMillis,
+                onDateSelected = { selectedDateMillis = it },
+                isAllDay = isAllDay,
+                onAllDayToggle = { isAllDay = it },
+                fromTime = fromTime,
+                onFromTimeChange = { fromTime = it },
+                toTime = toTime,
+                onToTimeChange = { toTime = it },
+                onDismiss = onDismiss,
+                onNext = { currentPage = 1 },
+            )
+        1 ->
+            SecondPage(
+                title = title,
+                onTitleChange = { title = it },
+                description = description,
+                onDescriptionChange = { description = it },
+                subject = courseTitle,
+                attachmentUrl = attachmentUrl,
+                onAttachmentUrlChange = { attachmentUrl = it },
+                onBack = { currentPage = 0 },
+                onAdd = {
+                    
+                    onDismiss()
+                },
+            )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun FirstPage(
+    selectedDateMillis: Long?,
+    onDateSelected: (Long?) -> Unit,
+    isAllDay: Boolean,
+    onAllDayToggle: (Boolean) -> Unit,
+    fromTime: String,
+    onFromTimeChange: (String) -> Unit,
+    toTime: String,
+    onToTimeChange: (String) -> Unit,
+    onDismiss: () -> Unit,
+    onNext: () -> Unit,
+) {
+    val datePickerState =
+        rememberDatePickerState(
+            initialSelectedDateMillis = selectedDateMillis,
+        )
+
+    
+    LaunchedEffect(datePickerState.selectedDateMillis) {
+        onDateSelected(datePickerState.selectedDateMillis)
+    }
+
+    Column(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp, vertical = 24.dp),
+    ) {
+        
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            TextButton(
+                onClick = onDismiss,
+                colors = ButtonDefaults.textButtonColors(contentColor = Red),
+            ) {
+                Text("Cancel", style = MaterialTheme.typography.bodySmall)
+            }
+
+            TextButton(
+                onClick = onNext,
+                colors = ButtonDefaults.textButtonColors(contentColor = Accent),
+            ) {
+                Text("Next", style = MaterialTheme.typography.bodySmall)
+            }
+        }
+
+        DatePicker(
+            state = datePickerState,
+            modifier =
+                Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)),
+            colors =
+                DatePickerDefaults.colors(
+                    containerColor = Secondary,
+                    titleContentColor = TextColor,
+                    headlineContentColor = TextColor,
+                    weekdayContentColor = TextColor,
+                    subheadContentColor = TextColor,
+                    navigationContentColor = TextColor,
+                    yearContentColor = TextColor,
+                    disabledYearContentColor = TextColor.copy(alpha = 0.38f),
+                    currentYearContentColor = Accent,
+                    selectedYearContentColor = Background,
+                    disabledSelectedYearContentColor = Background.copy(alpha = 0.38f),
+                    selectedYearContainerColor = Accent,
+                    disabledSelectedYearContainerColor = Accent.copy(alpha = 0.12f),
+                    dayContentColor = TextColor,
+                    disabledDayContentColor = TextColor.copy(alpha = 0.38f),
+                    selectedDayContentColor = Background,
+                    disabledSelectedDayContentColor = Background.copy(alpha = 0.38f),
+                    selectedDayContainerColor = Accent,
+                    disabledSelectedDayContainerColor = Accent.copy(alpha = 0.12f),
+                    todayContentColor = Accent,
+                    todayDateBorderColor = Accent,
+                    dayInSelectionRangeContentColor = TextColor,
+                    dayInSelectionRangeContainerColor = Secondary,
+                    dividerColor = DividerColor,
+                ),
+        )
+
+        Spacer(modifier = Modifier.height(14.dp))
+
+        Box(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(Secondary)
+                    .padding(horizontal = 8.dp),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = "All-day",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = TextColor,
+                    fontWeight = FontWeight.Medium,
+                )
+                Switch(
+                    checked = isAllDay,
+                    onCheckedChange = onAllDayToggle,
+                    colors =
+                        SwitchDefaults.colors(
+                            checkedThumbColor = Background,
+                            checkedTrackColor = Accent,
+                            uncheckedThumbColor = TextColor,
+                            uncheckedTrackColor = Secondary,
+                        ),
+                )
+            }
+        }
+
+        if (!isAllDay) {
+            Spacer(modifier = Modifier.height(14.dp))
+
+            Box(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(Secondary)
+                        .padding(horizontal = 8.dp),
+            ) {
+                Column {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 6.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            text = "To",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Color(0xff566A7B),
+                        )
+                        Box(
+                            modifier =
+                                Modifier
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(Color(0x33475985))
+                                    .padding(horizontal = 10.dp, vertical = 4.dp),
+                        ) {
+                            Text(
+                                text = toTime,
+                                style =
+                                    MaterialTheme.typography.labelLarge.copy(
+                                        fontWeight = FontWeight.Light,
+                                    ),
+                                color = TextColor,
+                            )
+                        }
+                    }
+
+                    
+                    HorizontalDivider(
+                        color = DividerColor,
+                        thickness = 1.dp,
+                    )
+
+                    
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 6.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            text = "From",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Color(0xff566A7B),
+                        )
+                        Box(
+                            modifier =
+                                Modifier
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(Color(0x33475985))
+                                    .padding(horizontal = 10.dp, vertical = 4.dp),
+                        ) {
+                            Text(
+                                text = fromTime,
+                                style =
+                                    MaterialTheme.typography.labelLarge.copy(
+                                        fontWeight = FontWeight.Light,
+                                    ),
+                                color = TextColor,
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(32.dp))
+    }
+}
+
+@Composable
+private fun SecondPage(
+    title: String,
+    onTitleChange: (String) -> Unit,
+    description: String,
+    onDescriptionChange: (String) -> Unit,
+    subject: String,
+    attachmentUrl: String,
+    onAttachmentUrlChange: (String) -> Unit,
+    onBack: () -> Unit,
+    onAdd: () -> Unit,
+) {
+    Column(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp, vertical = 24.dp),
+    ) {
+        
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            TextButton(
+                onClick = onBack,
+                colors = ButtonDefaults.textButtonColors(contentColor = Red),
+            ) {
+                Text("Back", style = MaterialTheme.typography.bodySmall)
+            }
+
+            TextButton(
+                onClick = onAdd,
+                colors = ButtonDefaults.textButtonColors(contentColor = Accent),
+            ) {
+                Text("Add", fontSize = 16.sp, fontWeight = FontWeight.Medium)
+            }
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        
+        ReminderTextField(
+            value = title,
+            onValueChange = onTitleChange,
+            label = "Title",
+            placeholder = "",
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        
+        HorizontalDivider(
+            color = Secondary,
+            thickness = 1.dp,
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        
+        ReminderTextField(
+            value = description,
+            onValueChange = onDescriptionChange,
+            label = "Description",
+            placeholder = "",
+            minLines = 3,
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        
+        Text(
+            text = "Subject",
+            color = TextColor.copy(alpha = 0.7f),
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Medium,
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Box(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(Secondary.copy(alpha = 0.5f))
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+        ) {
+            Text(
+                text = subject,
+                color = TextColor.copy(alpha = 0.7f),
+                fontSize = 16.sp,
+            )
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        
+        ReminderTextField(
+            value = attachmentUrl,
+            onValueChange = onAttachmentUrlChange,
+            label = "URL",
+            placeholder = "",
+        )
+
+        Spacer(modifier = Modifier.height(32.dp))
+    }
+}
+
+@Composable
+private fun ReminderTextField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    label: String,
+    placeholder: String,
+    minLines: Int = 1,
+) {
+    Column {
+        Text(
+            text = label,
+            color = TextColor.copy(alpha = 0.7f),
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Medium,
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+
+        BasicTextField(
+            value = value,
+            onValueChange = onValueChange,
+            textStyle =
+                MaterialTheme.typography.bodyMedium.copy(
+                    color = TextColor,
+                    fontSize = 16.sp,
+                ),
+            cursorBrush = SolidColor(Accent),
+            minLines = minLines,
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(Secondary)
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+            decorationBox = { innerTextField ->
+                Box {
+                    if (value.isEmpty() && placeholder.isNotEmpty()) {
+                        Text(
+                            text = placeholder,
+                            color = TextColor.copy(alpha = 0.5f),
+                            fontSize = 16.sp,
+                        )
+                    }
+                    innerTextField()
+                }
+            },
+        )
+    }
+}

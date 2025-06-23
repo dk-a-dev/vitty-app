@@ -62,6 +62,14 @@ val VittyTypography =
                 lineHeight = 16.sp,
                 letterSpacing = 0.16.sp,
             ),
+        bodySmall =
+            TextStyle(
+                fontFamily = Poppins,
+                fontWeight = FontWeight.Normal,
+                fontSize = 16.sp,
+                lineHeight = 11.68.sp,
+                letterSpacing = (-0.16).sp,
+            ),
         bodyMedium =
             TextStyle(
                 fontFamily = Poppins,
