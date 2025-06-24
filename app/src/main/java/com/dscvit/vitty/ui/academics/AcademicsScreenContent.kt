@@ -46,9 +46,9 @@ import com.dscvit.vitty.theme.Accent
 import com.dscvit.vitty.theme.Background
 import com.dscvit.vitty.theme.Secondary
 import com.dscvit.vitty.theme.TextColor
-import com.dscvit.vitty.ui.academics.component.CourseCard
-import com.dscvit.vitty.ui.academics.model.Course
-import com.dscvit.vitty.ui.academics.model.sampleCourses
+import com.dscvit.vitty.ui.academics.components.CourseCard
+import com.dscvit.vitty.ui.academics.models.Course
+import com.dscvit.vitty.ui.academics.models.sampleCourses
 import com.dscvit.vitty.util.SemesterUtils
 
 @Composable
@@ -57,7 +57,7 @@ fun AcademicsScreenContent(
     userName: String = "Academics",
     profilePictureUrl: String?,
     allCourses: List<Course> = sampleCourses,
-    onCourseClick: (Course) -> Unit = {}
+    onCourseClick: (Course) -> Unit = {},
 ) {
     val tabs = listOf("Courses", "Reminders")
     var selectedTab by remember { mutableIntStateOf(0) }
@@ -65,25 +65,27 @@ fun AcademicsScreenContent(
     var isCurrentSemester by remember { mutableStateOf(true) }
     var reminderStatus by remember { mutableIntStateOf(0) }
 
-    val filteredCourses = remember(allCourses, searchQuery, isCurrentSemester) {
-        allCourses.filter { course ->
-            val matchesSearch = searchQuery.isBlank() || 
-                course.title.contains(searchQuery, ignoreCase = true)
-            
-            if (isCurrentSemester) {
-                matchesSearch && course.semester == SemesterUtils.determineSemester()
-            } else {
-                matchesSearch
+    val filteredCourses =
+        remember(allCourses, searchQuery, isCurrentSemester) {
+            allCourses.filter { course ->
+                val matchesSearch =
+                    searchQuery.isBlank() ||
+                        course.title.contains(searchQuery, ignoreCase = true)
+
+                if (isCurrentSemester) {
+                    matchesSearch && course.semester == SemesterUtils.determineSemester()
+                } else {
+                    matchesSearch
+                }
             }
         }
-    }
 
     Column(
-        modifier = modifier
-            .fillMaxSize()
-            .background(Background),
+        modifier =
+            modifier
+                .fillMaxSize()
+                .background(Background),
     ) {
-        
         AcademicsHeader(
             userName = userName,
             profilePictureUrl = profilePictureUrl,
@@ -95,15 +97,14 @@ fun AcademicsScreenContent(
             isCurrentSemester = isCurrentSemester,
             onSemesterFilterChange = { isCurrentSemester = it },
             reminderStatus = reminderStatus,
-            onReminderStatusChange = { reminderStatus = it }
+            onReminderStatusChange = { reminderStatus = it },
         )
 
-        
         AcademicsContent(
             selectedTab = selectedTab,
             courses = filteredCourses,
             reminderStatus = reminderStatus,
-            onCourseClick = onCourseClick
+            onCourseClick = onCourseClick,
         )
     }
 }
@@ -120,41 +121,41 @@ private fun AcademicsHeader(
     isCurrentSemester: Boolean,
     onSemesterFilterChange: (Boolean) -> Unit,
     reminderStatus: Int,
-    onReminderStatusChange: (Int) -> Unit
+    onReminderStatusChange: (Int) -> Unit,
 ) {
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(Background)
-            .padding(bottom = 16.dp),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .background(Background)
+                .padding(bottom = 16.dp),
     ) {
-        
         ProfileHeader(
             userName = userName,
-            profilePictureUrl = profilePictureUrl
+            profilePictureUrl = profilePictureUrl,
         )
 
-        
         AcademicsTabRow(
             tabs = tabs,
             selectedTab = selectedTab,
-            onTabSelected = onTabSelected
+            onTabSelected = onTabSelected,
         )
 
         Spacer(Modifier.height(20.dp))
 
-        
         when (selectedTab) {
-            0 -> CoursesTabFilters(
-                searchQuery = searchQuery,
-                onSearchQueryChange = onSearchQueryChange,
-                isCurrentSemester = isCurrentSemester,
-                onSemesterFilterChange = onSemesterFilterChange
-            )
-            1 -> RemindersTabFilters(
-                reminderStatus = reminderStatus,
-                onReminderStatusChange = onReminderStatusChange
-            )
+            0 ->
+                CoursesTabFilters(
+                    searchQuery = searchQuery,
+                    onSearchQueryChange = onSearchQueryChange,
+                    isCurrentSemester = isCurrentSemester,
+                    onSemesterFilterChange = onSemesterFilterChange,
+                )
+            1 ->
+                RemindersTabFilters(
+                    reminderStatus = reminderStatus,
+                    onReminderStatusChange = onReminderStatusChange,
+                )
         }
     }
 }
@@ -162,12 +163,13 @@ private fun AcademicsHeader(
 @Composable
 private fun ProfileHeader(
     userName: String,
-    profilePictureUrl: String?
+    profilePictureUrl: String?,
 ) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 20.dp, horizontal = 20.dp),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(vertical = 20.dp, horizontal = 20.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
@@ -179,9 +181,10 @@ private fun ProfileHeader(
         AsyncImage(
             model = profilePictureUrl,
             contentDescription = "Profile Image",
-            modifier = Modifier
-                .size(36.dp)
-                .clip(CircleShape),
+            modifier =
+                Modifier
+                    .size(36.dp)
+                    .clip(CircleShape),
             placeholder = painterResource(R.drawable.ic_gdscvit),
             error = painterResource(R.drawable.ic_gdscvit),
         )
@@ -192,7 +195,7 @@ private fun ProfileHeader(
 private fun AcademicsTabRow(
     tabs: List<String>,
     selectedTab: Int,
-    onTabSelected: (Int) -> Unit
+    onTabSelected: (Int) -> Unit,
 ) {
     TabRow(
         modifier = Modifier.padding(horizontal = 20.dp),
@@ -201,9 +204,10 @@ private fun AcademicsTabRow(
         contentColor = TextColor,
         indicator = { tabPositions ->
             TabRowDefaults.SecondaryIndicator(
-                modifier = Modifier
-                    .tabIndicatorOffset(tabPositions[selectedTab])
-                    .height(3.dp),
+                modifier =
+                    Modifier
+                        .tabIndicatorOffset(tabPositions[selectedTab])
+                        .height(3.dp),
                 color = TextColor,
             )
         },
@@ -223,11 +227,12 @@ private fun AcademicsTabRow(
                 text = {
                     Text(
                         text = tab,
-                        style = if (selectedTab == index) {
-                            MaterialTheme.typography.titleLarge
-                        } else {
-                            MaterialTheme.typography.titleMedium
-                        },
+                        style =
+                            if (selectedTab == index) {
+                                MaterialTheme.typography.titleLarge
+                            } else {
+                                MaterialTheme.typography.titleMedium
+                            },
                         color = if (selectedTab == index) TextColor else Accent,
                     )
                 },
@@ -242,23 +247,21 @@ private fun CoursesTabFilters(
     searchQuery: String,
     onSearchQueryChange: (String) -> Unit,
     isCurrentSemester: Boolean,
-    onSemesterFilterChange: (Boolean) -> Unit
+    onSemesterFilterChange: (Boolean) -> Unit,
 ) {
     Column {
-        
         SearchBar(
             searchQuery = searchQuery,
             onSearchQueryChange = onSearchQueryChange,
-            placeholder = "Search"
+            placeholder = "Search",
         )
 
         Spacer(Modifier.height(16.dp))
 
-        
         FilterChipRow(
             options = listOf("Current Semester", "All Semesters"),
             selectedIndex = if (isCurrentSemester) 0 else 1,
-            onSelectionChange = { index -> onSemesterFilterChange(index == 0) }
+            onSelectionChange = { index -> onSemesterFilterChange(index == 0) },
         )
     }
 }
@@ -266,16 +269,15 @@ private fun CoursesTabFilters(
 @Composable
 private fun RemindersTabFilters(
     reminderStatus: Int,
-    onReminderStatusChange: (Int) -> Unit
+    onReminderStatusChange: (Int) -> Unit,
 ) {
     Column {
         Spacer(Modifier.height(16.dp))
-        
-        
+
         FilterChipRow(
             options = listOf("Pending", "Completed"),
             selectedIndex = reminderStatus,
-            onSelectionChange = onReminderStatusChange
+            onSelectionChange = onReminderStatusChange,
         )
     }
 }
@@ -284,7 +286,7 @@ private fun RemindersTabFilters(
 private fun SearchBar(
     searchQuery: String,
     onSearchQueryChange: (String) -> Unit,
-    placeholder: String
+    placeholder: String,
 ) {
     Box(
         Modifier
@@ -294,10 +296,11 @@ private fun SearchBar(
             .background(Background, RoundedCornerShape(9999.dp)),
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(44.dp)
-                .padding(horizontal = 16.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .height(44.dp)
+                    .padding(horizontal = 16.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
@@ -306,11 +309,12 @@ private fun SearchBar(
                 onValueChange = onSearchQueryChange,
                 singleLine = true,
                 cursorBrush = SolidColor(Accent),
-                textStyle = MaterialTheme.typography.bodyMedium.copy(
-                    color = TextColor,
-                    fontSize = 16.sp,
-                    lineHeight = 16.sp,
-                ),
+                textStyle =
+                    MaterialTheme.typography.bodyMedium.copy(
+                        color = TextColor,
+                        fontSize = 16.sp,
+                        lineHeight = 16.sp,
+                    ),
                 modifier = Modifier.weight(1f),
                 decorationBox = { innerTextField ->
                     Box(
@@ -321,10 +325,11 @@ private fun SearchBar(
                             Text(
                                 text = placeholder,
                                 color = Accent.copy(alpha = 0.3f),
-                                style = MaterialTheme.typography.bodyMedium.copy(
-                                    fontSize = 16.sp,
-                                    lineHeight = 16.sp,
-                                ),
+                                style =
+                                    MaterialTheme.typography.bodyMedium.copy(
+                                        fontSize = 16.sp,
+                                        lineHeight = 16.sp,
+                                    ),
                             )
                         }
                         innerTextField()
@@ -348,18 +353,19 @@ private fun SearchBar(
 private fun FilterChipRow(
     options: List<String>,
     selectedIndex: Int,
-    onSelectionChange: (Int) -> Unit
+    onSelectionChange: (Int) -> Unit,
 ) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 20.dp),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp),
     ) {
         options.forEachIndexed { index, label ->
             FilterChip(
                 label = label,
                 isSelected = selectedIndex == index,
-                onClick = { onSelectionChange(index) }
+                onClick = { onSelectionChange(index) },
             )
             if (index < options.lastIndex) {
                 Spacer(Modifier.width(12.dp))
@@ -372,19 +378,19 @@ private fun FilterChipRow(
 private fun FilterChip(
     label: String,
     isSelected: Boolean,
-    onClick: () -> Unit
+    onClick: () -> Unit,
 ) {
     Box(
-        modifier = Modifier
-            .clip(RoundedCornerShape(24.dp))
-            .background(Secondary)
-            .border(
-                1.dp,
-                if (isSelected) Accent else Color.Transparent,
-                RoundedCornerShape(24.dp),
-            )
-            .clickable { onClick() }
-            .padding(horizontal = 12.dp, vertical = 8.dp),
+        modifier =
+            Modifier
+                .clip(RoundedCornerShape(24.dp))
+                .background(Secondary)
+                .border(
+                    1.dp,
+                    if (isSelected) Accent else Color.Transparent,
+                    RoundedCornerShape(24.dp),
+                ).clickable { onClick() }
+                .padding(horizontal = 12.dp, vertical = 8.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             if (isSelected) {
@@ -411,7 +417,7 @@ private fun AcademicsContent(
     selectedTab: Int,
     courses: List<Course>,
     reminderStatus: Int,
-    onCourseClick: (Course) -> Unit
+    onCourseClick: (Course) -> Unit,
 ) {
     when (selectedTab) {
         0 -> CoursesContent(courses = courses, onCourseClick = onCourseClick)
@@ -422,12 +428,13 @@ private fun AcademicsContent(
 @Composable
 private fun CoursesContent(
     courses: List<Course>,
-    onCourseClick: (Course) -> Unit
+    onCourseClick: (Course) -> Unit,
 ) {
     LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = 20.dp),
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .padding(horizontal = 20.dp),
     ) {
         item {
             Spacer(Modifier.height(16.dp))
@@ -435,7 +442,7 @@ private fun CoursesContent(
         items(courses) { course ->
             CourseCard(
                 course = course,
-                onClick = { onCourseClick(course) }
+                onClick = { onCourseClick(course) },
             )
             Spacer(Modifier.height(16.dp))
         }
@@ -448,20 +455,11 @@ private fun CoursesContent(
 @Composable
 private fun RemindersContent(reminderStatus: Int) {
     Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(bottom = 70.dp),
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .padding(bottom = 70.dp),
         contentAlignment = Alignment.Center,
     ) {
-        val statusText = when (reminderStatus) {
-            0 -> "No pending reminders."
-            1 -> "No completed reminders."
-            else -> "No reminders yet."
-        }
-        Text(
-            text = statusText,
-            style = MaterialTheme.typography.bodyLarge,
-            color = TextColor.copy(alpha = 0.7f),
-        )
     }
 }

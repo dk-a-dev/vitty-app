@@ -1,4 +1,4 @@
-package com.dscvit.vitty.ui.academics
+package com.dscvit.vitty.ui.coursepage
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -587,7 +587,6 @@ private fun SetReminderBottomSheet(
                 onAttachmentUrlChange = { attachmentUrl = it },
                 onBack = { currentPage = 0 },
                 onAdd = {
-                    
                     onDismiss()
                 },
             )
@@ -613,7 +612,6 @@ private fun FirstPage(
             initialSelectedDateMillis = selectedDateMillis,
         )
 
-    
     LaunchedEffect(datePickerState.selectedDateMillis) {
         onDateSelected(datePickerState.selectedDateMillis)
     }
@@ -624,7 +622,6 @@ private fun FirstPage(
                 .fillMaxWidth()
                 .padding(horizontal = 20.dp, vertical = 24.dp),
     ) {
-        
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -753,13 +750,11 @@ private fun FirstPage(
                         }
                     }
 
-                    
                     HorizontalDivider(
                         color = DividerColor,
                         thickness = 1.dp,
                     )
 
-                    
                     Row(
                         modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 6.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -813,7 +808,6 @@ private fun SecondPage(
                 .fillMaxWidth()
                 .padding(horizontal = 20.dp, vertical = 24.dp),
     ) {
-        
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -836,7 +830,6 @@ private fun SecondPage(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        
         ReminderTextField(
             value = title,
             onValueChange = onTitleChange,
@@ -846,7 +839,6 @@ private fun SecondPage(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        
         HorizontalDivider(
             color = Secondary,
             thickness = 1.dp,
@@ -854,7 +846,6 @@ private fun SecondPage(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        
         ReminderTextField(
             value = description,
             onValueChange = onDescriptionChange,
@@ -865,7 +856,6 @@ private fun SecondPage(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        
         Text(
             text = "Subject",
             color = TextColor.copy(alpha = 0.7f),
@@ -891,7 +881,6 @@ private fun SecondPage(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        
         ReminderTextField(
             value = attachmentUrl,
             onValueChange = onAttachmentUrlChange,

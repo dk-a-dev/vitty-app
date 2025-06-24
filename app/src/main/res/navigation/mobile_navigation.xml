@@ -89,7 +89,7 @@
             app:popExitAnim="@anim/slide_out_right" />    </fragment>
       <fragment
         android:id="@+id/coursePageFragment"
-        android:name="com.dscvit.vitty.ui.academics.CoursePageFragment"
+        android:name="com.dscvit.vitty.ui.coursepage.CoursePageFragment"
         android:label="Course Page"
         tools:layout="@layout/fragment_course_page">
         <argument
@@ -115,7 +115,7 @@
     
     <fragment
         android:id="@+id/noteFragment"
-        android:name="com.dscvit.vitty.ui.academics.NoteFragment"
+        android:name="com.dscvit.vitty.ui.notes.NoteFragment"
         android:label="Note"
         tools:layout="@layout/fragment_note" />
 </navigation>

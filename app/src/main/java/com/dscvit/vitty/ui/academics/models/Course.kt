@@ -1,4 +1,4 @@
-package com.dscvit.vitty.ui.academics.model
+package com.dscvit.vitty.ui.academics.models
 
 data class Course(
     val title: String,

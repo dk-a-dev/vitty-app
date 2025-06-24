@@ -1,4 +1,4 @@
-package com.dscvit.vitty.ui.academics.component
+package com.dscvit.vitty.ui.academics.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -25,12 +25,12 @@ import androidx.compose.ui.unit.dp
 import com.dscvit.vitty.theme.Accent
 import com.dscvit.vitty.theme.Secondary
 import com.dscvit.vitty.theme.TextColor
-import com.dscvit.vitty.ui.academics.model.Course
+import com.dscvit.vitty.ui.academics.models.Course
 
 @Composable
 fun CourseCard(
     course: Course,
-    onClick: () -> Unit = {}
+    onClick: () -> Unit = {},
 ) {
     Box(
         Modifier

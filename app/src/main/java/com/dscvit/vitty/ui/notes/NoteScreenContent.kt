@@ -1,4 +1,4 @@
-package com.dscvit.vitty.ui.academics
+package com.dscvit.vitty.ui.notes
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -34,9 +34,8 @@ fun NoteScreenContent(onBackClick: () -> Unit) {
     var redoStack by remember { mutableStateOf(listOf<TextFieldValue>()) }
     var lastSavedText by remember { mutableStateOf(TextFieldValue("")) }
 
-    
     LaunchedEffect(noteText) {
-        delay(1000) 
+        delay(1000)
         if (noteText.text != lastSavedText.text && noteText.text.isNotEmpty()) {
             undoStack = (undoStack + lastSavedText).takeLast(50)
             redoStack = emptyList()
@@ -44,7 +43,6 @@ fun NoteScreenContent(onBackClick: () -> Unit) {
         }
     }
 
-    
     fun saveToUndoStack() {
         if (noteText != lastSavedText) {
             undoStack = (undoStack + noteText).takeLast(50)
@@ -125,7 +123,6 @@ fun NoteScreenContent(onBackClick: () -> Unit) {
                         .padding(16.dp),
             ) {
                 if (isPreviewMode) {
-                    
                     MarkdownText(
                         markdown = noteText.text,
                         modifier =
@@ -135,7 +132,6 @@ fun NoteScreenContent(onBackClick: () -> Unit) {
                         style = MaterialTheme.typography.bodyMedium.copy(color = TextColor),
                     )
                 } else {
-                    
                     BasicTextField(
                         value = noteText,
                         onValueChange = { newValue ->
@@ -181,7 +177,6 @@ private fun NoteHeader(
                 .background(Background)
                 .padding(horizontal = 10.dp, vertical = 16.dp),
     ) {
-        
         IconButton(
             onClick = onBackClick,
             modifier = Modifier.align(Alignment.CenterStart),
@@ -193,7 +188,6 @@ private fun NoteHeader(
             )
         }
 
-        
         Text(
             text = "Note",
             style = MaterialTheme.typography.headlineSmall,
@@ -203,7 +197,6 @@ private fun NoteHeader(
             modifier = Modifier.align(Alignment.Center),
         )
 
-        
         IconButton(
             onClick = onTogglePreview,
             modifier = Modifier.align(Alignment.CenterEnd),
@@ -337,7 +330,6 @@ private fun ToolbarButton(
     }
 }
 
-
 private fun applyFormatting(
     textFieldValue: TextFieldValue,
     prefix: String,
@@ -347,7 +339,6 @@ private fun applyFormatting(
     val selection = textFieldValue.selection
 
     return if (selection.collapsed) {
-        
         val newText =
             text.substring(0, selection.start) +
                 prefix + suffix +
@@ -357,7 +348,6 @@ private fun applyFormatting(
             selection = TextRange(selection.start + prefix.length),
         )
     } else {
-        
         val selectedText = text.substring(selection.start, selection.end)
         val newText =
             text.substring(0, selection.start) +
@@ -374,7 +364,6 @@ private fun applyFormatting(
     }
 }
 
-
 private fun applyListFormatting(
     textFieldValue: TextFieldValue,
     listPrefix: String,
@@ -382,14 +371,11 @@ private fun applyListFormatting(
     val text = textFieldValue.text
     val selection = textFieldValue.selection
 
-    
     val lineStart = text.lastIndexOf('\n', selection.start - 1) + 1
     val lineEnd = text.indexOf('\n', selection.start).let { if (it == -1) text.length else it }
     val currentLine = text.substring(lineStart, lineEnd)
 
-    
     return if (currentLine.startsWith(listPrefix)) {
-        
         val newText =
             text.substring(0, lineStart) +
                 currentLine.removePrefix(listPrefix) +
@@ -399,7 +385,6 @@ private fun applyListFormatting(
             selection = TextRange(maxOf(0, selection.start - listPrefix.length)),
         )
     } else {
-        
         val newText =
             text.substring(0, lineStart) +
                 listPrefix + currentLine +

@@ -1,4 +1,4 @@
-package com.dscvit.vitty.ui.academics
+package com.dscvit.vitty.ui.notes
 
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -10,22 +10,20 @@ import androidx.navigation.fragment.findNavController
 import com.dscvit.vitty.theme.VittyTheme
 
 class NoteFragment : Fragment() {
-
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
-        savedInstanceState: Bundle?
-    ): View {
-        return ComposeView(requireContext()).apply {
+        savedInstanceState: Bundle?,
+    ): View =
+        ComposeView(requireContext()).apply {
             setContent {
                 VittyTheme {
                     NoteScreenContent(
                         onBackClick = {
                             findNavController().popBackStack()
-                        }
+                        },
                     )
                 }
             }
         }
-    }
 }

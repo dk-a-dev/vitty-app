@@ -17,7 +17,7 @@ import androidx.navigation.fragment.findNavController
 import com.dscvit.vitty.databinding.FragmentAcademicsBinding
 import com.dscvit.vitty.network.api.community.responses.user.UserResponse
 import com.dscvit.vitty.theme.VittyTheme
-import com.dscvit.vitty.ui.academics.model.Course
+import com.dscvit.vitty.ui.academics.models.Course
 import com.dscvit.vitty.ui.schedule.ScheduleViewModel
 import com.dscvit.vitty.util.Constants
 import com.dscvit.vitty.util.SemesterUtils
@@ -49,33 +49,27 @@ class AcademicsFragment : Fragment() {
                     val prefs = requireContext().getSharedPreferences(Constants.USER_INFO, 0)
                     val profilePictureUrl = prefs.getString(Constants.COMMUNITY_PICTURE, null)
 
-                    
                     val userResponse by scheduleViewModel.user.observeAsState()
 
-                    
                     var allCourses by remember { mutableStateOf<List<Course>>(emptyList()) }
                     var isLoading by remember { mutableStateOf(false) }
 
-                    
                     LaunchedEffect(Unit) {
                         val token = prefs.getString(Constants.COMMUNITY_TOKEN, "") ?: ""
                         val username = prefs.getString(Constants.COMMUNITY_USERNAME, null) ?: ""
 
-                        
                         allCourses = loadCachedCourses(prefs)
 
-                        
                         if (token.isNotEmpty() && username.isNotEmpty()) {
                             isLoading = true
                             scheduleViewModel.getUserWithTimeTable(token, username)
                         }
                     }
 
-                    
                     LaunchedEffect(userResponse) {
                         userResponse?.let { response ->
                             isLoading = false
-                            
+
                             allCourses =
                                 withContext(Dispatchers.Default) {
                                     extractCoursesFromTimetable(response)
@@ -87,15 +81,16 @@ class AcademicsFragment : Fragment() {
                         profilePictureUrl = profilePictureUrl,
                         allCourses = allCourses,
                         onCourseClick = { course ->
-                            val action = AcademicsFragmentDirections
-                                .actionNavigationAcademicsToCoursePageFragment(
-                                    courseTitle = course.title,
-                                    courseSlot = course.slot,
-                                    courseCode = course.code,
-                                    courseSemester = course.semester
-                                )
+                            val action =
+                                AcademicsFragmentDirections
+                                    .actionNavigationAcademicsToCoursePageFragment(
+                                        courseTitle = course.title,
+                                        courseSlot = course.slot,
+                                        courseCode = course.code,
+                                        courseSemester = course.semester,
+                                    )
                             findNavController().navigate(action)
-                        }
+                        },
                     )
                 }
             }
@@ -122,7 +117,6 @@ class AcademicsFragment : Fragment() {
     private fun extractCoursesFromTimetable(userResponse: UserResponse): List<Course> {
         val timetableData = userResponse.timetable?.data ?: return emptyList()
 
-        
         val allLectures =
             listOfNotNull(
                 timetableData.Monday,
@@ -136,16 +130,13 @@ class AcademicsFragment : Fragment() {
 
         val currentSemester = SemesterUtils.determineSemester()
 
-        
         val groupedLectures = allLectures.groupBy { it.name }
 
         val result = mutableListOf<Course>()
 
-        
         groupedLectures.keys.sorted().forEach { title ->
             val lectures = groupedLectures[title] ?: return@forEach
 
-            
             val uniqueSlots =
                 lectures
                     .map { it.slot }
@@ -170,7 +161,6 @@ class AcademicsFragment : Fragment() {
             )
         }
 
-        
         return result.sortedBy { it.title }
     }
 

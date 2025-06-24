@@ -1,4 +1,4 @@
-package com.dscvit.vitty.ui.academics
+package com.dscvit.vitty.ui.coursepage
 
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -27,12 +27,13 @@ class CoursePageFragment : Fragment() {
         binding.composeView.apply {
             setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
             setContent {
-                VittyTheme {                    CoursePageContent(
+                VittyTheme {
+                    CoursePageContent(
                         courseTitle = args.courseTitle,
                         courseSlot = args.courseSlot,
                         courseCode = args.courseCode,
                         onBackClick = { findNavController().popBackStack() },
-                        onNavigateToNote = { 
+                        onNavigateToNote = {
                             findNavController().navigate(R.id.action_coursePageFragment_to_noteFragment)
                         },
                     )

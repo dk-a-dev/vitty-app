@@ -1,11 +1,11 @@
 package com.dscvit.vitty.theme
 
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 
-private val AcademicsColorScheme =
-    darkColorScheme(
+private val VittyColorScheme =
+    lightColorScheme(
         primary = Accent,
         secondary = Secondary,
         background = Background,
@@ -19,7 +19,7 @@ private val AcademicsColorScheme =
 @Composable
 fun VittyTheme(content: @Composable () -> Unit) {
     MaterialTheme(
-        colorScheme = AcademicsColorScheme,
+        colorScheme = VittyColorScheme,
         typography = VittyTypography,
         content = content,
     )
