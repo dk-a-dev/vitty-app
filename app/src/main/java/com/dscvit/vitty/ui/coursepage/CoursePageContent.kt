@@ -1,10 +1,22 @@
 package com.dscvit.vitty.ui.coursepage
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
@@ -15,12 +27,15 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.dscvit.vitty.R
@@ -32,6 +47,7 @@ import com.dscvit.vitty.theme.Red
 import com.dscvit.vitty.theme.Secondary
 import com.dscvit.vitty.theme.TextColor
 import com.dscvit.vitty.theme.Yellow
+import dev.jeziellago.compose.markdowntext.MarkdownText
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -45,98 +61,93 @@ fun CoursePageContent(
     var searchQuery by remember { mutableStateOf("") }
     var showBottomModal by remember { mutableStateOf(false) }
     var showSetReminderModal by remember { mutableStateOf(false) }
-    val bottomSheetState = rememberModalBottomSheetState()
     val setReminderSheetState = rememberModalBottomSheetState()
 
     val reminders =
-        listOf(
-            Reminders("DA I", "24 May", ReminderStatus.UPCOMING),
-            Reminders("DA II", "2 June", ReminderStatus.UPCOMING),
-            Reminders("Assignment 1", "15 June", ReminderStatus.CAN_WAIT),
-            Reminders("Project Report", "20 June", ReminderStatus.CAN_WAIT),
-            Reminders("Quiz I", "2 Jan", ReminderStatus.COMPLETED),
-            Reminders("Quiz II", "10 Jan", ReminderStatus.COMPLETED),
-        )
+        remember {
+            listOf(
+                Reminders("DA I", "24 May", ReminderStatus.UPCOMING),
+                Reminders("DA II", "2 June", ReminderStatus.UPCOMING),
+                Reminders("Assignment 1", "15 June", ReminderStatus.CAN_WAIT),
+                Reminders("Project Report", "20 June", ReminderStatus.CAN_WAIT),
+                Reminders("Quiz I", "2 Jan", ReminderStatus.COMPLETED),
+                Reminders("Quiz II", "10 Jan", ReminderStatus.COMPLETED),
+            )
+        }
 
-    Scaffold(
+    val sampleNotes =
+        remember {
+            (1..9).map { i ->
+                Note(
+                    title = "Note $i",
+                    content = "This is the content of note $i",
+                    type = NoteType.TEXT,
+                    isStarred = i % 3 == 1,
+                )
+            }
+        }
+
+    Box(
         modifier =
             Modifier
                 .fillMaxSize()
                 .background(Background),
-        containerColor = Background,
-        topBar = {
-            CoursePageHeader(
-                onBackClick = onBackClick,
-            )
-        },
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = { showBottomModal = true },
-                containerColor = Secondary,
-                contentColor = TextColor,
-                elevation =
-                    FloatingActionButtonDefaults.elevation(
-                        defaultElevation = 6.dp,
-                        pressedElevation = 8.dp,
-                        hoveredElevation = 8.dp,
-                        focusedElevation = 8.dp,
-                    ),
-                shape = RoundedCornerShape(80.dp),
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = "Add content",
-                    modifier = Modifier.size(28.dp),
-                )
-            }
-        },
-        floatingActionButtonPosition = FabPosition.End,
-    ) { paddingValues ->
-        LazyColumn(
+    ) {
+        val backgroundAlpha by animateFloatAsState(
+            targetValue = if (showBottomModal) 0.4f else 1f,
+            animationSpec = tween(durationMillis = 300),
+            label = "background_alpha",
+        )
+
+        Column(
             modifier =
                 Modifier
                     .fillMaxSize()
-                    .padding(paddingValues),
-            contentPadding = PaddingValues(bottom = 20.dp),
+                    .alpha(backgroundAlpha),
         ) {
-            item {
-                SearchBar(
-                    searchQuery = searchQuery,
-                    onSearchQueryChange = { searchQuery = it },
-                )
-
-                Spacer(Modifier.height(20.dp))
-            }
-
-            item {
-                CourseInfoSection(
-                    courseTitle = courseTitle,
-                    reminders = reminders,
-                )
-            }
+            CoursePageHeader(onBackClick = onBackClick)
+            SearchBar(
+                searchQuery = searchQuery,
+                onSearchQueryChange = { searchQuery = it },
+            )
+            Spacer(Modifier.height(20.dp))
+            CourseInfoSection(
+                courseTitle = courseTitle,
+                reminders = reminders,
+            )
+            NoteList(notes = sampleNotes)
         }
-    }
 
-    if (showBottomModal) {
-        ModalBottomSheet(
-            onDismissRequest = { showBottomModal = false },
-            sheetState = bottomSheetState,
-            containerColor = Background,
-            contentColor = TextColor,
-            dragHandle = {
-                BottomSheetDefaults.DragHandle(
-                    color = Accent.copy(alpha = 0.4f),
-                    width = 100.dp,
-                    height = 7.dp,
-                )
-            },
-        ) {
-            AddContentBottomSheet(
-                onDismiss = { showBottomModal = false },
-                onNavigateToNote = onNavigateToNote,
-                onSetReminder = { showSetReminderModal = true },
+        
+        if (showBottomModal) {
+            Box(
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .clickable(
+                            indication = null,
+                            interactionSource = remember { MutableInteractionSource() },
+                        ) {
+                            showBottomModal = false
+                        },
             )
         }
+
+        AnimatedFabGroup(
+            showExpanded = showBottomModal,
+            onToggleExpanded = { showBottomModal = !showBottomModal },
+            onWriteNote = {
+                showBottomModal = false
+                onNavigateToNote()
+            },
+            onSetReminder = {
+                showBottomModal = false
+                showSetReminderModal = true
+            },
+            onUploadFile = {
+                showBottomModal = false
+            },
+        )
     }
 
     if (showSetReminderModal) {
@@ -152,6 +163,77 @@ fun CoursePageContent(
                 courseTitle = courseTitle,
             )
         }
+    }
+}
+
+enum class NoteType {
+    TEXT,
+    IMAGE,
+}
+
+data class Note(
+    val title: String,
+    val content: String,
+    val type: NoteType,
+    val isStarred: Boolean,
+)
+
+@Composable
+private fun NoteList(notes: List<Note>) {
+    LazyColumn(
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .padding(horizontal = 20.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+        contentPadding = PaddingValues(bottom = 100.dp),
+    ) {
+        items(notes.size) { index ->
+            NoteItem(notes[index]) {}
+        }
+    }
+}
+
+@Composable
+private fun NoteItem(
+    note: Note,
+    onNoteClick: () -> Unit = {},
+) {
+    if (note.type == NoteType.IMAGE) return
+
+    Column(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(16.dp))
+                .clickable { onNoteClick() }
+                .background(Secondary)
+                .padding(16.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = note.title,
+                style = MaterialTheme.typography.titleMedium,
+                color = TextColor,
+                fontWeight = FontWeight.SemiBold,
+            )
+            if (note.isStarred) {
+                Spacer(modifier = Modifier.width(8.dp))
+                Icon(
+                    painter = painterResource(id = R.drawable.ic_star),
+                    contentDescription = "Starred",
+                    tint = Accent,
+                    modifier = Modifier.padding(bottom = 4.dp),
+                )
+            }
+        }
+        Spacer(modifier = Modifier.height(4.dp))
+        MarkdownText(
+            markdown = note.content,
+            style = MaterialTheme.typography.bodyMedium.copy(color = TextColor),
+            truncateOnTextOverflow = true,
+            maxLines = 3,
+        )
     }
 }
 
@@ -263,113 +345,51 @@ private fun CourseInfoSection(
                 .fillMaxWidth()
                 .padding(horizontal = 20.dp, vertical = 16.dp),
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                text = courseTitle,
-                style = MaterialTheme.typography.labelLarge.copy(fontSize = 20.sp, lineHeight = 20.sp),
-                color = TextColor,
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.weight(1f),
-            )
-        }
-
+        Text(
+            text = courseTitle,
+            style = MaterialTheme.typography.labelLarge.copy(fontSize = 20.sp, lineHeight = 20.sp),
+            color = TextColor,
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.fillMaxWidth(),
+        )
         Spacer(Modifier.height(12.dp))
 
-        val upcomingReminders = reminders.filter { it.status == ReminderStatus.UPCOMING }
-        val canWaitReminders = reminders.filter { it.status == ReminderStatus.CAN_WAIT }
-        val completedReminders = reminders.filter { it.status == ReminderStatus.COMPLETED }
-
         val prioritizedReminders =
-            mutableListOf<Reminders>().apply {
-                addAll(upcomingReminders)
-                addAll(canWaitReminders)
-                addAll(completedReminders)
+            remember(reminders) {
+                mutableListOf<Reminders>().apply {
+                    addAll(reminders.filter { it.status == ReminderStatus.UPCOMING })
+                    addAll(reminders.filter { it.status == ReminderStatus.CAN_WAIT })
+                    addAll(reminders.filter { it.status == ReminderStatus.COMPLETED })
+                }
             }
 
-        val totalReminders = prioritizedReminders.size
         val displayedReminders = prioritizedReminders.take(3)
-        val remainingCount = totalReminders - 3
+        val remainingCount = prioritizedReminders.size - 3
+
         if (displayedReminders.isNotEmpty()) {
-            when {
-                totalReminders == 0 -> {
-                    Text(
-                        text = "No reminders available",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = TextColor.copy(alpha = 0.5f),
+            LazyRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                contentPadding = PaddingValues(horizontal = 0.dp),
+            ) {
+                
+                items(displayedReminders.size) { index ->
+                    RemindersChip(
+                        text = "${displayedReminders[index].title} by ${displayedReminders[index].dueDate}",
+                        reminder = displayedReminders[index],
                     )
                 }
-                totalReminders <= 3 -> {
-                    when (displayedReminders.size) {
-                        1 -> {
-                            Row {
-                                RemindersChip(
-                                    text = "${displayedReminders[0].title} by ${displayedReminders[0].dueDate}",
-                                    reminder = displayedReminders[0],
-                                )
-                            }
-                        }
-                        2 -> {
-                            Row {
-                                displayedReminders.forEach { reminder ->
-                                    RemindersChip(
-                                        text = "${reminder.title} by ${reminder.dueDate}",
-                                        reminder = reminder,
-                                    )
-                                    Spacer(Modifier.width(8.dp))
-                                }
-                            }
-                        }
-                        3 -> {
-                            Column {
-                                Row {
-                                    displayedReminders.take(2).forEach { reminder ->
-                                        RemindersChip(
-                                            text = "${reminder.title} by ${reminder.dueDate}",
-                                            reminder = reminder,
-                                        )
-                                        Spacer(Modifier.width(8.dp))
-                                    }
-                                }
-                                Spacer(Modifier.height(8.dp))
-                                Row {
-                                    RemindersChip(
-                                        text = "${displayedReminders[2].title} by ${displayedReminders[2].dueDate}",
-                                        reminder = displayedReminders[2],
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-                else -> {
-                    Column {
-                        Row {
-                            displayedReminders.take(2).forEach { reminder ->
-                                RemindersChip(
-                                    text = "${reminder.title} by ${reminder.dueDate}",
-                                    reminder = reminder,
-                                )
-                                Spacer(Modifier.width(8.dp))
-                            }
-                        }
-                        Spacer(Modifier.height(8.dp))
-                        Row {
-                            RemindersChip(
-                                text = "${displayedReminders[2].title} by ${displayedReminders[2].dueDate}",
-                                reminder = displayedReminders[2],
-                            )
-                            Spacer(Modifier.width(8.dp))
-                            RemindersChip(
-                                text = "+$remainingCount",
-                                reminder = null,
-                            )
-                        }
+
+                
+                if (remainingCount > 0) {
+                    item {
+                        RemindersChip(
+                            text = "+$remainingCount",
+                            reminder = null,
+                        )
                     }
                 }
             }
-
             Spacer(Modifier.height(12.dp))
         }
     }
@@ -387,9 +407,7 @@ private fun RemindersChip(
                 .background(Secondary)
                 .padding(horizontal = 12.dp, vertical = 8.dp),
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
             when {
                 reminder == null -> {
                     Text(
@@ -409,16 +427,11 @@ private fun RemindersChip(
                         tint = Green,
                         modifier = Modifier.size(16.dp),
                     )
-
                     Spacer(Modifier.width(8.dp))
-
                     Text(
                         text = text,
                         color = TextColor,
-                        style =
-                            MaterialTheme.typography.bodyMedium.copy(
-                                fontSize = 14.sp,
-                            ),
+                        style = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp),
                     )
                 }
                 else -> {
@@ -436,14 +449,10 @@ private fun RemindersChip(
                                 ),
                     )
                     Spacer(Modifier.width(8.dp))
-
                     Text(
                         text = text,
                         color = TextColor,
-                        style =
-                            MaterialTheme.typography.bodyMedium.copy(
-                                fontSize = 14.sp,
-                            ),
+                        style = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp),
                     )
                 }
             }
@@ -462,91 +471,6 @@ enum class ReminderStatus {
     CAN_WAIT,
     COMPLETED,
 }
-
-@Composable
-private fun AddContentBottomSheet(
-    onDismiss: () -> Unit,
-    onNavigateToNote: () -> Unit,
-    onSetReminder: () -> Unit,
-) {
-    Column(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .padding(vertical = 32.dp, horizontal = 32.dp),
-    ) {
-        val addOptions =
-            listOf(
-                AddOption("Write Note", R.drawable.ic_edit_document),
-                AddOption("Upload File", R.drawable.ic_upload),
-                AddOption("Set Reminder", R.drawable.ic_clock),
-            )
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-        ) {
-            addOptions.forEach { option ->
-                AddOptionItem(
-                    option = option,
-                    onClick = {
-                        onDismiss()
-                        when (option.title) {
-                            "Write Note" -> onNavigateToNote()
-                            "Set Reminder" -> onSetReminder()
-                        }
-                    },
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun AddOptionItem(
-    option: AddOption,
-    onClick: () -> Unit,
-) {
-    Column(
-        modifier =
-            Modifier
-                .clip(RoundedCornerShape(12.dp))
-                .clickable { onClick() }
-                .padding(8.dp),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Box(
-            modifier =
-                Modifier
-                    .size(45.dp)
-                    .clip(RoundedCornerShape(60.dp))
-                    .background(TextColor),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(
-                painter = painterResource(id = option.icon),
-                contentDescription = option.title,
-                tint = Secondary,
-            )
-        }
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        Text(
-            text = option.title,
-            style = MaterialTheme.typography.bodyMedium,
-            color = TextColor,
-            fontWeight = FontWeight.Medium,
-            textAlign = TextAlign.Center,
-        )
-    }
-}
-
-data class AddOption(
-    val title: String,
-    val icon: Int,
-)
 
 @Composable
 private fun SetReminderBottomSheet(
@@ -620,7 +544,7 @@ private fun FirstPage(
         modifier =
             Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 24.dp),
+                .padding(horizontal = 20.dp),
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -636,11 +560,14 @@ private fun FirstPage(
 
             TextButton(
                 onClick = onNext,
+                enabled = selectedDateMillis != null,
                 colors = ButtonDefaults.textButtonColors(contentColor = Accent),
             ) {
                 Text("Next", style = MaterialTheme.typography.bodySmall)
             }
         }
+
+        Spacer(modifier = Modifier.height(8.dp))
 
         DatePicker(
             state = datePickerState,
@@ -703,8 +630,9 @@ private fun FirstPage(
                         SwitchDefaults.colors(
                             checkedThumbColor = Background,
                             checkedTrackColor = Accent,
-                            uncheckedThumbColor = TextColor,
-                            uncheckedTrackColor = Secondary,
+                            uncheckedThumbColor = Color(0xff768EA4),
+                            uncheckedTrackColor = Color(0x33475985),
+                            uncheckedBorderColor = Color.Transparent,
                         ),
                 )
             }
@@ -806,7 +734,7 @@ private fun SecondPage(
         modifier =
             Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 24.dp),
+                .padding(horizontal = 20.dp),
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -828,65 +756,192 @@ private fun SecondPage(
             }
         }
 
-        Spacer(modifier = Modifier.height(24.dp))
-
-        ReminderTextField(
-            value = title,
-            onValueChange = onTitleChange,
-            label = "Title",
-            placeholder = "",
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        HorizontalDivider(
-            color = Secondary,
-            thickness = 1.dp,
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        ReminderTextField(
-            value = description,
-            onValueChange = onDescriptionChange,
-            label = "Description",
-            placeholder = "",
-            minLines = 3,
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
         Text(
-            text = "Subject",
-            color = TextColor.copy(alpha = 0.7f),
-            fontSize = 14.sp,
+            text = "Set New Reminder",
+            style = MaterialTheme.typography.headlineLarge,
+            color = TextColor,
             fontWeight = FontWeight.Medium,
+            modifier = Modifier.fillMaxWidth(),
+            textAlign = TextAlign.Center,
         )
-        Spacer(modifier = Modifier.height(8.dp))
+
+        Spacer(modifier = Modifier.height(22.dp))
 
         Box(
             modifier =
                 Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(Secondary.copy(alpha = 0.5f))
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(Secondary)
+                    .padding(horizontal = 4.dp),
         ) {
-            Text(
-                text = subject,
-                color = TextColor.copy(alpha = 0.7f),
-                fontSize = 16.sp,
-            )
+            Column {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    ReminderTextField(
+                        value = title,
+                        onValueChange = onTitleChange,
+                        placeholder = "Title",
+                        maxLines = 1,
+                    )
+                }
+
+                HorizontalDivider(
+                    color = DividerColor,
+                    thickness = 1.dp,
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    ReminderTextField(
+                        value = description,
+                        onValueChange = onDescriptionChange,
+                        placeholder = "Description",
+                        maxLines = 3,
+                    )
+                }
+            }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(14.dp))
 
-        ReminderTextField(
-            value = attachmentUrl,
-            onValueChange = onAttachmentUrlChange,
-            label = "URL",
-            placeholder = "",
-        )
+        Box(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(Secondary)
+                    .padding(horizontal = 8.dp),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 6.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = "Subject",
+                    style =
+                        MaterialTheme.typography.bodyMedium.copy(
+                            fontSize = 16.sp,
+                            letterSpacing = (-0.16).sp,
+                        ),
+                    color = TextColor,
+                )
+
+                Spacer(modifier = Modifier.width(32.dp))
+
+                Box(
+                    modifier =
+                        Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(Color(0x33475985))
+                            .padding(horizontal = 10.dp, vertical = 4.dp),
+                ) {
+                    Text(
+                        text = subject,
+                        style =
+                            MaterialTheme.typography.labelLarge.copy(
+                                fontWeight = FontWeight.Light,
+                            ),
+                        overflow = TextOverflow.Ellipsis,
+                        maxLines = 1,
+                        color = TextColor,
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(14.dp))
+
+        Box(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(Secondary)
+                    .padding(horizontal = 4.dp),
+        ) {
+            Column {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = "Alert",
+                        style =
+                            MaterialTheme.typography.bodyMedium.copy(
+                                fontSize = 16.sp,
+                                letterSpacing = (-0.16).sp,
+                            ),
+                        color = TextColor,
+                    )
+
+                    Text(
+                        text = "None >",
+                        style =
+                            MaterialTheme.typography.bodyMedium.copy(
+                                fontSize = 16.sp,
+                                letterSpacing = (-0.16).sp,
+                            ),
+                        color = Color(0xff334759),
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(14.dp))
+
+        Box(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(Secondary)
+                    .padding(horizontal = 4.dp),
+        ) {
+            Column {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = "Add attachment...",
+                        style =
+                            MaterialTheme.typography.bodyMedium.copy(
+                                fontSize = 16.sp,
+                                letterSpacing = (-0.16).sp,
+                            ),
+                        color = TextColor,
+                    )
+                }
+
+                HorizontalDivider(
+                    color = DividerColor,
+                    thickness = 1.dp,
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    ReminderTextField(
+                        value = attachmentUrl,
+                        onValueChange = onAttachmentUrlChange,
+                        placeholder = "URL",
+                        maxLines = 1,
+                    )
+                }
+            }
+        }
 
         Spacer(modifier = Modifier.height(32.dp))
     }
@@ -896,47 +951,196 @@ private fun SecondPage(
 private fun ReminderTextField(
     value: String,
     onValueChange: (String) -> Unit,
-    label: String,
     placeholder: String,
     minLines: Int = 1,
+    maxLines: Int = Int.MAX_VALUE,
 ) {
-    Column {
-        Text(
-            text = label,
-            color = TextColor.copy(alpha = 0.7f),
-            fontSize = 14.sp,
-            fontWeight = FontWeight.Medium,
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-
-        BasicTextField(
-            value = value,
-            onValueChange = onValueChange,
-            textStyle =
-                MaterialTheme.typography.bodyMedium.copy(
-                    color = TextColor,
-                    fontSize = 16.sp,
-                ),
-            cursorBrush = SolidColor(Accent),
-            minLines = minLines,
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(Secondary)
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
-            decorationBox = { innerTextField ->
-                Box {
-                    if (value.isEmpty() && placeholder.isNotEmpty()) {
-                        Text(
-                            text = placeholder,
-                            color = TextColor.copy(alpha = 0.5f),
-                            fontSize = 16.sp,
-                        )
-                    }
-                    innerTextField()
+    BasicTextField(
+        value = value,
+        onValueChange = onValueChange,
+        textStyle =
+            MaterialTheme.typography.bodyMedium.copy(
+                color = TextColor,
+                fontSize = 16.sp,
+                letterSpacing = (-0.16).sp,
+            ),
+        cursorBrush = SolidColor(Accent),
+        minLines = minLines,
+        maxLines = maxLines,
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(8.dp))
+                .background(Color.Transparent),
+        decorationBox = { innerTextField ->
+            Box {
+                if (value.isEmpty() && placeholder.isNotEmpty()) {
+                    Text(
+                        text = placeholder,
+                        style =
+                            MaterialTheme.typography.bodyMedium.copy(
+                                color = TextColor,
+                                fontSize = 16.sp,
+                                letterSpacing = (-0.16).sp,
+                            ),
+                        color = Color(0xff566A7B),
+                        fontSize = 16.sp,
+                    )
                 }
-            },
-        )
+                innerTextField()
+            }
+        },
+    )
+}
+
+@Composable
+private fun AnimatedFabGroup(
+    showExpanded: Boolean,
+    onToggleExpanded: () -> Unit,
+    onWriteNote: () -> Unit,
+    onSetReminder: () -> Unit,
+    onUploadFile: () -> Unit,
+) {
+    Column(
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .wrapContentSize(Alignment.BottomEnd)
+                .padding(16.dp),
+        horizontalAlignment = Alignment.End,
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        AnimatedVisibility(
+            visible = showExpanded,
+            enter =
+                fadeIn(animationSpec = tween(300)) +
+                    slideInVertically(
+                        animationSpec = spring(dampingRatio = 0.8f),
+                        initialOffsetY = { it / 3 },
+                    ),
+            exit =
+                fadeOut(animationSpec = tween(200)) +
+                    slideOutVertically(
+                        animationSpec = tween(200),
+                        targetOffsetY = { it / 3 },
+                    ),
+        ) {
+            Column(
+                horizontalAlignment = Alignment.End,
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                FabWithTooltip("Write Note", R.drawable.ic_edit_document, onWriteNote)
+                FabWithTooltip("Set Reminder", R.drawable.ic_clock, onSetReminder)
+                FabWithTooltip("Upload File", R.drawable.ic_upload, onUploadFile)
+            }
+        }
+
+        FloatingActionButton(
+            onClick = onToggleExpanded,
+            containerColor = Secondary,
+            contentColor = TextColor,
+            elevation =
+                FloatingActionButtonDefaults.elevation(
+                    defaultElevation = 6.dp,
+                    pressedElevation = 8.dp,
+                    hoveredElevation = 8.dp,
+                    focusedElevation = 8.dp,
+                ),
+            shape = RoundedCornerShape(9999.dp),
+        ) {
+            val rotation by animateFloatAsState(
+                targetValue = if (showExpanded) 45f else 0f,
+                animationSpec = spring(dampingRatio = 0.8f),
+                label = "fab_rotation",
+            )
+
+            Icon(
+                imageVector = Icons.Default.Add,
+                contentDescription = if (showExpanded) "Close" else "Add content",
+                modifier =
+                    Modifier
+                        .size(24.dp)
+                        .graphicsLayer(rotationZ = rotation),
+            )
+        }
+    }
+}
+
+@Composable
+private fun FabWithTooltip(
+    text: String,
+    iconRes: Int,
+    onClick: () -> Unit,
+) {
+    Row(
+        modifier = Modifier.padding(end = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        AnimatedVisibility(
+            visible = true,
+            enter =
+                scaleIn(
+                    animationSpec = spring(dampingRatio = 0.8f),
+                    initialScale = 0.8f,
+                ) + fadeIn(animationSpec = tween(200)),
+            exit =
+                scaleOut(
+                    animationSpec = tween(150),
+                    targetScale = 0.8f,
+                ) + fadeOut(animationSpec = tween(150)),
+        ) {
+            Box(
+                modifier =
+                    Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .border(2.dp, Secondary, RoundedCornerShape(8.dp))
+                        .background(Background)
+                        .clickable {
+                            onClick()
+                        }.padding(horizontal = 12.dp, vertical = 6.dp),
+            ) {
+                Text(
+                    text = text,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = TextColor,
+                    fontWeight = FontWeight.Medium,
+                )
+            }
+        }
+
+        AnimatedVisibility(
+            visible = true,
+            enter =
+                scaleIn(
+                    animationSpec = spring(dampingRatio = 0.8f),
+                    initialScale = 0.6f,
+                ) + fadeIn(animationSpec = tween(200)),
+            exit =
+                scaleOut(
+                    animationSpec = tween(150),
+                    targetScale = 0.6f,
+                ) + fadeOut(animationSpec = tween(150)),
+        ) {
+            FloatingActionButton(
+                onClick = onClick,
+                containerColor = TextColor,
+                contentColor = Secondary,
+                modifier = Modifier.size(48.dp),
+                shape = RoundedCornerShape(9999.dp),
+                elevation =
+                    FloatingActionButtonDefaults.elevation(
+                        defaultElevation = 6.dp,
+                        pressedElevation = 8.dp,
+                        hoveredElevation = 8.dp,
+                        focusedElevation = 8.dp,
+                    ),
+            ) {
+                Icon(
+                    painter = painterResource(id = iconRes),
+                    contentDescription = text,
+                )
+            }
+        }
     }
 }
