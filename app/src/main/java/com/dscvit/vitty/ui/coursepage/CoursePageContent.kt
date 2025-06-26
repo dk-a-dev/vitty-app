@@ -25,6 +25,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -72,11 +73,9 @@ fun CoursePageContent(
     var fullScreenImageUrl by remember { mutableStateOf<String?>(null) }
     val setReminderSheetState = rememberModalBottomSheetState()
 
-    
     val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
     val notes by viewModel.notes.collectAsStateWithLifecycle()
 
-    
     val imagePickerLauncher =
         rememberLauncherForActivityResult(
             contract = ActivityResultContracts.GetContent(),
@@ -86,7 +85,6 @@ fun CoursePageContent(
             }
         }
 
-    
     LaunchedEffect(courseCode) {
         viewModel.setCourseId(courseCode)
     }
@@ -136,10 +134,13 @@ fun CoursePageContent(
                 onImageClick = { imagePath -> fullScreenImageUrl = imagePath },
                 onStarClick = { note -> viewModel.toggleStarredStatus(note) },
                 onNoteClick = { note ->
-                    
+
                     onNavigateToNote(courseCode, note.id.toString()) { title, content ->
                         viewModel.updateNote(note.copy(title = title, content = content), note.id)
                     }
+                },
+                onDeleteNote = { note ->
+                    viewModel.deleteNote(note, note.id)
                 },
             )
         }
@@ -193,7 +194,6 @@ fun CoursePageContent(
         }
     }
 
-    
     fullScreenImageUrl?.let { imageUrl ->
         FullScreenImageDialog(
             imageUrl = imageUrl,
@@ -222,9 +222,9 @@ private fun NoteList(
     onImageClick: (String) -> Unit = {},
     onStarClick: (Note) -> Unit = {},
     onNoteClick: (Note) -> Unit = {},
+    onDeleteNote: (Note) -> Unit = {},
 ) {
     if (notes.isEmpty()) {
-        
         Box(
             modifier =
                 Modifier
@@ -268,11 +268,12 @@ private fun NoteList(
             contentPadding = PaddingValues(bottom = 100.dp),
         ) {
             items(notes.size) { index ->
-                NoteItem(
+                SwipeToDismissNote(
                     note = notes[index],
                     onNoteClick = { onNoteClick(notes[index]) },
                     onImageClick = onImageClick,
                     onStarClick = onStarClick,
+                    onDelete = { onDeleteNote(notes[index]) },
                 )
             }
         }
@@ -288,7 +289,6 @@ private fun NoteItem(
 ) {
     when (note.type) {
         NoteType.IMAGE -> {
-            
             note.imagePath?.let { imagePath ->
                 AsyncImage(
                     model = imagePath,
@@ -304,7 +304,6 @@ private fun NoteItem(
             }
         }
         NoteType.TEXT -> {
-            
             Column(
                 modifier =
                     Modifier
@@ -1295,7 +1294,6 @@ private fun FullScreenImageDialog(
                 contentScale = ContentScale.Fit,
             )
 
-            
             IconButton(
                 onClick = onDismiss,
                 modifier =
@@ -1311,5 +1309,59 @@ private fun FullScreenImageDialog(
                 )
             }
         }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SwipeToDismissNote(
+    note: Note,
+    onNoteClick: () -> Unit = {},
+    onImageClick: (String) -> Unit = {},
+    onStarClick: (Note) -> Unit = {},
+    onDelete: () -> Unit = {},
+) {
+    val dismissState =
+        rememberSwipeToDismissBoxState(
+            confirmValueChange = { dismissValue ->
+                if (dismissValue == SwipeToDismissBoxValue.EndToStart) {
+                    onDelete()
+                    true
+                } else {
+                    false
+                }
+            },
+        )
+
+    SwipeToDismissBox(
+        state = dismissState,
+        backgroundContent = {
+            Box(
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .background(
+                            color = Red,
+                            shape = RoundedCornerShape(16.dp),
+                        ).padding(horizontal = 16.dp),
+                contentAlignment = Alignment.CenterEnd,
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Delete,
+                    contentDescription = "Delete",
+                    tint = androidx.compose.ui.graphics.Color.White,
+                    modifier = Modifier.size(24.dp),
+                )
+            }
+        },
+        enableDismissFromEndToStart = true,
+        enableDismissFromStartToEnd = false,
+    ) {
+        NoteItem(
+            note = note,
+            onNoteClick = onNoteClick,
+            onImageClick = onImageClick,
+            onStarClick = onStarClick,
+        )
     }
 }

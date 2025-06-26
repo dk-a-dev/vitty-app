@@ -1,5 +1,6 @@
 package com.dscvit.vitty.ui.notes
 
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -14,6 +15,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontWeight
@@ -36,6 +38,7 @@ fun NoteScreenContent(
     noteToEdit: Note? = null,
     onSaveNote: (title: String, content: String) -> Unit = { _, _ -> },
 ) {
+    val context = LocalContext.current
     var noteTitle by remember { mutableStateOf(noteToEdit?.title ?: "") }
     var noteText by remember { mutableStateOf(TextFieldValue(noteToEdit?.content ?: "")) }
     var isPreviewMode by remember { mutableStateOf(false) }
@@ -44,15 +47,36 @@ fun NoteScreenContent(
     var lastSavedText by remember { mutableStateOf(TextFieldValue(noteToEdit?.content ?: "")) }
     var showUnsavedChangesDialog by remember { mutableStateOf(false) }
 
-    
     val hasUnsavedChanges =
         remember(noteTitle, noteText, noteToEdit) {
             val originalTitle = noteToEdit?.title ?: ""
             val originalContent = noteToEdit?.content ?: ""
             noteTitle != originalTitle || noteText.text != originalContent
         }
-
     
+    
+    fun validateAndSaveNote(): Boolean {
+        return when {
+            noteTitle.isBlank() && noteText.text.isBlank() -> {
+                Toast.makeText(context, "Please add a title and content to save the note", Toast.LENGTH_SHORT).show()
+                false
+            }
+            noteTitle.isBlank() -> {
+                Toast.makeText(context, "Please add a title to save the note", Toast.LENGTH_SHORT).show()
+                false
+            }
+            noteText.text.isBlank() -> {
+                Toast.makeText(context, "Please add some content to save the note", Toast.LENGTH_SHORT).show()
+                false
+            }
+            else -> {
+                onSaveNote(noteTitle, noteText.text)
+                Toast.makeText(context, "Note saved successfully!", Toast.LENGTH_SHORT).show()
+                true
+            }
+        }
+    }
+
     LaunchedEffect(noteToEdit) {
         noteToEdit?.let { note ->
             noteTitle = note.title
@@ -96,11 +120,9 @@ fun NoteScreenContent(
                 isPreviewMode = isPreviewMode,
                 onTogglePreview = { isPreviewMode = !isPreviewMode },
                 onSaveNote = {
-                    if (noteTitle.isNotBlank() && noteText.text.isNotBlank()) {
-                        onSaveNote(noteTitle, noteText.text)
-                    }
+                    validateAndSaveNote()
                 },
-                canSave = noteTitle.isNotBlank() && noteText.text.isNotBlank(),
+                canSave = noteTitle.isNotBlank() || noteText.text.isNotBlank(),
             )
         },
         bottomBar = {
@@ -151,12 +173,11 @@ fun NoteScreenContent(
                 Modifier
                     .fillMaxSize()
                     .padding(paddingValues),
-
         ) {
-            
             BasicTextField(
                 value = noteTitle,
                 onValueChange = { noteTitle = it },
+                maxLines = 1,
                 modifier =
                     Modifier
                         .fillMaxWidth()
@@ -186,7 +207,6 @@ fun NoteScreenContent(
                 },
             )
 
-            
             Spacer(modifier = Modifier.height(8.dp))
 
             Box(
@@ -238,7 +258,6 @@ fun NoteScreenContent(
         }
     }
 
-    
     if (showUnsavedChangesDialog) {
         AlertDialog(
             onDismissRequest = { showUnsavedChangesDialog = false },
@@ -257,10 +276,9 @@ fun NoteScreenContent(
             confirmButton = {
                 TextButton(
                     onClick = {
-                        if (noteTitle.isNotBlank() && noteText.text.isNotBlank()) {
-                            onSaveNote(noteTitle, noteText.text)
+                        if (validateAndSaveNote()) {
+                            showUnsavedChangesDialog = false
                         }
-                        showUnsavedChangesDialog = false
                     },
                 ) {
                     Text("Save", color = Accent)
@@ -320,7 +338,6 @@ private fun NoteHeader(
             modifier = Modifier.align(Alignment.CenterEnd),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            
             IconButton(
                 onClick = onSaveNote,
                 enabled = canSave,
@@ -332,7 +349,6 @@ private fun NoteHeader(
                 )
             }
 
-            
             IconButton(
                 onClick = onTogglePreview,
             ) {
