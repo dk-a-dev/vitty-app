@@ -26,7 +26,7 @@ import com.dscvit.vitty.R
 import com.dscvit.vitty.theme.Accent
 import com.dscvit.vitty.theme.Background
 import com.dscvit.vitty.theme.TextColor
-import com.dscvit.vitty.ui.coursepage.Note
+import com.dscvit.vitty.ui.coursepage.models.Note
 import dev.jeziellago.compose.markdowntext.MarkdownText
 import kotlinx.coroutines.delay
 
@@ -53,10 +53,9 @@ fun NoteScreenContent(
             val originalContent = noteToEdit?.content ?: ""
             noteTitle != originalTitle || noteText.text != originalContent
         }
-    
-    
-    fun validateAndSaveNote(): Boolean {
-        return when {
+
+    fun validateAndSaveNote(): Boolean =
+        when {
             noteTitle.isBlank() && noteText.text.isBlank() -> {
                 Toast.makeText(context, "Please add a title and content to save the note", Toast.LENGTH_SHORT).show()
                 false
@@ -75,7 +74,6 @@ fun NoteScreenContent(
                 true
             }
         }
-    }
 
     LaunchedEffect(noteToEdit) {
         noteToEdit?.let { note ->

@@ -12,7 +12,7 @@ import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.navArgs
 import com.dscvit.vitty.theme.VittyTheme
 import com.dscvit.vitty.ui.coursepage.CoursePageViewModel
-import com.dscvit.vitty.ui.coursepage.Note
+import com.dscvit.vitty.ui.coursepage.models.Note
 import kotlinx.coroutines.launch
 
 class NoteFragment : Fragment() {
@@ -30,7 +30,6 @@ class NoteFragment : Fragment() {
                     var noteToEdit by remember { mutableStateOf<Note?>(null) }
                     val scope = rememberCoroutineScope()
 
-                    
                     LaunchedEffect(args.noteId) {
                         if (!args.noteId.isNullOrEmpty()) {
                             scope.launch {
@@ -48,7 +47,6 @@ class NoteFragment : Fragment() {
                         onSaveNote = { title, content ->
                             viewModel.setCourseId(args.courseCode)
                             if (noteToEdit != null) {
-                                
                                 viewModel.updateExistingNote(
                                     noteId = noteToEdit!!.id.toString(),
                                     title = title,
@@ -56,7 +54,6 @@ class NoteFragment : Fragment() {
                                     isStarred = noteToEdit!!.isStarred,
                                 )
                             } else {
-                                
                                 viewModel.addTextNote(title, content)
                             }
                             findNavController().popBackStack()

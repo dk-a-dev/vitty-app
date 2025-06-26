@@ -2,7 +2,7 @@ package com.dscvit.vitty.data.entity
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
-import com.dscvit.vitty.ui.coursepage.NoteType
+import com.dscvit.vitty.ui.coursepage.models.NoteType
 
 @Entity(tableName = "notes")
 data class NoteEntity(
@@ -15,5 +15,5 @@ data class NoteEntity(
     val isStarred: Boolean = false,
     val imagePath: String? = null,
     val createdAt: Long = System.currentTimeMillis(),
-    val updatedAt: Long = System.currentTimeMillis()
+    val updatedAt: Long = System.currentTimeMillis(),
 )

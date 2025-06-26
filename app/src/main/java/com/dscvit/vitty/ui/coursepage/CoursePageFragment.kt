@@ -30,7 +30,6 @@ class CoursePageFragment : Fragment() {
                 VittyTheme {
                     CoursePageContent(
                         courseTitle = args.courseTitle,
-                        courseSlot = args.courseSlot,
                         courseCode = args.courseCode,
                         onBackClick = { findNavController().popBackStack() },
                         onNavigateToNote = { courseCode, noteId, onSaveNote ->

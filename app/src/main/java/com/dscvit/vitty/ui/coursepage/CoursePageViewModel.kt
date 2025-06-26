@@ -1,14 +1,15 @@
 package com.dscvit.vitty.ui.coursepage
 
 import android.app.Application
-import android.content.Context
 import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.dscvit.vitty.data.database.VittyDatabase
 import com.dscvit.vitty.data.repository.NoteRepository
-import kotlinx.coroutines.ExperimentalCoroutinesApi
+import com.dscvit.vitty.ui.coursepage.models.Note
+import com.dscvit.vitty.ui.coursepage.models.NoteType
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -78,24 +79,24 @@ class CoursePageViewModel(
         noteId: Long,
     ) {
         viewModelScope.launch {
-            
             if (note.type == NoteType.IMAGE && !note.imagePath.isNullOrEmpty()) {
                 deleteImageFile(note.imagePath)
             }
             noteRepository.deleteNote(note, _courseId.value, noteId)
         }
     }
-    
-    private suspend fun deleteImageFile(imagePath: String) = withContext(Dispatchers.IO) {
-        try {
-            val file = File(imagePath)
-            if (file.exists()) {
-                file.delete()
+
+    private suspend fun deleteImageFile(imagePath: String) =
+        withContext(Dispatchers.IO) {
+            try {
+                val file = File(imagePath)
+                if (file.exists()) {
+                    file.delete()
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
             }
-        } catch (e: Exception) {
-            e.printStackTrace()
         }
-    }
 
     fun toggleStarredStatus(note: Note) {
         viewModelScope.launch {
@@ -103,7 +104,6 @@ class CoursePageViewModel(
         }
     }
 
-    
     fun addTextNote(
         title: String,
         content: String,
@@ -119,73 +119,67 @@ class CoursePageViewModel(
         addNote(note)
     }
 
-    
     fun addImageNote(
         imageUri: String,
         isStarred: Boolean = false,
     ) {
         viewModelScope.launch {
             try {
-                
                 val localImagePath = copyImageToInternalStorage(Uri.parse(imageUri))
                 localImagePath?.let { path ->
-                    val note = Note(
-                        title = "",
-                        content = "",
-                        type = NoteType.IMAGE,
-                        isStarred = isStarred,
-                        imagePath = path,
-                    )
+                    val note =
+                        Note(
+                            title = "",
+                            content = "",
+                            type = NoteType.IMAGE,
+                            isStarred = isStarred,
+                            imagePath = path,
+                        )
                     addNote(note)
                 }
             } catch (e: Exception) {
-                
                 e.printStackTrace()
             }
         }
     }
-    
-    private suspend fun copyImageToInternalStorage(uri: Uri): String? = withContext(Dispatchers.IO) {
-        try {
-            val context = getApplication<Application>()
-            val inputStream: InputStream? = context.contentResolver.openInputStream(uri)
-            
-            
-            val timestamp = System.currentTimeMillis()
-            val filename = "note_image_$timestamp.jpg"
-            
-            
-            val imagesDir = File(context.filesDir, "images")
-            if (!imagesDir.exists()) {
-                imagesDir.mkdirs()
-            }
-            
-            val outputFile = File(imagesDir, filename)
-            val outputStream = FileOutputStream(outputFile)
-            
-            inputStream?.use { input ->
-                outputStream.use { output ->
-                    input.copyTo(output)
-                }
-            }
-            
-            return@withContext outputFile.absolutePath
-        } catch (e: Exception) {
-            e.printStackTrace()
-            return@withContext null
-        }
-    }
 
-    
-    suspend fun getNoteById(noteId: String): Note? {
-        return try {
+    private suspend fun copyImageToInternalStorage(uri: Uri): String? =
+        withContext(Dispatchers.IO) {
+            try {
+                val context = getApplication<Application>()
+                val inputStream: InputStream? = context.contentResolver.openInputStream(uri)
+
+                val timestamp = System.currentTimeMillis()
+                val filename = "note_image_$timestamp.jpg"
+
+                val imagesDir = File(context.filesDir, "images")
+                if (!imagesDir.exists()) {
+                    imagesDir.mkdirs()
+                }
+
+                val outputFile = File(imagesDir, filename)
+                val outputStream = FileOutputStream(outputFile)
+
+                inputStream?.use { input ->
+                    outputStream.use { output ->
+                        input.copyTo(output)
+                    }
+                }
+
+                return@withContext outputFile.absolutePath
+            } catch (e: Exception) {
+                e.printStackTrace()
+                return@withContext null
+            }
+        }
+
+    suspend fun getNoteById(noteId: String): Note? =
+        try {
             noteRepository.getNoteById(noteId.toLong())
         } catch (e: NumberFormatException) {
             null
         }
-    }
 
-    
     fun updateExistingNote(
         noteId: String,
         title: String,
@@ -195,16 +189,16 @@ class CoursePageViewModel(
         viewModelScope.launch {
             try {
                 val id = noteId.toLong()
-                val note = Note(
-                    id = id,
-                    title = title,
-                    content = content,
-                    type = NoteType.TEXT,
-                    isStarred = isStarred,
-                )
+                val note =
+                    Note(
+                        id = id,
+                        title = title,
+                        content = content,
+                        type = NoteType.TEXT,
+                        isStarred = isStarred,
+                    )
                 noteRepository.updateNote(note, _courseId.value, id)
             } catch (e: NumberFormatException) {
-                
             }
         }
     }
