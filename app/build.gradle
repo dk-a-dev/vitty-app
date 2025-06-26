@@ -130,6 +130,10 @@ dependencies {
     implementation "androidx.room:room-ktx:2.7.2"
     ksp "androidx.room:room-compiler:2.7.2"
 
+    // ViewModel and LiveData
+    implementation "androidx.lifecycle:lifecycle-viewmodel-compose:2.9.1"
+    implementation "androidx.lifecycle:lifecycle-runtime-compose:2.9.1"
+
     implementation 'androidx.dynamicanimation:dynamicanimation-ktx:1.1.0'
     implementation 'com.github.jeziellago:compose-markdown:0.5.7'
 }

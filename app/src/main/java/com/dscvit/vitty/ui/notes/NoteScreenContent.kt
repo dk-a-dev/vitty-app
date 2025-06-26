@@ -6,6 +6,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -22,17 +24,42 @@ import com.dscvit.vitty.R
 import com.dscvit.vitty.theme.Accent
 import com.dscvit.vitty.theme.Background
 import com.dscvit.vitty.theme.TextColor
+import com.dscvit.vitty.ui.coursepage.Note
 import dev.jeziellago.compose.markdowntext.MarkdownText
 import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun NoteScreenContent(onBackClick: () -> Unit) {
-    var noteText by remember { mutableStateOf(TextFieldValue("")) }
+fun NoteScreenContent(
+    onBackClick: () -> Unit,
+    courseCode: String = "",
+    noteToEdit: Note? = null,
+    onSaveNote: (title: String, content: String) -> Unit = { _, _ -> },
+) {
+    var noteTitle by remember { mutableStateOf(noteToEdit?.title ?: "") }
+    var noteText by remember { mutableStateOf(TextFieldValue(noteToEdit?.content ?: "")) }
     var isPreviewMode by remember { mutableStateOf(false) }
     var undoStack by remember { mutableStateOf(listOf<TextFieldValue>()) }
     var redoStack by remember { mutableStateOf(listOf<TextFieldValue>()) }
-    var lastSavedText by remember { mutableStateOf(TextFieldValue("")) }
+    var lastSavedText by remember { mutableStateOf(TextFieldValue(noteToEdit?.content ?: "")) }
+    var showUnsavedChangesDialog by remember { mutableStateOf(false) }
+
+    
+    val hasUnsavedChanges =
+        remember(noteTitle, noteText, noteToEdit) {
+            val originalTitle = noteToEdit?.title ?: ""
+            val originalContent = noteToEdit?.content ?: ""
+            noteTitle != originalTitle || noteText.text != originalContent
+        }
+
+    
+    LaunchedEffect(noteToEdit) {
+        noteToEdit?.let { note ->
+            noteTitle = note.title
+            noteText = TextFieldValue(note.content)
+            lastSavedText = TextFieldValue(note.content)
+        }
+    }
 
     LaunchedEffect(noteText) {
         delay(1000)
@@ -59,9 +86,21 @@ fun NoteScreenContent(onBackClick: () -> Unit) {
         containerColor = Background,
         topBar = {
             NoteHeader(
-                onBackClick = onBackClick,
+                onBackClick = {
+                    if (hasUnsavedChanges) {
+                        showUnsavedChangesDialog = true
+                    } else {
+                        onBackClick()
+                    }
+                },
                 isPreviewMode = isPreviewMode,
                 onTogglePreview = { isPreviewMode = !isPreviewMode },
+                onSaveNote = {
+                    if (noteTitle.isNotBlank() && noteText.text.isNotBlank()) {
+                        onSaveNote(noteTitle, noteText.text)
+                    }
+                },
+                canSave = noteTitle.isNotBlank() && noteText.text.isNotBlank(),
             )
         },
         bottomBar = {
@@ -111,9 +150,45 @@ fun NoteScreenContent(onBackClick: () -> Unit) {
             modifier =
                 Modifier
                     .fillMaxSize()
-                    .padding(paddingValues)
-                    .padding(horizontal = 8.dp),
+                    .padding(paddingValues),
+
         ) {
+            
+            BasicTextField(
+                value = noteTitle,
+                onValueChange = { noteTitle = it },
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp),
+                textStyle =
+                    MaterialTheme.typography.headlineSmall.copy(
+                        color = TextColor,
+                        fontWeight = FontWeight.Bold,
+                    ),
+                cursorBrush = SolidColor(Accent),
+                decorationBox = { innerTextField ->
+                    Box(
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        if (noteTitle.isEmpty()) {
+                            Text(
+                                text = "Note title...",
+                                style =
+                                    MaterialTheme.typography.headlineSmall.copy(
+                                        color = TextColor.copy(alpha = 0.5f),
+                                        fontWeight = FontWeight.Bold,
+                                    ),
+                            )
+                        }
+                        innerTextField()
+                    }
+                },
+            )
+
+            
+            Spacer(modifier = Modifier.height(8.dp))
+
             Box(
                 modifier =
                     Modifier
@@ -162,6 +237,48 @@ fun NoteScreenContent(onBackClick: () -> Unit) {
             }
         }
     }
+
+    
+    if (showUnsavedChangesDialog) {
+        AlertDialog(
+            onDismissRequest = { showUnsavedChangesDialog = false },
+            title = {
+                Text(
+                    text = "Unsaved Changes",
+                    color = TextColor,
+                )
+            },
+            text = {
+                Text(
+                    text = "You have unsaved changes. Do you want to save them before leaving?",
+                    color = TextColor,
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        if (noteTitle.isNotBlank() && noteText.text.isNotBlank()) {
+                            onSaveNote(noteTitle, noteText.text)
+                        }
+                        showUnsavedChangesDialog = false
+                    },
+                ) {
+                    Text("Save", color = Accent)
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showUnsavedChangesDialog = false
+                        onBackClick()
+                    },
+                ) {
+                    Text("Discard", color = TextColor)
+                }
+            },
+            containerColor = Background,
+        )
+    }
 }
 
 @Composable
@@ -169,6 +286,8 @@ private fun NoteHeader(
     onBackClick: () -> Unit,
     isPreviewMode: Boolean,
     onTogglePreview: () -> Unit,
+    onSaveNote: () -> Unit = {},
+    canSave: Boolean = false,
 ) {
     Box(
         modifier =
@@ -197,18 +316,35 @@ private fun NoteHeader(
             modifier = Modifier.align(Alignment.Center),
         )
 
-        IconButton(
-            onClick = onTogglePreview,
+        Row(
             modifier = Modifier.align(Alignment.CenterEnd),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Icon(
-                painter =
-                    painterResource(
-                        id = if (isPreviewMode) R.drawable.ic_edit_document else R.drawable.ic_notif,
-                    ),
-                contentDescription = if (isPreviewMode) "Edit" else "Preview",
-                tint = if (isPreviewMode) Accent else TextColor,
-            )
+            
+            IconButton(
+                onClick = onSaveNote,
+                enabled = canSave,
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Check,
+                    contentDescription = "Save",
+                    tint = if (canSave) Accent else TextColor.copy(alpha = 0.5f),
+                )
+            }
+
+            
+            IconButton(
+                onClick = onTogglePreview,
+            ) {
+                Icon(
+                    painter =
+                        painterResource(
+                            id = if (isPreviewMode) R.drawable.ic_edit_document else R.drawable.ic_notif,
+                        ),
+                    contentDescription = if (isPreviewMode) "Edit" else "Preview",
+                    tint = if (isPreviewMode) Accent else TextColor,
+                )
+            }
         }
     }
 }

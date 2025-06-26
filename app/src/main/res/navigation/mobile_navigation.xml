@@ -117,5 +117,15 @@
         android:id="@+id/noteFragment"
         android:name="com.dscvit.vitty.ui.notes.NoteFragment"
         android:label="Note"
-        tools:layout="@layout/fragment_note" />
+        tools:layout="@layout/fragment_note">
+        <argument
+            android:name="courseCode"
+            app:argType="string"
+            app:defaultValue="" />
+        <argument
+            android:name="noteId"
+            app:argType="string"
+            app:defaultValue=""
+            app:nullable="true" />
+    </fragment>
 </navigation>

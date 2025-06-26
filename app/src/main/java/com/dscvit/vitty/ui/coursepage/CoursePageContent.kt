@@ -1,5 +1,7 @@
 package com.dscvit.vitty.ui.coursepage
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
@@ -32,12 +34,18 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
+import coil.compose.AsyncImage
 import com.dscvit.vitty.R
 import com.dscvit.vitty.theme.Accent
 import com.dscvit.vitty.theme.Background
@@ -56,12 +64,32 @@ fun CoursePageContent(
     courseSlot: String,
     courseCode: String,
     onBackClick: () -> Unit,
-    onNavigateToNote: () -> Unit = {},
+    onNavigateToNote: (courseCode: String, noteId: String?, onSaveNote: (String, String) -> Unit) -> Unit = { _, _, _ -> },
+    viewModel: CoursePageViewModel = viewModel(),
 ) {
-    var searchQuery by remember { mutableStateOf("") }
     var showBottomModal by remember { mutableStateOf(false) }
     var showSetReminderModal by remember { mutableStateOf(false) }
+    var fullScreenImageUrl by remember { mutableStateOf<String?>(null) }
     val setReminderSheetState = rememberModalBottomSheetState()
+
+    
+    val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
+    val notes by viewModel.notes.collectAsStateWithLifecycle()
+
+    
+    val imagePickerLauncher =
+        rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.GetContent(),
+        ) { uri ->
+            uri?.let {
+                viewModel.addImageNote(it.toString())
+            }
+        }
+
+    
+    LaunchedEffect(courseCode) {
+        viewModel.setCourseId(courseCode)
+    }
 
     val reminders =
         remember {
@@ -73,18 +101,6 @@ fun CoursePageContent(
                 Reminders("Quiz I", "2 Jan", ReminderStatus.COMPLETED),
                 Reminders("Quiz II", "10 Jan", ReminderStatus.COMPLETED),
             )
-        }
-
-    val sampleNotes =
-        remember {
-            (1..9).map { i ->
-                Note(
-                    title = "Note $i",
-                    content = "This is the content of note $i",
-                    type = NoteType.TEXT,
-                    isStarred = i % 3 == 1,
-                )
-            }
         }
 
     Box(
@@ -108,17 +124,26 @@ fun CoursePageContent(
             CoursePageHeader(onBackClick = onBackClick)
             SearchBar(
                 searchQuery = searchQuery,
-                onSearchQueryChange = { searchQuery = it },
+                onSearchQueryChange = { viewModel.setSearchQuery(it) },
             )
             Spacer(Modifier.height(20.dp))
             CourseInfoSection(
                 courseTitle = courseTitle,
                 reminders = reminders,
             )
-            NoteList(notes = sampleNotes)
+            NoteList(
+                notes = notes,
+                onImageClick = { imagePath -> fullScreenImageUrl = imagePath },
+                onStarClick = { note -> viewModel.toggleStarredStatus(note) },
+                onNoteClick = { note ->
+                    
+                    onNavigateToNote(courseCode, note.id.toString()) { title, content ->
+                        viewModel.updateNote(note.copy(title = title, content = content), note.id)
+                    }
+                },
+            )
         }
 
-        
         if (showBottomModal) {
             Box(
                 modifier =
@@ -138,7 +163,9 @@ fun CoursePageContent(
             onToggleExpanded = { showBottomModal = !showBottomModal },
             onWriteNote = {
                 showBottomModal = false
-                onNavigateToNote()
+                onNavigateToNote(courseCode, null) { title, content ->
+                    viewModel.addTextNote(title, content)
+                }
             },
             onSetReminder = {
                 showBottomModal = false
@@ -146,6 +173,7 @@ fun CoursePageContent(
             },
             onUploadFile = {
                 showBottomModal = false
+                imagePickerLauncher.launch("image/*")
             },
         )
     }
@@ -164,6 +192,14 @@ fun CoursePageContent(
             )
         }
     }
+
+    
+    fullScreenImageUrl?.let { imageUrl ->
+        FullScreenImageDialog(
+            imageUrl = imageUrl,
+            onDismiss = { fullScreenImageUrl = null },
+        )
+    }
 }
 
 enum class NoteType {
@@ -172,24 +208,73 @@ enum class NoteType {
 }
 
 data class Note(
+    val id: Long = 0,
     val title: String,
     val content: String,
     val type: NoteType,
     val isStarred: Boolean,
+    val imagePath: String? = null,
 )
 
 @Composable
-private fun NoteList(notes: List<Note>) {
-    LazyColumn(
-        modifier =
-            Modifier
-                .fillMaxSize()
-                .padding(horizontal = 20.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-        contentPadding = PaddingValues(bottom = 100.dp),
-    ) {
-        items(notes.size) { index ->
-            NoteItem(notes[index]) {}
+private fun NoteList(
+    notes: List<Note>,
+    onImageClick: (String) -> Unit = {},
+    onStarClick: (Note) -> Unit = {},
+    onNoteClick: (Note) -> Unit = {},
+) {
+    if (notes.isEmpty()) {
+        
+        Box(
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 20.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center,
+            ) {
+                Icon(
+                    painter = painterResource(id = R.drawable.ic_edit_document),
+                    contentDescription = "No notes",
+                    tint = TextColor.copy(alpha = 0.3f),
+                    modifier = Modifier.size(64.dp),
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = "No notes yet",
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = TextColor.copy(alpha = 0.6f),
+                    textAlign = TextAlign.Center,
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "Tap the + button to add your first note",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = TextColor.copy(alpha = 0.4f),
+                    textAlign = TextAlign.Center,
+                )
+            }
+        }
+    } else {
+        LazyColumn(
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 20.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+            contentPadding = PaddingValues(bottom = 100.dp),
+        ) {
+            items(notes.size) { index ->
+                NoteItem(
+                    note = notes[index],
+                    onNoteClick = { onNoteClick(notes[index]) },
+                    onImageClick = onImageClick,
+                    onStarClick = onStarClick,
+                )
+            }
         }
     }
 }
@@ -198,42 +283,77 @@ private fun NoteList(notes: List<Note>) {
 private fun NoteItem(
     note: Note,
     onNoteClick: () -> Unit = {},
+    onImageClick: (String) -> Unit = {},
+    onStarClick: (Note) -> Unit = {},
 ) {
-    if (note.type == NoteType.IMAGE) return
-
-    Column(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(16.dp))
-                .clickable { onNoteClick() }
-                .background(Secondary)
-                .padding(16.dp),
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                text = note.title,
-                style = MaterialTheme.typography.titleMedium,
-                color = TextColor,
-                fontWeight = FontWeight.SemiBold,
-            )
-            if (note.isStarred) {
-                Spacer(modifier = Modifier.width(8.dp))
-                Icon(
-                    painter = painterResource(id = R.drawable.ic_star),
-                    contentDescription = "Starred",
-                    tint = Accent,
-                    modifier = Modifier.padding(bottom = 4.dp),
+    when (note.type) {
+        NoteType.IMAGE -> {
+            
+            note.imagePath?.let { imagePath ->
+                AsyncImage(
+                    model = imagePath,
+                    contentDescription = "Image note",
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .height(140.dp)
+                            .clip(RoundedCornerShape(16.dp))
+                            .clickable { onImageClick(imagePath) },
+                    contentScale = ContentScale.Crop,
                 )
             }
         }
-        Spacer(modifier = Modifier.height(4.dp))
-        MarkdownText(
-            markdown = note.content,
-            style = MaterialTheme.typography.bodyMedium.copy(color = TextColor),
-            truncateOnTextOverflow = true,
-            maxLines = 3,
-        )
+        NoteType.TEXT -> {
+            
+            Column(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(16.dp))
+                        .clickable { onNoteClick() }
+                        .background(Secondary)
+                        .padding(16.dp),
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = note.title,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = TextColor,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    if (note.isStarred) {
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_star),
+                            contentDescription = "Starred",
+                            tint = Accent,
+                            modifier =
+                                Modifier
+                                    .padding(bottom = 4.dp)
+                                    .clickable { onStarClick(note) },
+                        )
+                    } else {
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_star),
+                            contentDescription = "Not Starred",
+                            tint = TextColor.copy(alpha = 0.3f),
+                            modifier =
+                                Modifier
+                                    .padding(bottom = 4.dp)
+                                    .clickable { onStarClick(note) },
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(4.dp))
+                MarkdownText(
+                    markdown = note.content,
+                    style = MaterialTheme.typography.bodyMedium.copy(color = TextColor),
+                    truncateOnTextOverflow = true,
+                    maxLines = 3,
+                )
+            }
+        }
     }
 }
 
@@ -372,7 +492,6 @@ private fun CourseInfoSection(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 contentPadding = PaddingValues(horizontal = 0.dp),
             ) {
-                
                 items(displayedReminders.size) { index ->
                     RemindersChip(
                         text = "${displayedReminders[index].title} by ${displayedReminders[index].dueDate}",
@@ -380,7 +499,6 @@ private fun CourseInfoSection(
                     )
                 }
 
-                
                 if (remainingCount > 0) {
                     item {
                         RemindersChip(
@@ -1139,6 +1257,57 @@ private fun FabWithTooltip(
                 Icon(
                     painter = painterResource(id = iconRes),
                     contentDescription = text,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun FullScreenImageDialog(
+    imageUrl: String,
+    onDismiss: () -> Unit,
+) {
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties =
+            DialogProperties(
+                usePlatformDefaultWidth = false,
+                dismissOnBackPress = true,
+                dismissOnClickOutside = true,
+            ),
+    ) {
+        Box(
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.9f))
+                    .clickable { onDismiss() },
+            contentAlignment = Alignment.Center,
+        ) {
+            AsyncImage(
+                model = imageUrl,
+                contentDescription = "Full screen image",
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .padding(16.dp),
+                contentScale = ContentScale.Fit,
+            )
+
+            
+            IconButton(
+                onClick = onDismiss,
+                modifier =
+                    Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(16.dp),
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Close,
+                    contentDescription = "Close",
+                    tint = Color.White,
+                    modifier = Modifier.size(32.dp),
                 )
             }
         }

@@ -33,8 +33,10 @@ class CoursePageFragment : Fragment() {
                         courseSlot = args.courseSlot,
                         courseCode = args.courseCode,
                         onBackClick = { findNavController().popBackStack() },
-                        onNavigateToNote = {
-                            findNavController().navigate(R.id.action_coursePageFragment_to_noteFragment)
+                        onNavigateToNote = { courseCode, noteId, onSaveNote ->
+                            val action = CoursePageFragmentDirections
+                                .actionCoursePageFragmentToNoteFragment(courseCode, noteId)
+                            findNavController().navigate(action)
                         },
                     )
                 }
