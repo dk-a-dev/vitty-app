@@ -500,7 +500,7 @@ fun SecondPage(
         }
         
         if (attachmentUrl.trim().isNotEmpty()) {
-            val urlPattern = Regex("^(https?|ftp):
+            val urlPattern = Regex("^(https?|ftp)://[^\\s/$.?#].[^\\s]*$")
             if (!urlPattern.matches(attachmentUrl.trim())) {
                 Toast.makeText(context, "Please enter a valid URL", Toast.LENGTH_SHORT).show()
                 return false
