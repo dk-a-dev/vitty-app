@@ -49,4 +49,8 @@ object Constants {
     const val COMMUNITY_PINNED_FRIEND_3 = "community_pinned_friend_3"
 
     const val CACHE_COMMUNITY_TIMETABLE = "cache_community_timetable"
+
+    const val REMINDER_CHANNEL_ID = "reminder_channel"
+    const val REMINDER_CHANNEL_NAME = "Reminders"
+    const val REMINDER_CHANNEL_DESC = "Notifications for course reminders"
 }

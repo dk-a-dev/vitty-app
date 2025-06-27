@@ -14,11 +14,6 @@ class NoteRepository(
             entities.map { it.toNote() }
         }
 
-    fun getStarredNotesByCourse(courseId: String): Flow<List<Note>> =
-        noteDao.getStarredNotesByCourse(courseId).map { entities ->
-            entities.map { it.toNote() }
-        }
-
     suspend fun getNoteById(noteId: Long): Note? = noteDao.getNoteById(noteId)?.toNote()
 
     suspend fun insertNote(
@@ -40,10 +35,6 @@ class NoteRepository(
         noteId: Long,
     ) {
         noteDao.deleteNote(note.toEntity(courseId, noteId))
-    }
-
-    suspend fun deleteNotesByCourse(courseId: String) {
-        noteDao.deleteNotesByCourse(courseId)
     }
 
     suspend fun updateStarredStatus(

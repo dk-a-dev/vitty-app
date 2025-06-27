@@ -1,8 +1,16 @@
 package com.dscvit.vitty.ui.academics
 
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
-import androidx.compose.runtime.*
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -10,16 +18,16 @@ import com.dscvit.vitty.theme.Background
 import com.dscvit.vitty.ui.academics.components.AcademicsContent
 import com.dscvit.vitty.ui.academics.components.AcademicsHeader
 import com.dscvit.vitty.ui.academics.models.Course
-import com.dscvit.vitty.ui.academics.models.sampleCourses
 import com.dscvit.vitty.ui.coursepage.models.Reminder
 import com.dscvit.vitty.util.SemesterUtils
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun AcademicsScreenContent(
     modifier: Modifier = Modifier,
     userName: String = "Academics",
     profilePictureUrl: String?,
-    allCourses: List<Course> = sampleCourses,
+    allCourses: List<Course>,
     onCourseClick: (Course) -> Unit = {},
     viewModel: AcademicsViewModel = viewModel(),
 ) {
@@ -81,7 +89,7 @@ fun AcademicsScreenContent(
             },
             onDeleteReminder = { reminder: Reminder ->
                 viewModel.deleteReminder(reminder)
-            }
+            },
         )
     }
 }

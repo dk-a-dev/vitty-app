@@ -8,7 +8,6 @@ import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.navArgs
-import com.dscvit.vitty.R
 import com.dscvit.vitty.databinding.FragmentCoursePageBinding
 import com.dscvit.vitty.theme.VittyTheme
 
@@ -32,9 +31,10 @@ class CoursePageFragment : Fragment() {
                         courseTitle = args.courseTitle,
                         courseCode = args.courseCode,
                         onBackClick = { findNavController().popBackStack() },
-                        onNavigateToNote = { courseCode, noteId, onSaveNote ->
-                            val action = CoursePageFragmentDirections
-                                .actionCoursePageFragmentToNoteFragment(courseCode, noteId)
+                        onNavigateToNote = { courseCode, noteId, _ ->
+                            val action =
+                                CoursePageFragmentDirections
+                                    .actionCoursePageFragmentToNoteFragment(courseCode, noteId)
                             findNavController().navigate(action)
                         },
                     )

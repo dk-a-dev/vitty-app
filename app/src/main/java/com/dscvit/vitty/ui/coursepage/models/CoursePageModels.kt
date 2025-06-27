@@ -14,12 +14,6 @@ data class Note(
     val imagePath: String? = null,
 )
 
-data class Reminders(
-    val title: String,
-    val dueDate: String,
-    val status: ReminderStatus,
-)
-
 data class Reminder(
     val id: Long = 0,
     val title: String,

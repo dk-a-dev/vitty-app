@@ -3,13 +3,46 @@ package com.dscvit.vitty.ui.coursepage.components
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MenuDefaults
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TimePicker
+import androidx.compose.material3.TimePickerDefaults
+import androidx.compose.material3.rememberDatePickerState
+import androidx.compose.material3.rememberTimePickerState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -28,6 +61,7 @@ import com.dscvit.vitty.theme.Red
 import com.dscvit.vitty.theme.Secondary
 import com.dscvit.vitty.theme.TextColor
 import com.dscvit.vitty.ui.coursepage.models.AlertOption
+import java.util.Locale
 
 @Composable
 fun SetReminderBottomSheet(
@@ -44,7 +78,7 @@ fun SetReminderBottomSheet(
         attachmentUrl: String,
     ) -> Unit = { _, _, _, _, _, _, _, _ -> },
 ) {
-    var currentPage by remember { mutableStateOf(0) }
+    var currentPage by remember { mutableIntStateOf(0) }
     var selectedDateMillis by remember { mutableStateOf<Long?>(null) }
     var isAllDay by remember { mutableStateOf(false) }
     var fromTime by remember { mutableStateOf("07:00") }
@@ -136,15 +170,12 @@ fun FirstPage(
             is24Hour = true,
         )
 
-    
     fun validateInput(): Boolean {
-        
         if (selectedDateMillis == null) {
             Toast.makeText(context, "Please select a date", Toast.LENGTH_SHORT).show()
             return false
         }
 
-        
         val currentTimeMillis = System.currentTimeMillis()
         val selectedDateOnly = selectedDateMillis - (selectedDateMillis % (24 * 60 * 60 * 1000))
         val currentDateOnly = currentTimeMillis - (currentTimeMillis % (24 * 60 * 60 * 1000))
@@ -154,7 +185,6 @@ fun FirstPage(
             return false
         }
 
-        
         if (!isAllDay && selectedDateOnly == currentDateOnly) {
             val fromTimeParts = fromTime.split(":")
             val fromHour = fromTimeParts[0].toInt()
@@ -173,7 +203,6 @@ fun FirstPage(
             }
         }
 
-        
         if (!isAllDay) {
             val fromTimeParts = fromTime.split(":")
             val toTimeParts = toTime.split(":")
@@ -235,7 +264,9 @@ fun FirstPage(
         DatePicker(
             state = datePickerState,
             modifier =
-                Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)),
+                Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(10.dp)),
             colors =
                 DatePickerDefaults.colors(
                     containerColor = Secondary,
@@ -314,7 +345,10 @@ fun FirstPage(
             ) {
                 Column {
                     Row(
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 6.dp),
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 8.dp, vertical = 6.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
@@ -348,7 +382,10 @@ fun FirstPage(
                     )
 
                     Row(
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 6.dp),
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 8.dp, vertical = 6.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
@@ -405,7 +442,9 @@ fun FirstPage(
             confirmButton = {
                 TextButton(
                     onClick = {
-                        onFromTimeChange(String.format("%02d:%02d", fromTimePickerState.hour, fromTimePickerState.minute))
+                        onFromTimeChange(
+                            String.format(Locale.getDefault(), "%02d:%02d", fromTimePickerState.hour, fromTimePickerState.minute),
+                        )
                         showFromTimePicker = false
                     },
                 ) {
@@ -444,7 +483,7 @@ fun FirstPage(
             confirmButton = {
                 TextButton(
                     onClick = {
-                        onToTimeChange(String.format("%02d:%02d", toTimePickerState.hour, toTimePickerState.minute))
+                        onToTimeChange(String.format(Locale.getDefault(), "%02d:%02d", toTimePickerState.hour, toTimePickerState.minute))
                         showToTimePicker = false
                     },
                 ) {
@@ -477,14 +516,12 @@ fun SecondPage(
 ) {
     val context = LocalContext.current
 
-    
     fun validateInput(): Boolean {
-        
         if (title.trim().isEmpty()) {
             Toast.makeText(context, "Title is required", Toast.LENGTH_SHORT).show()
             return false
         }
-        
+
         if (title.trim().length > 100) {
             Toast.makeText(context, "Title must be less than 100 characters", Toast.LENGTH_SHORT).show()
             return false
@@ -493,14 +530,21 @@ fun SecondPage(
             Toast.makeText(context, "Description is required", Toast.LENGTH_SHORT).show()
             return false
         }
-        
+
         if (description.trim().length > 500) {
             Toast.makeText(context, "Description must be less than 500 characters", Toast.LENGTH_SHORT).show()
             return false
         }
-        
+
         if (attachmentUrl.trim().isNotEmpty()) {
-            val urlPattern = Regex("^(https?|ftp)://[^\\s/$.?#].[^\\s]*$")
+            val urlPattern =
+                Regex(
+                    "((http|https)://)(www.)?" +
+                        "[a-zA-Z0-9@:%._+~#?&/=]" +
+                        "{2,256}\\.[a-z]" +
+                        "{2,6}\\b([-a-zA-Z0-9@:%" +
+                        "._+~#?&/=]*)",
+                )
             if (!urlPattern.matches(attachmentUrl.trim())) {
                 Toast.makeText(context, "Please enter a valid URL", Toast.LENGTH_SHORT).show()
                 return false
@@ -560,7 +604,10 @@ fun SecondPage(
         ) {
             Column {
                 Row(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 12.dp, vertical = 6.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
@@ -578,7 +625,10 @@ fun SecondPage(
                 )
 
                 Row(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 12.dp, vertical = 6.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
@@ -603,7 +653,10 @@ fun SecondPage(
                     .padding(horizontal = 8.dp),
         ) {
             Row(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 6.dp),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 8.dp, vertical = 6.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -659,7 +712,10 @@ fun SecondPage(
         ) {
             Column {
                 Row(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 12.dp, vertical = 6.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
@@ -680,7 +736,10 @@ fun SecondPage(
                 )
 
                 Row(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 12.dp, vertical = 6.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
@@ -762,7 +821,10 @@ fun AlertDropdownBox(
     ) {
         Column {
             Row(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp, vertical = 6.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -806,7 +868,7 @@ fun AlertDropdownBox(
             onDismissRequest = { expanded = false },
             modifier = Modifier.background(Secondary),
         ) {
-            AlertOption.entries.forEach { option ->
+            AlertOption.entries.forEach { option: AlertOption ->
                 DropdownMenuItem(
                     text = {
                         Text(

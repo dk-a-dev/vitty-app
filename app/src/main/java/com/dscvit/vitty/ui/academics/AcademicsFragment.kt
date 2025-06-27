@@ -40,7 +40,7 @@ class AcademicsFragment : Fragment() {
 
         scheduleViewModel = ViewModelProvider(this)[ScheduleViewModel::class.java]
 
-        binding.academicsComposeView.apply {
+        binding.composeView.apply {
             setViewCompositionStrategy(
                 ViewCompositionStrategy.DisposeOnLifecycleDestroyed(viewLifecycleOwner),
             )

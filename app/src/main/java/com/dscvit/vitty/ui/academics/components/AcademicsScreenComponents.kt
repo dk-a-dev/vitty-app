@@ -65,7 +65,7 @@ import com.dscvit.vitty.theme.Red
 import com.dscvit.vitty.theme.Secondary
 import com.dscvit.vitty.theme.TextColor
 import com.dscvit.vitty.ui.academics.models.Course
-import com.dscvit.vitty.ui.coursepage.components.NewRemindersChip
+import com.dscvit.vitty.ui.coursepage.components.RemindersChip
 import com.dscvit.vitty.ui.coursepage.models.Reminder
 import com.dscvit.vitty.ui.coursepage.models.ReminderStatus
 import java.time.LocalDate
@@ -807,11 +807,9 @@ fun DateHeaderWithChip(
         )
 
         if (chipText.isNotEmpty()) {
-            NewRemindersChip(
+            RemindersChip(
                 text = chipText,
                 reminder = firstReminder,
-                onToggleComplete = { _, _ -> },
-                onDelete = { },
             )
         }
     }

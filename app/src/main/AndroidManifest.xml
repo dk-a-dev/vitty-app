@@ -109,7 +109,7 @@
         <receiver android:name=".receiver.AlarmReceiver" />
         <receiver android:name=".receiver.ShareReceiver" />
         <receiver
-            android:name=".ui.coursepage.ReminderBroadcastReceiver"
+            android:name=".receiver.ReminderBroadcastReceiver"
             android:exported="false" />
 
         <service

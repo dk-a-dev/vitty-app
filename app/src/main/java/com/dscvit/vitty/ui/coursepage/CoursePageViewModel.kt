@@ -2,18 +2,26 @@ package com.dscvit.vitty.ui.coursepage
 
 import android.app.Application
 import android.net.Uri
+import androidx.core.net.toUri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.dscvit.vitty.data.database.VittyDatabase
 import com.dscvit.vitty.data.repository.NoteRepository
 import com.dscvit.vitty.data.repository.ReminderRepository
+import com.dscvit.vitty.receiver.ReminderNotificationManager
 import com.dscvit.vitty.ui.coursepage.models.Note
 import com.dscvit.vitty.ui.coursepage.models.NoteType
 import com.dscvit.vitty.ui.coursepage.models.Reminder
 import com.dscvit.vitty.ui.coursepage.models.ReminderStatus
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import timber.log.Timber
@@ -64,13 +72,14 @@ class CoursePageViewModel(
 
     @OptIn(ExperimentalCoroutinesApi::class)
     val reminders: StateFlow<List<Reminder>> =
-        _courseId.flatMapLatest { courseId ->
-            reminderRepository.getRemindersByCourse(courseId)
-        }.stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = emptyList(),
-        )
+        _courseId
+            .flatMapLatest { courseId ->
+                reminderRepository.getRemindersByCourse(courseId)
+            }.stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5000),
+                initialValue = emptyList(),
+            )
 
     fun setCourseId(courseId: String) {
         _courseId.value = courseId
@@ -84,7 +93,7 @@ class CoursePageViewModel(
         _searchQuery.value = query
     }
 
-    fun addNote(note: Note) {
+    private fun addNote(note: Note) {
         viewModelScope.launch {
             noteRepository.insertNote(note, _courseId.value)
         }
@@ -125,7 +134,7 @@ class CoursePageViewModel(
 
     fun toggleStarredStatus(note: Note) {
         viewModelScope.launch {
-            noteRepository.updateStarredStatus(note.id.toLong(), !note.isStarred)
+            noteRepository.updateStarredStatus(note.id, !note.isStarred)
         }
     }
 
@@ -150,7 +159,7 @@ class CoursePageViewModel(
     ) {
         viewModelScope.launch {
             try {
-                val localImagePath = copyImageToInternalStorage(Uri.parse(imageUri))
+                val localImagePath = copyImageToInternalStorage(imageUri.toUri())
                 localImagePath?.let { path ->
                     val note =
                         Note(
@@ -224,11 +233,11 @@ class CoursePageViewModel(
                     )
                 noteRepository.updateNote(note, _courseId.value, id)
             } catch (e: NumberFormatException) {
+                Timber.e(e, "Invalid note ID format")
             }
         }
     }
 
-    
     fun addReminder(
         title: String,
         description: String,
@@ -239,34 +248,34 @@ class CoursePageViewModel(
         alertDaysBefore: Int,
         attachmentUrl: String,
         onSuccess: () -> Unit = {},
-        onError: (String) -> Unit = {}
+        onError: (String) -> Unit = {},
     ) {
         viewModelScope.launch {
             try {
-                val reminder = Reminder(
-                    title = title,
-                    description = description,
-                    dueDate = "", 
-                    status = ReminderStatus.UPCOMING,
-                    dateMillis = dateMillis,
-                    fromTime = fromTime,
-                    toTime = toTime,
-                    isAllDay = isAllDay,
-                    alertDaysBefore = alertDaysBefore,
-                    attachmentUrl = attachmentUrl.ifBlank { null }
-                )
+                val reminder =
+                    Reminder(
+                        title = title,
+                        description = description,
+                        dueDate = "",
+                        status = ReminderStatus.UPCOMING,
+                        dateMillis = dateMillis,
+                        fromTime = fromTime,
+                        toTime = toTime,
+                        isAllDay = isAllDay,
+                        alertDaysBefore = alertDaysBefore,
+                        attachmentUrl = attachmentUrl.ifBlank { null },
+                    )
 
                 val reminderId = reminderRepository.insertReminder(reminder, _courseId.value, _courseTitle.value)
 
-                
                 reminderNotificationManager.scheduleReminderNotification(
                     reminderId = reminderId,
                     title = title,
                     description = description,
                     triggerTimeMillis = calculateNotificationTime(dateMillis, alertDaysBefore, fromTime, isAllDay),
-                    courseTitle = _courseTitle.value
+                    courseTitle = _courseTitle.value,
                 )
-                
+
                 onSuccess()
             } catch (e: Exception) {
                 Timber.e(e, "Error adding reminder")
@@ -275,27 +284,11 @@ class CoursePageViewModel(
         }
     }
 
-    fun updateReminderStatus(reminderId: Long, isCompleted: Boolean) {
-        viewModelScope.launch {
-            reminderRepository.updateCompletedStatus(reminderId, isCompleted)
-            if (isCompleted) {
-                reminderNotificationManager.cancelReminderNotification(reminderId)
-            }
-        }
-    }
-
-    fun deleteReminder(reminder: Reminder) {
-        viewModelScope.launch {
-            reminderRepository.deleteReminder(reminder, _courseId.value, _courseTitle.value, reminder.id)
-            reminderNotificationManager.cancelReminderNotification(reminder.id)
-        }
-    }
-
     private fun calculateNotificationTime(
         dateMillis: Long,
         alertDaysBefore: Int,
         fromTime: String,
-        isAllDay: Boolean
+        isAllDay: Boolean,
     ): Long {
         val calendar = java.util.Calendar.getInstance()
         calendar.timeInMillis = dateMillis
@@ -309,7 +302,6 @@ class CoursePageViewModel(
                 calendar.set(java.util.Calendar.MINUTE, minute)
             }
         } else {
-            
             calendar.set(java.util.Calendar.HOUR_OF_DAY, 9)
             calendar.set(java.util.Calendar.MINUTE, 0)
         }
@@ -317,7 +309,6 @@ class CoursePageViewModel(
         calendar.set(java.util.Calendar.SECOND, 0)
         calendar.set(java.util.Calendar.MILLISECOND, 0)
 
-        
         if (alertDaysBefore > 0) {
             calendar.add(java.util.Calendar.DAY_OF_YEAR, -alertDaysBefore)
         }

@@ -7,7 +7,9 @@ import com.dscvit.vitty.ui.coursepage.models.ReminderStatus
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import java.text.SimpleDateFormat
-import java.util.*
+import java.util.Calendar
+import java.util.Date
+import java.util.Locale
 
 class ReminderRepository(
     private val reminderDao: ReminderDao,
@@ -28,15 +30,6 @@ class ReminderRepository(
         courseTitle: String,
     ): Long = reminderDao.insertReminder(reminder.toEntity(courseId, courseTitle))
 
-    suspend fun updateReminder(
-        reminder: Reminder,
-        courseId: String,
-        courseTitle: String,
-        id: Long,
-    ) {
-        reminderDao.updateReminder(reminder.toEntity(courseId, courseTitle, id))
-    }
-
     suspend fun deleteReminder(
         reminder: Reminder,
         courseId: String,
@@ -46,26 +39,12 @@ class ReminderRepository(
         reminderDao.deleteReminder(reminder.toEntity(courseId, courseTitle, id))
     }
 
-    suspend fun deleteRemindersByCourse(courseId: String) {
-        reminderDao.deleteRemindersByCourse(courseId)
-    }
-
     suspend fun updateCompletedStatus(
         id: Long,
         isCompleted: Boolean,
     ) {
         reminderDao.updateCompletedStatus(id, isCompleted)
     }
-
-    suspend fun getAllPendingReminders(): List<Reminder> = reminderDao.getAllPendingReminders().map { it.toReminder() }
-
-    suspend fun getRemindersInRange(
-        startTime: Long,
-        endTime: Long,
-    ): List<Reminder> =
-        reminderDao.getRemindersInRange(startTime, endTime).map {
-            it.toReminder()
-        }
 
     private fun ReminderEntity.toReminder(): Reminder {
         val calendar = Calendar.getInstance()
@@ -90,8 +69,8 @@ class ReminderRepository(
             date = fullDateFormat.format(Date(dateMillis)),
             status = status,
             dateMillis = dateMillis,
-            fromTime = if (isAllDay) "" else String.format("%02d:%02d", fromTimeHour, fromTimeMinute),
-            toTime = if (isAllDay) "" else String.format("%02d:%02d", toTimeHour, toTimeMinute),
+            fromTime = if (isAllDay) "" else String.format(Locale.getDefault(), "%02d:%02d", fromTimeHour, fromTimeMinute),
+            toTime = if (isAllDay) "" else String.format(Locale.getDefault(), "%02d:%02d", toTimeHour, toTimeMinute),
             isAllDay = isAllDay,
             alertDaysBefore = alertDaysBefore,
             attachmentUrl = attachmentUrl,

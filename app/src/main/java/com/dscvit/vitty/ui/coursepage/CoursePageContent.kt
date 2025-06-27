@@ -8,9 +8,20 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.layout.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.platform.LocalContext
@@ -19,8 +30,13 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.dscvit.vitty.theme.Background
 import com.dscvit.vitty.theme.TextColor
-import com.dscvit.vitty.ui.coursepage.components.*
-import com.dscvit.vitty.ui.coursepage.models.*
+import com.dscvit.vitty.ui.coursepage.components.AnimatedFabGroup
+import com.dscvit.vitty.ui.coursepage.components.CourseInfoSection
+import com.dscvit.vitty.ui.coursepage.components.CoursePageHeader
+import com.dscvit.vitty.ui.coursepage.components.FullScreenImageDialog
+import com.dscvit.vitty.ui.coursepage.components.NoteList
+import com.dscvit.vitty.ui.coursepage.components.SearchBar
+import com.dscvit.vitty.ui.coursepage.components.SetReminderBottomSheet
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -82,14 +98,8 @@ fun CoursePageContent(
             CourseInfoSection(
                 courseTitle = courseTitle,
                 reminders = reminders,
-                onToggleReminderComplete = { reminderId, isCompleted ->
-                    viewModel.updateReminderStatus(reminderId, isCompleted)
-                },
-                onDeleteReminder = { reminder ->
-                    viewModel.deleteReminder(reminder)
-                }
             )
-            
+
             NoteList(
                 notes = notes,
                 onImageClick = { imagePath -> fullScreenImageUrl = imagePath },
@@ -167,9 +177,9 @@ fun CoursePageContent(
                         },
                         onError = { errorMessage ->
                             Toast.makeText(context, errorMessage, Toast.LENGTH_LONG).show()
-                        }
+                        },
                     )
-                }
+                },
             )
         }
     }

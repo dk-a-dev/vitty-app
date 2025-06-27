@@ -4,7 +4,12 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.compose.runtime.*
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.ComposeView
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -42,7 +47,6 @@ class NoteFragment : Fragment() {
                         onBackClick = {
                             findNavController().popBackStack()
                         },
-                        courseCode = args.courseCode,
                         noteToEdit = noteToEdit,
                         onSaveNote = { title, content ->
                             viewModel.setCourseId(args.courseCode)

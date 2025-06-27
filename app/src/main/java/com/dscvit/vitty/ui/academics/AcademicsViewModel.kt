@@ -5,15 +5,16 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.dscvit.vitty.data.database.VittyDatabase
 import com.dscvit.vitty.data.repository.ReminderRepository
-import com.dscvit.vitty.ui.coursepage.ReminderNotificationManager
+import com.dscvit.vitty.receiver.ReminderNotificationManager
 import com.dscvit.vitty.ui.coursepage.models.Reminder
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.flow.SharingStarted
 
-class AcademicsViewModel(application: Application) : AndroidViewModel(application) {
-    
+class AcademicsViewModel(
+    application: Application,
+) : AndroidViewModel(application) {
     private val reminderRepository: ReminderRepository
     private val reminderNotificationManager: ReminderNotificationManager
 
@@ -24,14 +25,18 @@ class AcademicsViewModel(application: Application) : AndroidViewModel(applicatio
     }
 
     val allReminders: StateFlow<List<Reminder>> =
-        reminderRepository.getAllReminders()
+        reminderRepository
+            .getAllReminders()
             .stateIn(
                 scope = viewModelScope,
                 started = SharingStarted.WhileSubscribed(5000),
-                initialValue = emptyList()
+                initialValue = emptyList(),
             )
 
-    fun updateReminderStatus(reminderId: Long, isCompleted: Boolean) {
+    fun updateReminderStatus(
+        reminderId: Long,
+        isCompleted: Boolean,
+    ) {
         viewModelScope.launch {
             reminderRepository.updateCompletedStatus(reminderId, isCompleted)
             if (isCompleted) {
