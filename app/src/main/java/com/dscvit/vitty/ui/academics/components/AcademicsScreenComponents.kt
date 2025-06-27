@@ -5,7 +5,6 @@ import androidx.annotation.RequiresApi
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeOut
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -388,6 +387,7 @@ fun FilterChip(
     }
 }
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun AcademicsContent(
     selectedTab: Int,
@@ -480,7 +480,6 @@ fun CourseCard(
 }
 
 @RequiresApi(Build.VERSION_CODES.O)
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun RemindersContent(
     reminders: List<Reminder>,
@@ -489,17 +488,15 @@ fun RemindersContent(
     onToggleReminderComplete: (Long, Boolean) -> Unit,
     onDeleteReminder: (Reminder) -> Unit,
 ) {
-    
     val statusFilteredReminders =
         reminders.filter { reminder ->
             when (reminderStatus) {
-                0 -> reminder.status != ReminderStatus.COMPLETED 
-                1 -> reminder.status == ReminderStatus.COMPLETED 
+                0 -> reminder.status != ReminderStatus.COMPLETED
+                1 -> reminder.status == ReminderStatus.COMPLETED
                 else -> true
             }
         }
 
-    
     val filteredReminders =
         if (searchQuery.isNotEmpty()) {
             statusFilteredReminders.filter { reminder ->
@@ -536,7 +533,6 @@ fun RemindersContent(
             }
         }
     } else {
-        
         val groupedReminders = groupRemindersByDate(filteredReminders)
 
         LazyColumn(
@@ -547,11 +543,10 @@ fun RemindersContent(
         ) {
             groupedReminders.forEach { (dateHeader, remindersList) ->
                 item {
-                    
                     DateHeaderWithChip(dateHeader = dateHeader, remindersList = remindersList)
                 }
 
-                items(remindersList) { reminder ->
+                items(remindersList, key = { it.id }) { reminder ->
                     SwipeableReminderCard(
                         reminder = reminder,
                         onToggleComplete = onToggleReminderComplete,
@@ -572,7 +567,6 @@ fun RemindersContent(
     }
 }
 
-
 @RequiresApi(Build.VERSION_CODES.O)
 fun groupRemindersByDate(reminders: List<Reminder>): LinkedHashMap<String, List<Reminder>> =
     reminders
@@ -582,7 +576,6 @@ fun groupRemindersByDate(reminders: List<Reminder>): LinkedHashMap<String, List<
                 try {
                     LocalDate.parse(reminder.date)
                 } catch (e: Exception) {
-                    
                     LocalDateTime
                         .ofEpochSecond(
                             reminder.dateMillis / 1000,
@@ -594,14 +587,12 @@ fun groupRemindersByDate(reminders: List<Reminder>): LinkedHashMap<String, List<
                         ).toLocalDate()
                 }
 
-            
             reminderDate.format(DateTimeFormatter.ofPattern("dd MMMM"))
         }.toList()
         .sortedBy { (_, remindersList) ->
-            
+
             remindersList.firstOrNull()?.dateMillis ?: 0L
         }.toMap(LinkedHashMap())
-
 
 @RequiresApi(Build.VERSION_CODES.O)
 fun getDateChipInfo(reminderDate: LocalDate): Pair<String, Color> {
@@ -639,12 +630,10 @@ fun SwipeableReminderCard(
             confirmValueChange = { dismissValue ->
                 when (dismissValue) {
                     SwipeToDismissBoxValue.EndToStart -> {
-                        
                         isDismissed = true
                         true
                     }
                     SwipeToDismissBoxValue.StartToEnd -> {
-                        
                         if (reminder.status != ReminderStatus.COMPLETED) {
                             isCompleted = true
                             true
@@ -680,7 +669,6 @@ fun SwipeableReminderCard(
             backgroundContent = {
                 when (dismissState.dismissDirection) {
                     SwipeToDismissBoxValue.StartToEnd -> {
-                        
                         if (reminder.status != ReminderStatus.COMPLETED) {
                             Box(
                                 modifier =
@@ -702,7 +690,6 @@ fun SwipeableReminderCard(
                         }
                     }
                     SwipeToDismissBoxValue.EndToStart -> {
-                        
                         Box(
                             modifier =
                                 Modifier
@@ -721,8 +708,8 @@ fun SwipeableReminderCard(
                             )
                         }
                     }
-                    SwipeToDismissBoxValue.Settled -> {
-                        
+                    else -> {
+                        // No background content for other directions
                     }
                 }
             },
@@ -763,7 +750,6 @@ fun ReminderCardContent(
 
             Spacer(Modifier.height(8.dp))
 
-            
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -787,7 +773,6 @@ fun DateHeaderWithChip(
     dateHeader: String,
     remindersList: List<Reminder>,
 ) {
-    
     val firstReminder = remindersList.firstOrNull() ?: return
     val reminderDate =
         try {
@@ -804,7 +789,7 @@ fun DateHeaderWithChip(
                 ).toLocalDate()
         }
 
-    val (chipText, chipColor) = getDateChipInfo(reminderDate)
+    val (chipText, _) = getDateChipInfo(reminderDate)
 
     Row(
         modifier =

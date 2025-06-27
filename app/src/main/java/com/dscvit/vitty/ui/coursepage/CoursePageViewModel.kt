@@ -16,6 +16,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import timber.log.Timber
 import java.io.File
 import java.io.FileOutputStream
 import java.io.InputStream
@@ -236,32 +237,41 @@ class CoursePageViewModel(
         toTime: String,
         isAllDay: Boolean,
         alertDaysBefore: Int,
-        attachmentUrl: String
+        attachmentUrl: String,
+        onSuccess: () -> Unit = {},
+        onError: (String) -> Unit = {}
     ) {
         viewModelScope.launch {
-            val reminder = Reminder(
-                title = title,
-                description = description,
-                dueDate = "", 
-                status = ReminderStatus.UPCOMING,
-                dateMillis = dateMillis,
-                fromTime = fromTime,
-                toTime = toTime,
-                isAllDay = isAllDay,
-                alertDaysBefore = alertDaysBefore,
-                attachmentUrl = attachmentUrl.ifBlank { null }
-            )
+            try {
+                val reminder = Reminder(
+                    title = title,
+                    description = description,
+                    dueDate = "", 
+                    status = ReminderStatus.UPCOMING,
+                    dateMillis = dateMillis,
+                    fromTime = fromTime,
+                    toTime = toTime,
+                    isAllDay = isAllDay,
+                    alertDaysBefore = alertDaysBefore,
+                    attachmentUrl = attachmentUrl.ifBlank { null }
+                )
 
-            val reminderId = reminderRepository.insertReminder(reminder, _courseId.value, _courseTitle.value)
+                val reminderId = reminderRepository.insertReminder(reminder, _courseId.value, _courseTitle.value)
 
-            
-            reminderNotificationManager.scheduleReminderNotification(
-                reminderId = reminderId,
-                title = title,
-                description = description,
-                triggerTimeMillis = calculateNotificationTime(dateMillis, alertDaysBefore, fromTime, isAllDay),
-                courseTitle = _courseTitle.value
-            )
+                
+                reminderNotificationManager.scheduleReminderNotification(
+                    reminderId = reminderId,
+                    title = title,
+                    description = description,
+                    triggerTimeMillis = calculateNotificationTime(dateMillis, alertDaysBefore, fromTime, isAllDay),
+                    courseTitle = _courseTitle.value
+                )
+                
+                onSuccess()
+            } catch (e: Exception) {
+                Timber.e(e, "Error adding reminder")
+                onError("Failed to create reminder: ${e.message}")
+            }
         }
     }
 

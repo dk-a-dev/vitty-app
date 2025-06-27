@@ -201,7 +201,6 @@ fun NoteItem(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SwipeToDismissNote(
     note: Note,

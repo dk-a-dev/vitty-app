@@ -10,7 +10,7 @@ import java.text.SimpleDateFormat
 import java.util.*
 
 class ReminderRepository(
-    private val reminderDao: ReminderDao
+    private val reminderDao: ReminderDao,
 ) {
     fun getRemindersByCourse(courseId: String): Flow<List<Reminder>> =
         reminderDao.getRemindersByCourse(courseId).map { entities ->
@@ -22,15 +22,27 @@ class ReminderRepository(
             entities.map { it.toReminder() }
         }
 
-    suspend fun insertReminder(reminder: Reminder, courseId: String, courseTitle: String): Long {
-        return reminderDao.insertReminder(reminder.toEntity(courseId, courseTitle))
-    }
+    suspend fun insertReminder(
+        reminder: Reminder,
+        courseId: String,
+        courseTitle: String,
+    ): Long = reminderDao.insertReminder(reminder.toEntity(courseId, courseTitle))
 
-    suspend fun updateReminder(reminder: Reminder, courseId: String, courseTitle: String, id: Long) {
+    suspend fun updateReminder(
+        reminder: Reminder,
+        courseId: String,
+        courseTitle: String,
+        id: Long,
+    ) {
         reminderDao.updateReminder(reminder.toEntity(courseId, courseTitle, id))
     }
 
-    suspend fun deleteReminder(reminder: Reminder, courseId: String, courseTitle: String, id: Long) {
+    suspend fun deleteReminder(
+        reminder: Reminder,
+        courseId: String,
+        courseTitle: String,
+        id: Long,
+    ) {
         reminderDao.deleteReminder(reminder.toEntity(courseId, courseTitle, id))
     }
 
@@ -38,32 +50,38 @@ class ReminderRepository(
         reminderDao.deleteRemindersByCourse(courseId)
     }
 
-    suspend fun updateCompletedStatus(id: Long, isCompleted: Boolean) {
+    suspend fun updateCompletedStatus(
+        id: Long,
+        isCompleted: Boolean,
+    ) {
         reminderDao.updateCompletedStatus(id, isCompleted)
     }
 
-    suspend fun getAllPendingReminders(): List<Reminder> {
-        return reminderDao.getAllPendingReminders().map { it.toReminder() }
-    }
+    suspend fun getAllPendingReminders(): List<Reminder> = reminderDao.getAllPendingReminders().map { it.toReminder() }
 
-    suspend fun getRemindersInRange(startTime: Long, endTime: Long): List<Reminder> {
-        return reminderDao.getRemindersInRange(startTime, endTime).map { it.toReminder() }
-    }
+    suspend fun getRemindersInRange(
+        startTime: Long,
+        endTime: Long,
+    ): List<Reminder> =
+        reminderDao.getRemindersInRange(startTime, endTime).map {
+            it.toReminder()
+        }
 
     private fun ReminderEntity.toReminder(): Reminder {
         val calendar = Calendar.getInstance()
         calendar.timeInMillis = dateMillis
         val currentTime = System.currentTimeMillis()
-        
-        val status = when {
-            isCompleted -> ReminderStatus.COMPLETED
-            dateMillis < currentTime -> ReminderStatus.UPCOMING
-            else -> ReminderStatus.CAN_WAIT
-        }
-        
+
+        val status =
+            when {
+                isCompleted -> ReminderStatus.COMPLETED
+                dateMillis < currentTime -> ReminderStatus.UPCOMING
+                else -> ReminderStatus.CAN_WAIT
+            }
+
         val dateFormat = SimpleDateFormat("dd MMM", Locale.getDefault())
         val fullDateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-        
+
         return Reminder(
             id = id,
             title = title,
@@ -78,18 +96,22 @@ class ReminderRepository(
             alertDaysBefore = alertDaysBefore,
             attachmentUrl = attachmentUrl,
             courseId = courseId,
-            courseTitle = courseTitle
+            courseTitle = courseTitle,
         )
     }
 
-    private fun Reminder.toEntity(courseId: String, courseTitle: String, id: Long = 0): ReminderEntity {
+    private fun Reminder.toEntity(
+        courseId: String,
+        courseTitle: String,
+        id: Long = 0,
+    ): ReminderEntity {
         val fromTimeParts = fromTime.split(":")
         val toTimeParts = toTime.split(":")
-        
+
         return ReminderEntity(
             id = if (id == 0L) this.id else id,
-            courseId = if (courseId.isNotEmpty()) courseId else this.courseId,
-            courseTitle = if (courseTitle.isNotEmpty()) courseTitle else this.courseTitle,
+            courseId = courseId.ifEmpty { this.courseId },
+            courseTitle = courseTitle.ifEmpty { this.courseTitle },
             title = title,
             description = description,
             dateMillis = dateMillis,
@@ -101,7 +123,7 @@ class ReminderRepository(
             alertDaysBefore = alertDaysBefore,
             attachmentUrl = attachmentUrl,
             isCompleted = status == ReminderStatus.COMPLETED,
-            updatedAt = System.currentTimeMillis()
+            updatedAt = System.currentTimeMillis(),
         )
     }
 }

@@ -1,5 +1,6 @@
 package com.dscvit.vitty.ui.coursepage.components
 
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -14,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -26,7 +28,6 @@ import com.dscvit.vitty.theme.Red
 import com.dscvit.vitty.theme.Secondary
 import com.dscvit.vitty.theme.TextColor
 import com.dscvit.vitty.ui.coursepage.models.AlertOption
-import java.util.*
 
 @Composable
 fun SetReminderBottomSheet(
@@ -112,6 +113,7 @@ fun FirstPage(
     onDismiss: () -> Unit,
     onNext: () -> Unit,
 ) {
+    val context = LocalContext.current
     val datePickerState =
         rememberDatePickerState(
             initialSelectedDateMillis = selectedDateMillis,
@@ -133,6 +135,65 @@ fun FirstPage(
             initialMinute = toTime.split(":")[1].toIntOrNull() ?: 0,
             is24Hour = true,
         )
+
+    
+    fun validateInput(): Boolean {
+        
+        if (selectedDateMillis == null) {
+            Toast.makeText(context, "Please select a date", Toast.LENGTH_SHORT).show()
+            return false
+        }
+
+        
+        val currentTimeMillis = System.currentTimeMillis()
+        val selectedDateOnly = selectedDateMillis - (selectedDateMillis % (24 * 60 * 60 * 1000))
+        val currentDateOnly = currentTimeMillis - (currentTimeMillis % (24 * 60 * 60 * 1000))
+
+        if (selectedDateOnly < currentDateOnly) {
+            Toast.makeText(context, "Cannot set reminder for a past date", Toast.LENGTH_SHORT).show()
+            return false
+        }
+
+        
+        if (!isAllDay && selectedDateOnly == currentDateOnly) {
+            val fromTimeParts = fromTime.split(":")
+            val fromHour = fromTimeParts[0].toInt()
+            val fromMinute = fromTimeParts[1].toInt()
+
+            val currentTime = java.util.Calendar.getInstance()
+            val currentHour = currentTime.get(java.util.Calendar.HOUR_OF_DAY)
+            val currentMinute = currentTime.get(java.util.Calendar.MINUTE)
+
+            val fromTimeInMinutes = fromHour * 60 + fromMinute
+            val currentTimeInMinutes = currentHour * 60 + currentMinute
+
+            if (fromTimeInMinutes <= currentTimeInMinutes) {
+                Toast.makeText(context, "Cannot set reminder for a past time", Toast.LENGTH_SHORT).show()
+                return false
+            }
+        }
+
+        
+        if (!isAllDay) {
+            val fromTimeParts = fromTime.split(":")
+            val toTimeParts = toTime.split(":")
+
+            val fromHour = fromTimeParts[0].toInt()
+            val fromMinute = fromTimeParts[1].toInt()
+            val toHour = toTimeParts[0].toInt()
+            val toMinute = toTimeParts[1].toInt()
+
+            val fromTimeInMinutes = fromHour * 60 + fromMinute
+            val toTimeInMinutes = toHour * 60 + toMinute
+
+            if (fromTimeInMinutes >= toTimeInMinutes) {
+                Toast.makeText(context, "Start time must be before end time", Toast.LENGTH_SHORT).show()
+                return false
+            }
+        }
+
+        return true
+    }
 
     LaunchedEffect(datePickerState.selectedDateMillis) {
         onDateSelected(datePickerState.selectedDateMillis)
@@ -157,7 +218,11 @@ fun FirstPage(
             }
 
             TextButton(
-                onClick = onNext,
+                onClick = {
+                    if (validateInput()) {
+                        onNext()
+                    }
+                },
                 enabled = selectedDateMillis != null,
                 colors = ButtonDefaults.textButtonColors(contentColor = Accent),
             ) {
@@ -410,6 +475,40 @@ fun SecondPage(
     onBack: () -> Unit,
     onAdd: () -> Unit,
 ) {
+    val context = LocalContext.current
+
+    
+    fun validateInput(): Boolean {
+        
+        if (title.trim().isEmpty()) {
+            Toast.makeText(context, "Title is required", Toast.LENGTH_SHORT).show()
+            return false
+        }
+        
+        if (title.trim().length > 100) {
+            Toast.makeText(context, "Title must be less than 100 characters", Toast.LENGTH_SHORT).show()
+            return false
+        }
+        if (description.trim().isEmpty()) {
+            Toast.makeText(context, "Description is required", Toast.LENGTH_SHORT).show()
+            return false
+        }
+        
+        if (description.trim().length > 500) {
+            Toast.makeText(context, "Description must be less than 500 characters", Toast.LENGTH_SHORT).show()
+            return false
+        }
+        
+        if (attachmentUrl.trim().isNotEmpty()) {
+            val urlPattern = Regex("^(https?|ftp):
+            if (!urlPattern.matches(attachmentUrl.trim())) {
+                Toast.makeText(context, "Please enter a valid URL", Toast.LENGTH_SHORT).show()
+                return false
+            }
+        }
+        return true
+    }
+
     Column(
         modifier =
             Modifier
@@ -429,7 +528,11 @@ fun SecondPage(
             }
 
             TextButton(
-                onClick = onAdd,
+                onClick = {
+                    if (validateInput()) {
+                        onAdd()
+                    }
+                },
                 colors = ButtonDefaults.textButtonColors(contentColor = Accent),
             ) {
                 Text("Add", fontSize = 16.sp, fontWeight = FontWeight.Medium)
