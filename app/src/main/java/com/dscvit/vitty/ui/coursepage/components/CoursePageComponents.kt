@@ -50,8 +50,8 @@ import com.dscvit.vitty.theme.TextColor
 import com.dscvit.vitty.theme.Yellow
 import com.dscvit.vitty.ui.coursepage.models.Note
 import com.dscvit.vitty.ui.coursepage.models.NoteType
+import com.dscvit.vitty.ui.coursepage.models.Reminder
 import com.dscvit.vitty.ui.coursepage.models.ReminderStatus
-import com.dscvit.vitty.ui.coursepage.models.Reminders
 import dev.jeziellago.compose.markdowntext.MarkdownText
 
 @Composable
@@ -107,7 +107,7 @@ fun NoteList(
         ) {
             items(
                 count = notes.size,
-                key = { index -> notes[index].id }
+                key = { index -> notes[index].id },
             ) { index ->
                 val note = notes[index]
                 SwipeToDismissNote(
@@ -144,7 +144,7 @@ fun NoteItem(
                             .clickable { onImageClick(imagePath) },
                     contentScale = ContentScale.Crop,
                     onSuccess = { onImageLoaded() },
-                    onError = { onImageLoaded() }
+                    onError = { onImageLoaded() },
                 )
             }
         }
@@ -212,7 +212,7 @@ fun SwipeToDismissNote(
 ) {
     var isImageLoaded by remember { mutableStateOf(note.type != NoteType.IMAGE) }
     var isDismissed by remember { mutableStateOf(false) }
-    
+
     val dismissState =
         rememberSwipeToDismissBoxState(
             confirmValueChange = { dismissValue ->
@@ -239,7 +239,7 @@ fun SwipeToDismissNote(
 
     AnimatedVisibility(
         visible = !isDismissed,
-        exit = fadeOut(animationSpec = tween(200))
+        exit = fadeOut(animationSpec = tween(200)),
     ) {
         SwipeToDismissBox(
             state = dismissState,
@@ -270,7 +270,7 @@ fun SwipeToDismissNote(
                 onNoteClick = onNoteClick,
                 onImageClick = onImageClick,
                 onStarClick = onStarClick,
-                onImageLoaded = { isImageLoaded = true }
+                onImageLoaded = { isImageLoaded = true },
             )
         }
     }
@@ -376,7 +376,9 @@ fun SearchBar(
 @Composable
 fun CourseInfoSection(
     courseTitle: String,
-    reminders: List<Reminders>,
+    reminders: List<Reminder>,
+    onToggleReminderComplete: (Long, Boolean) -> Unit = { _, _ -> },
+    onDeleteReminder: (Reminder) -> Unit = { },
 ) {
     Column(
         modifier =
@@ -395,7 +397,7 @@ fun CourseInfoSection(
 
         val prioritizedReminders =
             remember(reminders) {
-                mutableListOf<Reminders>().apply {
+                mutableListOf<Reminder>().apply {
                     addAll(reminders.filter { it.status == ReminderStatus.UPCOMING })
                     addAll(reminders.filter { it.status == ReminderStatus.CAN_WAIT })
                     addAll(reminders.filter { it.status == ReminderStatus.COMPLETED })
@@ -412,17 +414,21 @@ fun CourseInfoSection(
                 contentPadding = PaddingValues(horizontal = 0.dp),
             ) {
                 items(displayedReminders.size) { index ->
-                    RemindersChip(
+                    NewRemindersChip(
                         text = "${displayedReminders[index].title} by ${displayedReminders[index].dueDate}",
                         reminder = displayedReminders[index],
+                        onToggleComplete = onToggleReminderComplete,
+                        onDelete = onDeleteReminder,
                     )
                 }
 
                 if (remainingCount > 0) {
                     item {
-                        RemindersChip(
+                        NewRemindersChip(
                             text = "+$remainingCount",
                             reminder = null,
+                            onToggleComplete = onToggleReminderComplete,
+                            onDelete = onDeleteReminder,
                         )
                     }
                 }
@@ -433,9 +439,11 @@ fun CourseInfoSection(
 }
 
 @Composable
-fun RemindersChip(
+fun NewRemindersChip(
     text: String,
-    reminder: Reminders?,
+    reminder: Reminder?,
+    onToggleComplete: (Long, Boolean) -> Unit,
+    onDelete: (Reminder) -> Unit,
 ) {
     Box(
         modifier =

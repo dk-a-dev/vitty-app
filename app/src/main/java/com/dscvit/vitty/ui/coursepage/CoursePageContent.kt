@@ -36,6 +36,7 @@ fun CoursePageContent(
 
     val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
     val notes by viewModel.notes.collectAsStateWithLifecycle()
+    val reminders by viewModel.reminders.collectAsStateWithLifecycle()
 
     val imagePickerLauncher =
         rememberLauncherForActivityResult(
@@ -48,19 +49,8 @@ fun CoursePageContent(
 
     LaunchedEffect(courseCode) {
         viewModel.setCourseId(courseCode)
+        viewModel.setCourseTitle(courseTitle)
     }
-
-    val reminders =
-        remember {
-            listOf(
-                Reminders("DA I", "24 May", ReminderStatus.UPCOMING),
-                Reminders("DA II", "2 June", ReminderStatus.UPCOMING),
-                Reminders("Assignment 1", "15 June", ReminderStatus.CAN_WAIT),
-                Reminders("Project Report", "20 June", ReminderStatus.CAN_WAIT),
-                Reminders("Quiz I", "2 Jan", ReminderStatus.COMPLETED),
-                Reminders("Quiz II", "10 Jan", ReminderStatus.COMPLETED),
-            )
-        }
 
     Box(
         modifier =
@@ -89,7 +79,14 @@ fun CoursePageContent(
             CourseInfoSection(
                 courseTitle = courseTitle,
                 reminders = reminders,
+                onToggleReminderComplete = { reminderId, isCompleted ->
+                    viewModel.updateReminderStatus(reminderId, isCompleted)
+                },
+                onDeleteReminder = { reminder ->
+                    viewModel.deleteReminder(reminder)
+                }
             )
+            
             NoteList(
                 notes = notes,
                 onImageClick = { imagePath -> fullScreenImageUrl = imagePath },
@@ -151,6 +148,18 @@ fun CoursePageContent(
             SetReminderBottomSheet(
                 onDismiss = { showSetReminderModal = false },
                 courseTitle = courseTitle,
+                onSaveReminder = { title, description, dateMillis, fromTime, toTime, isAllDay, alertDaysBefore, attachmentUrl ->
+                    viewModel.addReminder(
+                        title = title,
+                        description = description,
+                        dateMillis = dateMillis,
+                        fromTime = fromTime,
+                        toTime = toTime,
+                        isAllDay = isAllDay,
+                        alertDaysBefore = alertDaysBefore,
+                        attachmentUrl = attachmentUrl
+                    )
+                }
             )
         }
     }

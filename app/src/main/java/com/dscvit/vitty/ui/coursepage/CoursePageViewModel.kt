@@ -6,8 +6,11 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.dscvit.vitty.data.database.VittyDatabase
 import com.dscvit.vitty.data.repository.NoteRepository
+import com.dscvit.vitty.data.repository.ReminderRepository
 import com.dscvit.vitty.ui.coursepage.models.Note
 import com.dscvit.vitty.ui.coursepage.models.NoteType
+import com.dscvit.vitty.ui.coursepage.models.Reminder
+import com.dscvit.vitty.ui.coursepage.models.ReminderStatus
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
@@ -21,14 +24,21 @@ class CoursePageViewModel(
     application: Application,
 ) : AndroidViewModel(application) {
     private val noteRepository: NoteRepository
+    private val reminderRepository: ReminderRepository
+    private val reminderNotificationManager: ReminderNotificationManager
 
     init {
         val database = VittyDatabase.getDatabase(application)
         noteRepository = NoteRepository(database.noteDao())
+        reminderRepository = ReminderRepository(database.reminderDao())
+        reminderNotificationManager = ReminderNotificationManager(application)
     }
 
     private val _courseId = MutableStateFlow("")
     val courseId: StateFlow<String> = _courseId.asStateFlow()
+
+    private val _courseTitle = MutableStateFlow("")
+    val courseTitle: StateFlow<String> = _courseTitle.asStateFlow()
 
     private val _searchQuery = MutableStateFlow("")
     val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
@@ -51,8 +61,22 @@ class CoursePageViewModel(
                 initialValue = emptyList(),
             )
 
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val reminders: StateFlow<List<Reminder>> =
+        _courseId.flatMapLatest { courseId ->
+            reminderRepository.getRemindersByCourse(courseId)
+        }.stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList(),
+        )
+
     fun setCourseId(courseId: String) {
         _courseId.value = courseId
+    }
+
+    fun setCourseTitle(courseTitle: String) {
+        _courseTitle.value = courseTitle
     }
 
     fun setSearchQuery(query: String) {
@@ -201,5 +225,93 @@ class CoursePageViewModel(
             } catch (e: NumberFormatException) {
             }
         }
+    }
+
+    
+    fun addReminder(
+        title: String,
+        description: String,
+        dateMillis: Long,
+        fromTime: String,
+        toTime: String,
+        isAllDay: Boolean,
+        alertDaysBefore: Int,
+        attachmentUrl: String
+    ) {
+        viewModelScope.launch {
+            val reminder = Reminder(
+                title = title,
+                description = description,
+                dueDate = "", 
+                status = ReminderStatus.UPCOMING,
+                dateMillis = dateMillis,
+                fromTime = fromTime,
+                toTime = toTime,
+                isAllDay = isAllDay,
+                alertDaysBefore = alertDaysBefore,
+                attachmentUrl = attachmentUrl.ifBlank { null }
+            )
+
+            val reminderId = reminderRepository.insertReminder(reminder, _courseId.value, _courseTitle.value)
+
+            
+            reminderNotificationManager.scheduleReminderNotification(
+                reminderId = reminderId,
+                title = title,
+                description = description,
+                triggerTimeMillis = calculateNotificationTime(dateMillis, alertDaysBefore, fromTime, isAllDay),
+                courseTitle = _courseTitle.value
+            )
+        }
+    }
+
+    fun updateReminderStatus(reminderId: Long, isCompleted: Boolean) {
+        viewModelScope.launch {
+            reminderRepository.updateCompletedStatus(reminderId, isCompleted)
+            if (isCompleted) {
+                reminderNotificationManager.cancelReminderNotification(reminderId)
+            }
+        }
+    }
+
+    fun deleteReminder(reminder: Reminder) {
+        viewModelScope.launch {
+            reminderRepository.deleteReminder(reminder, _courseId.value, _courseTitle.value, reminder.id)
+            reminderNotificationManager.cancelReminderNotification(reminder.id)
+        }
+    }
+
+    private fun calculateNotificationTime(
+        dateMillis: Long,
+        alertDaysBefore: Int,
+        fromTime: String,
+        isAllDay: Boolean
+    ): Long {
+        val calendar = java.util.Calendar.getInstance()
+        calendar.timeInMillis = dateMillis
+
+        if (!isAllDay && fromTime.isNotBlank()) {
+            val timeParts = fromTime.split(":")
+            if (timeParts.size >= 2) {
+                val hour = timeParts[0].toIntOrNull() ?: 9
+                val minute = timeParts[1].toIntOrNull() ?: 0
+                calendar.set(java.util.Calendar.HOUR_OF_DAY, hour)
+                calendar.set(java.util.Calendar.MINUTE, minute)
+            }
+        } else {
+            
+            calendar.set(java.util.Calendar.HOUR_OF_DAY, 9)
+            calendar.set(java.util.Calendar.MINUTE, 0)
+        }
+
+        calendar.set(java.util.Calendar.SECOND, 0)
+        calendar.set(java.util.Calendar.MILLISECOND, 0)
+
+        
+        if (alertDaysBefore > 0) {
+            calendar.add(java.util.Calendar.DAY_OF_YEAR, -alertDaysBefore)
+        }
+
+        return calendar.timeInMillis
     }
 }

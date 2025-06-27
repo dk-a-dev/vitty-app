@@ -1,9 +1,12 @@
 package com.dscvit.vitty.ui.coursepage.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -22,20 +25,33 @@ import com.dscvit.vitty.theme.DividerColor
 import com.dscvit.vitty.theme.Red
 import com.dscvit.vitty.theme.Secondary
 import com.dscvit.vitty.theme.TextColor
+import com.dscvit.vitty.ui.coursepage.models.AlertOption
+import java.util.*
 
 @Composable
 fun SetReminderBottomSheet(
     onDismiss: () -> Unit,
     courseTitle: String,
+    onSaveReminder: (
+        title: String,
+        description: String,
+        dateMillis: Long,
+        fromTime: String,
+        toTime: String,
+        isAllDay: Boolean,
+        alertDaysBefore: Int,
+        attachmentUrl: String,
+    ) -> Unit = { _, _, _, _, _, _, _, _ -> },
 ) {
     var currentPage by remember { mutableStateOf(0) }
     var selectedDateMillis by remember { mutableStateOf<Long?>(null) }
     var isAllDay by remember { mutableStateOf(false) }
-    var fromTime by remember { mutableStateOf("7:00AM") }
-    var toTime by remember { mutableStateOf("6:00AM") }
+    var fromTime by remember { mutableStateOf("07:00") }
+    var toTime by remember { mutableStateOf("18:00") }
     var title by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
     var attachmentUrl by remember { mutableStateOf("") }
+    var selectedAlert by remember { mutableStateOf(AlertOption.NONE) }
 
     when (currentPage) {
         0 ->
@@ -60,8 +76,22 @@ fun SetReminderBottomSheet(
                 subject = courseTitle,
                 attachmentUrl = attachmentUrl,
                 onAttachmentUrlChange = { attachmentUrl = it },
+                selectedAlert = selectedAlert,
+                onAlertChange = { selectedAlert = it },
                 onBack = { currentPage = 0 },
                 onAdd = {
+                    selectedDateMillis?.let { dateMillis ->
+                        onSaveReminder(
+                            title,
+                            description,
+                            dateMillis,
+                            fromTime,
+                            toTime,
+                            isAllDay,
+                            selectedAlert.days,
+                            attachmentUrl,
+                        )
+                    }
                     onDismiss()
                 },
             )
@@ -85,6 +115,23 @@ fun FirstPage(
     val datePickerState =
         rememberDatePickerState(
             initialSelectedDateMillis = selectedDateMillis,
+        )
+
+    var showFromTimePicker by remember { mutableStateOf(false) }
+    var showToTimePicker by remember { mutableStateOf(false) }
+
+    val fromTimePickerState =
+        rememberTimePickerState(
+            initialHour = fromTime.split(":")[0].toIntOrNull() ?: 7,
+            initialMinute = fromTime.split(":")[1].toIntOrNull() ?: 0,
+            is24Hour = true,
+        )
+
+    val toTimePickerState =
+        rememberTimePickerState(
+            initialHour = toTime.split(":")[0].toIntOrNull() ?: 18,
+            initialMinute = toTime.split(":")[1].toIntOrNull() ?: 0,
+            is24Hour = true,
         )
 
     LaunchedEffect(datePickerState.selectedDateMillis) {
@@ -207,7 +254,7 @@ fun FirstPage(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Text(
-                            text = "To",
+                            text = "From",
                             style = MaterialTheme.typography.bodyMedium,
                             color = Color(0xff566A7B),
                         )
@@ -216,10 +263,11 @@ fun FirstPage(
                                 Modifier
                                     .clip(RoundedCornerShape(8.dp))
                                     .background(Color(0x33475985))
+                                    .clickable { showFromTimePicker = true }
                                     .padding(horizontal = 10.dp, vertical = 4.dp),
                         ) {
                             Text(
-                                text = toTime,
+                                text = fromTime,
                                 style =
                                     MaterialTheme.typography.labelLarge.copy(
                                         fontWeight = FontWeight.Light,
@@ -240,7 +288,7 @@ fun FirstPage(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Text(
-                            text = "From",
+                            text = "To",
                             style = MaterialTheme.typography.bodyMedium,
                             color = Color(0xff566A7B),
                         )
@@ -249,10 +297,11 @@ fun FirstPage(
                                 Modifier
                                     .clip(RoundedCornerShape(8.dp))
                                     .background(Color(0x33475985))
+                                    .clickable { showToTimePicker = true }
                                     .padding(horizontal = 10.dp, vertical = 4.dp),
                         ) {
                             Text(
-                                text = fromTime,
+                                text = toTime,
                                 style =
                                     MaterialTheme.typography.labelLarge.copy(
                                         fontWeight = FontWeight.Light,
@@ -267,6 +316,84 @@ fun FirstPage(
 
         Spacer(modifier = Modifier.height(32.dp))
     }
+
+    if (showFromTimePicker) {
+        AlertDialog(
+            onDismissRequest = { showFromTimePicker = false },
+            title = { Text("Select From Time") },
+            text = {
+                TimePicker(
+                    state = fromTimePickerState,
+                    colors =
+                        TimePickerDefaults.colors(
+                            containerColor = Secondary,
+                            timeSelectorSelectedContainerColor = Accent,
+                            timeSelectorUnselectedContainerColor = Background,
+                            timeSelectorSelectedContentColor = Background,
+                            timeSelectorUnselectedContentColor = TextColor,
+                            clockDialColor = Secondary,
+                            clockDialUnselectedContentColor = TextColor,
+                            clockDialSelectedContentColor = Secondary,
+                        ),
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        onFromTimeChange(String.format("%02d:%02d", fromTimePickerState.hour, fromTimePickerState.minute))
+                        showFromTimePicker = false
+                    },
+                ) {
+                    Text("OK", color = Accent)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showFromTimePicker = false }) {
+                    Text("Cancel", color = Red)
+                }
+            },
+            containerColor = Background,
+        )
+    }
+
+    if (showToTimePicker) {
+        AlertDialog(
+            onDismissRequest = { showToTimePicker = false },
+            title = { Text("Select To Time") },
+            text = {
+                TimePicker(
+                    state = toTimePickerState,
+                    colors =
+                        TimePickerDefaults.colors(
+                            containerColor = Secondary,
+                            timeSelectorSelectedContainerColor = Accent,
+                            timeSelectorUnselectedContainerColor = Background,
+                            timeSelectorSelectedContentColor = Background,
+                            timeSelectorUnselectedContentColor = TextColor,
+                            clockDialColor = Secondary,
+                            clockDialUnselectedContentColor = TextColor,
+                            clockDialSelectedContentColor = Secondary,
+                        ),
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        onToTimeChange(String.format("%02d:%02d", toTimePickerState.hour, toTimePickerState.minute))
+                        showToTimePicker = false
+                    },
+                ) {
+                    Text("OK", color = Accent)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showToTimePicker = false }) {
+                    Text("Cancel", color = Red)
+                }
+            },
+            containerColor = Background,
+        )
+    }
 }
 
 @Composable
@@ -278,6 +405,8 @@ fun SecondPage(
     subject: String,
     attachmentUrl: String,
     onAttachmentUrlChange: (String) -> Unit,
+    selectedAlert: AlertOption,
+    onAlertChange: (AlertOption) -> Unit,
     onBack: () -> Unit,
     onAdd: () -> Unit,
 ) {
@@ -410,42 +539,10 @@ fun SecondPage(
 
         Spacer(modifier = Modifier.height(14.dp))
 
-        Box(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(Secondary)
-                    .padding(horizontal = 4.dp),
-        ) {
-            Column {
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        text = "Alert",
-                        style =
-                            MaterialTheme.typography.bodyMedium.copy(
-                                fontSize = 16.sp,
-                                letterSpacing = (-0.16).sp,
-                            ),
-                        color = TextColor,
-                    )
-
-                    Text(
-                        text = "None >",
-                        style =
-                            MaterialTheme.typography.bodyMedium.copy(
-                                fontSize = 16.sp,
-                                letterSpacing = (-0.16).sp,
-                            ),
-                        color = Color(0xff334759),
-                    )
-                }
-            }
-        }
+        AlertDropdownBox(
+            selectedAlert = selectedAlert,
+            onAlertChange = onAlertChange,
+        )
 
         Spacer(modifier = Modifier.height(14.dp))
 
@@ -542,4 +639,89 @@ fun ReminderTextField(
             }
         },
     )
+}
+
+@Composable
+fun AlertDropdownBox(
+    selectedAlert: AlertOption,
+    onAlertChange: (AlertOption) -> Unit,
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    Box(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(10.dp))
+                .background(Secondary)
+                .clickable { expanded = true }
+                .padding(horizontal = 4.dp),
+    ) {
+        Column {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = "Alert",
+                    style =
+                        MaterialTheme.typography.bodyMedium.copy(
+                            fontSize = 16.sp,
+                            letterSpacing = (-0.16).sp,
+                        ),
+                    color = TextColor,
+                )
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = selectedAlert.displayText,
+                        style =
+                            MaterialTheme.typography.bodyMedium.copy(
+                                fontSize = 16.sp,
+                                letterSpacing = (-0.16).sp,
+                            ),
+                        color = Color(0xff334759),
+                    )
+
+                    Spacer(modifier = Modifier.width(4.dp))
+
+                    Icon(
+                        imageVector = Icons.Default.KeyboardArrowDown,
+                        contentDescription = "Expand dropdown",
+                        tint = Color(0xff334759),
+                        modifier = Modifier.size(16.dp),
+                    )
+                }
+            }
+        }
+
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+            modifier = Modifier.background(Secondary),
+        ) {
+            AlertOption.entries.forEach { option ->
+                DropdownMenuItem(
+                    text = {
+                        Text(
+                            text = option.displayText,
+                            color = TextColor,
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                    },
+                    onClick = {
+                        onAlertChange(option)
+                        expanded = false
+                    },
+                    colors =
+                        MenuDefaults.itemColors(
+                            textColor = TextColor,
+                        ),
+                )
+            }
+        }
+    }
 }

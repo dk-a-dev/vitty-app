@@ -7,7 +7,6 @@ plugins {
     id 'com.google.firebase.crashlytics'
     id 'org.jlleitschuh.gradle.ktlint' version '12.1.0'
     id 'org.jetbrains.kotlin.plugin.compose' version '2.1.21'
-    id 'com.google.devtools.ksp' version '2.1.21-2.0.1'
 }
 
 def keystorePropertiesFile = rootProject.file("keystore.properties")
@@ -102,7 +101,7 @@ dependencies {
     implementation 'com.google.firebase:firebase-firestore:25.1.4'
 
     // FCM
-    implementation 'com.google.firebase:firebase-messaging:24.1.1'
+    implementation 'com.google.firebase:firebase-messaging:24.1.2'
 
     // Remote Config
     implementation 'com.google.firebase:firebase-config-ktx'
@@ -128,7 +127,7 @@ dependencies {
     // Room Database
     implementation "androidx.room:room-runtime:2.7.2"
     implementation "androidx.room:room-ktx:2.7.2"
-    ksp "androidx.room:room-compiler:2.7.2"
+    kapt "androidx.room:room-compiler:2.7.2"
 
     // ViewModel and LiveData
     implementation "androidx.lifecycle:lifecycle-viewmodel-compose:2.9.1"
