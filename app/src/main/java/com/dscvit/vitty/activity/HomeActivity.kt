@@ -5,12 +5,14 @@ import android.animation.ObjectAnimator
 import android.os.Bundle
 import android.view.View
 import android.view.animation.AccelerateDecelerateInterpolator
+import android.view.animation.DecelerateInterpolator
 import android.view.animation.OvershootInterpolator
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.databinding.DataBindingUtil
 import androidx.fragment.app.FragmentActivity
+import androidx.navigation.NavOptions
 import androidx.navigation.findNavController
 import com.dscvit.vitty.R
 import com.dscvit.vitty.databinding.ActivityHomeBinding
@@ -20,6 +22,7 @@ class HomeActivity : FragmentActivity() {
     private var selectedBackground: View? = null
     private var currentSelectedId = -1
     private var isAnimating = false
+    private var isNavigating = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -27,9 +30,26 @@ class HomeActivity : FragmentActivity() {
 
         val navController = findNavController(R.id.nav_host_fragment_activity_main)
 
+        fun createNavOptions(): NavOptions =
+            NavOptions
+                .Builder()
+                .setEnterAnim(R.anim.crossfade_in)
+                .setExitAnim(R.anim.crossfade_out)
+                .setPopEnterAnim(R.anim.crossfade_in)
+                .setPopExitAnim(R.anim.crossfade_out)
+                .build()
+
         fun navigateIfNeeded(destinationId: Int) {
-            if (navController.currentDestination?.id != destinationId) {
-                navController.navigate(destinationId)
+            if (navController.currentDestination?.id != destinationId && !isNavigating) {
+                isNavigating = true
+
+                android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                    navController.navigate(destinationId, null, createNavOptions())
+
+                    android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                        isNavigating = false
+                    }, 250)
+                }, 50)
             }
         }
 
@@ -47,14 +67,14 @@ class HomeActivity : FragmentActivity() {
             val imageView = findImageViewInLayout(layout) ?: return
 
             val scaleX =
-                ObjectAnimator.ofFloat(imageView, "scaleX", 1f, 1.2f, 1f).apply {
-                    duration = 350
-                    interpolator = OvershootInterpolator(1.2f)
+                ObjectAnimator.ofFloat(imageView, "scaleX", 1f, 1.15f, 1f).apply {
+                    duration = 250
+                    interpolator = OvershootInterpolator(1.0f)
                 }
             val scaleY =
-                ObjectAnimator.ofFloat(imageView, "scaleY", 1f, 1.2f, 1f).apply {
-                    duration = 350
-                    interpolator = OvershootInterpolator(1.2f)
+                ObjectAnimator.ofFloat(imageView, "scaleY", 1f, 1.15f, 1f).apply {
+                    duration = 250
+                    interpolator = OvershootInterpolator(1.0f)
                 }
 
             AnimatorSet().apply {
@@ -68,26 +88,26 @@ class HomeActivity : FragmentActivity() {
             delay: Long = 0,
         ) {
             textView.alpha = 0f
-            textView.translationX = 15f
+            textView.translationX = 10f
             textView.scaleX = 0.95f
             textView.visibility = View.VISIBLE
 
             val slideAnimator =
-                ObjectAnimator.ofFloat(textView, "translationX", 15f, 0f).apply {
-                    duration = 300
+                ObjectAnimator.ofFloat(textView, "translationX", 10f, 0f).apply {
+                    duration = 200
                     startDelay = delay
                     interpolator = AccelerateDecelerateInterpolator()
                 }
             val fadeAnimator =
                 ObjectAnimator.ofFloat(textView, "alpha", 0f, 1f).apply {
-                    duration = 250
+                    duration = 150
                     startDelay = delay
                 }
             val scaleAnimator =
                 ObjectAnimator.ofFloat(textView, "scaleX", 0.95f, 1f).apply {
-                    duration = 300
+                    duration = 200
                     startDelay = delay
-                    interpolator = OvershootInterpolator(0.8f)
+                    interpolator = OvershootInterpolator(0.6f)
                 }
 
             AnimatorSet().apply {
@@ -106,13 +126,13 @@ class HomeActivity : FragmentActivity() {
             }
 
             val slideAnimator =
-                ObjectAnimator.ofFloat(textView, "translationX", 0f, -15f).apply {
-                    duration = 150
+                ObjectAnimator.ofFloat(textView, "translationX", 0f, -10f).apply {
+                    duration = 100
                     interpolator = AccelerateDecelerateInterpolator()
                 }
             val fadeAnimator =
                 ObjectAnimator.ofFloat(textView, "alpha", 1f, 0f).apply {
-                    duration = 150
+                    duration = 100
                 }
 
             AnimatorSet().apply {
@@ -145,13 +165,15 @@ class HomeActivity : FragmentActivity() {
             toView: View,
             onComplete: () -> Unit = {},
         ) {
-            
             binding.navAcademics.setBackgroundResource(0)
             binding.navTimetable.setBackgroundResource(0)
             binding.navCommunity.setBackgroundResource(0)
 
+            binding.navAcademics.elevation = 0f
+            binding.navTimetable.elevation = 0f
+            binding.navCommunity.elevation = 0f
+
             if (fromView == null) {
-                
                 toView.setBackgroundResource(R.drawable.bg_nav_item_selected)
                 toView.alpha = 0f
                 toView.scaleX = 0.95f
@@ -159,21 +181,26 @@ class HomeActivity : FragmentActivity() {
 
                 val fadeAnim =
                     ObjectAnimator.ofFloat(toView, "alpha", 0f, 1f).apply {
-                        duration = 200
+                        duration = 150
                     }
                 val scaleXAnim =
                     ObjectAnimator.ofFloat(toView, "scaleX", 0.95f, 1f).apply {
-                        duration = 250
-                        interpolator = OvershootInterpolator(1.1f)
+                        duration = 180
+                        interpolator = OvershootInterpolator(0.8f)
                     }
                 val scaleYAnim =
                     ObjectAnimator.ofFloat(toView, "scaleY", 0.95f, 1f).apply {
-                        duration = 250
-                        interpolator = OvershootInterpolator(1.1f)
+                        duration = 180
+                        interpolator = OvershootInterpolator(0.8f)
+                    }
+                val elevationAnim =
+                    ObjectAnimator.ofFloat(toView, "elevation", 0f, 8f).apply {
+                        duration = 180
+                        interpolator = DecelerateInterpolator()
                     }
 
                 AnimatorSet().apply {
-                    playTogether(fadeAnim, scaleXAnim, scaleYAnim)
+                    playTogether(fadeAnim, scaleXAnim, scaleYAnim, elevationAnim)
                     addListener(
                         object : android.animation.AnimatorListenerAdapter() {
                             override fun onAnimationEnd(animation: android.animation.Animator) {
@@ -190,23 +217,26 @@ class HomeActivity : FragmentActivity() {
                 return
             }
 
-            
             toView.setBackgroundResource(R.drawable.bg_nav_item_selected)
 
-            
             val scaleX =
-                ObjectAnimator.ofFloat(toView, "scaleX", 1f, 1.05f, 1f).apply {
-                    duration = 200
+                ObjectAnimator.ofFloat(toView, "scaleX", 1f, 1.03f, 1f).apply {
+                    duration = 150
                     interpolator = AccelerateDecelerateInterpolator()
                 }
             val scaleY =
-                ObjectAnimator.ofFloat(toView, "scaleY", 1f, 1.05f, 1f).apply {
-                    duration = 200
+                ObjectAnimator.ofFloat(toView, "scaleY", 1f, 1.03f, 1f).apply {
+                    duration = 150
                     interpolator = AccelerateDecelerateInterpolator()
+                }
+            val elevationAnim =
+                ObjectAnimator.ofFloat(toView, "elevation", 0f, 8f).apply {
+                    duration = 150
+                    interpolator = DecelerateInterpolator()
                 }
 
             AnimatorSet().apply {
-                playTogether(scaleX, scaleY)
+                playTogether(scaleX, scaleY, elevationAnim)
                 addListener(
                     object : android.animation.AnimatorListenerAdapter() {
                         override fun onAnimationEnd(animation: android.animation.Animator) {
@@ -225,9 +255,7 @@ class HomeActivity : FragmentActivity() {
         fun highlightSelectedTab(selectedId: Int) {
             if (currentSelectedId == selectedId) return
 
-            
             if (isAnimating) {
-                
                 binding.textAcademics.clearAnimation()
                 binding.textTimetable.clearAnimation()
                 binding.textCommunity.clearAnimation()
@@ -249,13 +277,11 @@ class HomeActivity : FragmentActivity() {
                     }
                 }
 
-            
             val allTextViews = listOf(binding.textAcademics, binding.textTimetable, binding.textCommunity)
             val visibleTextViews = allTextViews.filter { it.visibility == View.VISIBLE && it != newTextView }
 
-            
             var completedOperations = 0
-            val totalOperations = 1 + visibleTextViews.size 
+            val totalOperations = 1 + visibleTextViews.size
 
             fun onOperationComplete() {
                 completedOperations++
@@ -264,22 +290,17 @@ class HomeActivity : FragmentActivity() {
                 }
             }
 
-            
             animatePillMovement(selectedBackground, newSelectedView) {
                 onOperationComplete()
             }
 
-            
-            animateTextSlideIn(newTextView, delay = 50)
+            animateTextSlideIn(newTextView, delay = 25)
 
-            
             android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
                 animateIconBounce(newSelectedView)
-            }, 100)
+            }, 50)
 
-            
             if (visibleTextViews.isEmpty()) {
-                
                 onOperationComplete()
             } else {
                 visibleTextViews.forEach { textView ->
@@ -295,93 +316,112 @@ class HomeActivity : FragmentActivity() {
 
         fun animateButtonPress(view: View) {
             val scaleDown =
-                ObjectAnimator.ofFloat(view, "scaleX", 1f, 0.96f).apply {
+                ObjectAnimator.ofFloat(view, "scaleX", 1f, 0.95f).apply {
                     duration = 60
+                    interpolator = AccelerateDecelerateInterpolator()
                 }
             val scaleDownY =
-                ObjectAnimator.ofFloat(view, "scaleY", 1f, 0.96f).apply {
+                ObjectAnimator.ofFloat(view, "scaleY", 1f, 0.95f).apply {
+                    duration = 60
+                    interpolator = AccelerateDecelerateInterpolator()
+                }
+            val elevationDown =
+                ObjectAnimator.ofFloat(view, "elevation", view.elevation, view.elevation * 0.5f).apply {
                     duration = 60
                 }
             val scaleUp =
-                ObjectAnimator.ofFloat(view, "scaleX", 0.96f, 1f).apply {
+                ObjectAnimator.ofFloat(view, "scaleX", 0.95f, 1f).apply {
                     duration = 100
                     interpolator = OvershootInterpolator(1.2f)
                 }
             val scaleUpY =
-                ObjectAnimator.ofFloat(view, "scaleY", 0.96f, 1f).apply {
+                ObjectAnimator.ofFloat(view, "scaleY", 0.95f, 1f).apply {
                     duration = 100
                     interpolator = OvershootInterpolator(1.2f)
                 }
+            val elevationUp =
+                ObjectAnimator.ofFloat(view, "elevation", view.elevation * 0.5f, view.elevation).apply {
+                    duration = 100
+                    interpolator = OvershootInterpolator(0.6f)
+                }
 
             AnimatorSet().apply {
-                play(scaleDown).with(scaleDownY)
-                play(scaleUp).after(scaleDown).with(scaleUpY)
+                play(scaleDown).with(scaleDownY).with(elevationDown)
+                play(scaleUp).after(scaleDown).with(scaleUpY).with(elevationUp)
                 start()
             }
         }
 
-        
         binding.navAcademics.setOnClickListener {
+            if (isAnimating || isNavigating) return@setOnClickListener
             try {
                 it.performHapticFeedback(android.view.HapticFeedbackConstants.VIRTUAL_KEY)
             } catch (e: Exception) {
-                
             }
             animateButtonPress(it)
             navigateIfNeeded(R.id.navigation_academics)
         }
 
         binding.navTimetable.setOnClickListener {
+            if (isAnimating || isNavigating) return@setOnClickListener
             try {
                 it.performHapticFeedback(android.view.HapticFeedbackConstants.VIRTUAL_KEY)
             } catch (e: Exception) {
-                
             }
             animateButtonPress(it)
             navigateIfNeeded(R.id.navigation_schedule)
         }
 
         binding.navCommunity.setOnClickListener {
+            if (isAnimating || isNavigating) return@setOnClickListener
             try {
                 it.performHapticFeedback(android.view.HapticFeedbackConstants.VIRTUAL_KEY)
             } catch (e: Exception) {
-                
             }
             animateButtonPress(it)
             navigateIfNeeded(R.id.navigation_community)
         }
 
-          navController.addOnDestinationChangedListener { _, destination, _ ->
-            when (destination.id) {
-                R.id.allRequestFragment,
-                R.id.friendFragment,
-                R.id.searchFragment,
-                R.id.navigation_requests,
-                R.id.coursePageFragment,
-                R.id.noteFragment,
-                -> {
-                    hideBottomNavSafely()
-                }
+        navController.addOnDestinationChangedListener { _, destination, _ ->
 
-                R.id.navigation_academics -> {
-                    showBottomNavSafely()
-                    highlightSelectedTab(R.id.navigation_academics)
-                }
+            android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                when (destination.id) {
+                    R.id.allRequestFragment,
+                    R.id.friendFragment,
+                    R.id.searchFragment,
+                    R.id.navigation_requests,
+                    R.id.coursePageFragment,
+                    R.id.noteFragment,
+                    -> {
+                        hideBottomNavSafely()
+                    }
 
-                R.id.navigation_schedule -> {
-                    showBottomNavSafely()
-                    highlightSelectedTab(R.id.navigation_schedule)
-                }
+                    R.id.navigation_academics -> {
+                        showBottomNavSafely()
+                        android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                            highlightSelectedTab(R.id.navigation_academics)
+                        }, 25)
+                    }
 
-                R.id.navigation_community -> {
-                    showBottomNavSafely()
-                    highlightSelectedTab(R.id.navigation_community)
-                }
+                    R.id.navigation_schedule -> {
+                        showBottomNavSafely()
+                        android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                            highlightSelectedTab(R.id.navigation_schedule)
+                        }, 25)
+                    }
 
-                else -> {
-                    hideBottomNavSafely()
+                    R.id.navigation_community -> {
+                        showBottomNavSafely()
+                        android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                            highlightSelectedTab(R.id.navigation_community)
+                        }, 25)
+                    }
+
+                    else -> {
+                        hideBottomNavSafely()
+                    }
                 }
-            }
+            }, 50)
         }
     }
 
@@ -390,19 +430,27 @@ class HomeActivity : FragmentActivity() {
             binding.customBottomNav.visibility = View.VISIBLE
             binding.customBottomNav.translationY = 200f
             binding.customBottomNav.alpha = 0f
+            binding.customBottomNav.scaleY = 0.9f
 
             val slideUp =
                 ObjectAnimator.ofFloat(binding.customBottomNav, "translationY", 200f, 0f).apply {
-                    duration = 400
-                    interpolator = OvershootInterpolator(0.8f)
+                    duration = 300
+                    interpolator = DecelerateInterpolator(1.0f)
                 }
             val fadeIn =
                 ObjectAnimator.ofFloat(binding.customBottomNav, "alpha", 0f, 1f).apply {
-                    duration = 300
+                    duration = 250
+                    startDelay = 25
+                }
+            val scaleUp =
+                ObjectAnimator.ofFloat(binding.customBottomNav, "scaleY", 0.9f, 1f).apply {
+                    duration = 280
+                    interpolator = OvershootInterpolator(0.4f)
+                    startDelay = 50
                 }
 
             AnimatorSet().apply {
-                playTogether(slideUp, fadeIn)
+                playTogether(slideUp, fadeIn, scaleUp)
                 start()
             }
         }
@@ -412,20 +460,27 @@ class HomeActivity : FragmentActivity() {
         if (binding.customBottomNav.visibility == View.VISIBLE) {
             val slideDown =
                 ObjectAnimator.ofFloat(binding.customBottomNav, "translationY", 0f, 200f).apply {
-                    duration = 300
+                    duration = 250
+                    interpolator = AccelerateDecelerateInterpolator()
                 }
             val fadeOut =
                 ObjectAnimator.ofFloat(binding.customBottomNav, "alpha", 1f, 0f).apply {
-                    duration = 250
+                    duration = 200
+                }
+            val scaleDown =
+                ObjectAnimator.ofFloat(binding.customBottomNav, "scaleY", 1f, 0.9f).apply {
+                    duration = 220
+                    interpolator = AccelerateDecelerateInterpolator()
                 }
 
             AnimatorSet().apply {
-                playTogether(slideDown, fadeOut)
+                playTogether(slideDown, fadeOut, scaleDown)
                 addListener(
                     object : android.animation.AnimatorListenerAdapter() {
                         override fun onAnimationEnd(animation: android.animation.Animator) {
                             binding.customBottomNav.visibility = View.GONE
                             binding.customBottomNav.translationY = 0f
+                            binding.customBottomNav.scaleY = 1f
                         }
                     },
                 )
