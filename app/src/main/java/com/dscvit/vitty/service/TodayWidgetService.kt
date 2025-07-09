@@ -9,12 +9,11 @@ import com.dscvit.vitty.R
 import timber.log.Timber
 
 class TodayWidgetService : RemoteViewsService() {
-    override fun onGetViewFactory(intent: Intent): RemoteViewsFactory {
-        return AppWidgetListView(
+    override fun onGetViewFactory(intent: Intent): RemoteViewsFactory =
+        AppWidgetListView(
             this.applicationContext,
-            intent
+            intent,
         )
-    }
 }
 
 class AppWidgetListView(
@@ -30,10 +29,11 @@ class AppWidgetListView(
         dataList = loadArray("courses_today", context)
         timeList = loadArray("time_today", context)
         roomList = loadArray("class_rooms", context)
-        appWidgetId = intent.getIntExtra(
-            AppWidgetManager.EXTRA_APPWIDGET_ID,
-            AppWidgetManager.INVALID_APPWIDGET_ID
-        )
+        appWidgetId =
+            intent.getIntExtra(
+                AppWidgetManager.EXTRA_APPWIDGET_ID,
+                AppWidgetManager.INVALID_APPWIDGET_ID,
+            )
     }
 
     override fun onCreate() {
@@ -45,11 +45,10 @@ class AppWidgetListView(
     }
 
     override fun onDestroy() {
+        // No specific cleanup needed
     }
 
-    override fun getCount(): Int {
-        return dataList.size
-    }
+    override fun getCount(): Int = dataList.size
 
     override fun getViewAt(position: Int): RemoteViews {
         val views = RemoteViews(context.packageName, R.layout.item_period)
@@ -65,28 +64,23 @@ class AppWidgetListView(
         return views
     }
 
-    override fun getLoadingView(): RemoteViews? {
-        return null
-    }
+    override fun getLoadingView(): RemoteViews? = null
 
-    override fun getViewTypeCount(): Int {
-        return 1
-    }
+    override fun getViewTypeCount(): Int = 1
 
-    override fun getItemId(position: Int): Long {
-        return position.toLong()
-    }
+    override fun getItemId(position: Int): Long = position.toLong()
 
-    override fun hasStableIds(): Boolean {
-        return true
-    }
+    override fun hasStableIds(): Boolean = true
 
     private fun fetch() {
         dataList = loadArray("courses_today", context)
         timeList = loadArray("time_today", context)
     }
 
-    private fun loadArray(arrayName: String, context: Context): Array<String?> {
+    private fun loadArray(
+        arrayName: String,
+        context: Context,
+    ): Array<String?> {
         val prefs = context.getSharedPreferences("login_info", Context.MODE_PRIVATE)
         val size = prefs.getInt(arrayName + "_size", 0)
         val array = arrayOfNulls<String>(size)

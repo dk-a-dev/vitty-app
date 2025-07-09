@@ -92,12 +92,14 @@
     <string name="telegram_link"><u>https://dscv.it/telegram</u></string>
     <string name="support">Support</string>
     <string name="sample_room">SJT101</string>
-    <string name="title_schedule">Timetable</string>
+    <string name="title_academics">Academics</string>
+    <string name="title_schedule">Schedule</string>
     <string name="title_community">Community</string>
     <string name="title_connect">Connect</string>
     <string name="fill_all_fields">Fill All Fields!</string>
     <string name="invalid_regno">Invalid Registration Number!</string>
     <string name="something_went_wrong">Something Went Wrong!</string>
+    <string name="compass">🧭</string>
     <string-array name="no_classes_today_subtext_list">
         <item>Don\'t you have a quiz coming up?</item>
         <item>Finish your DAs!</item>

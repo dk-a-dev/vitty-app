@@ -2,9 +2,11 @@ plugins {
     id 'com.android.application'
     id 'kotlin-android'
     id 'kotlin-kapt'
+    id 'androidx.navigation.safeargs.kotlin'
     id 'com.google.gms.google-services'
     id 'com.google.firebase.crashlytics'
-    id 'org.jlleitschuh.gradle.ktlint' version '10.0.0'
+    id 'org.jlleitschuh.gradle.ktlint' version '12.1.0'
+    id 'org.jetbrains.kotlin.plugin.compose' version '2.1.21'
 }
 
 def keystorePropertiesFile = rootProject.file("keystore.properties")
@@ -31,7 +33,7 @@ android {
 
     defaultConfig {
         namespace "com.dscvit.vitty"
-        minSdkVersion 24
+        minSdkVersion 26
         targetSdkVersion 35
         versionCode 40
         versionName "2.0.3"
@@ -45,54 +47,65 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
-    compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
-    }
-    kotlinOptions {
-        jvmTarget = '1.8'
+    kotlin{
+        jvmToolchain(21)
     }
 
     buildFeatures {
         viewBinding true
         dataBinding true
         buildConfig true
+        compose true
     }
 }
 
 dependencies {
+    // Compose BOM (Bill of Materials)
+    implementation platform("androidx.compose:compose-bom:2025.06.01")
+
+    // Core Compose dependencies
+    implementation "androidx.compose.ui:ui"
+    implementation "androidx.compose.material:material"
+    implementation "androidx.compose.ui:ui-tooling-preview"
+    implementation "androidx.activity:activity-compose"
+
+    // For interoperability
+    implementation "androidx.compose.ui:ui-viewbinding"
 
     // Android Stuff
-    implementation 'androidx.core:core-ktx:1.15.0'
-    implementation 'androidx.appcompat:appcompat:1.7.0'
+    implementation 'androidx.core:core-ktx:1.16.0'
+    implementation 'androidx.appcompat:appcompat:1.7.1'
     implementation 'com.google.android.material:material:1.12.0'
-    implementation 'androidx.constraintlayout:constraintlayout:2.2.0'
+    implementation 'androidx.constraintlayout:constraintlayout:2.2.1'
     implementation 'androidx.legacy:legacy-support-v4:1.0.0'
-    implementation 'androidx.lifecycle:lifecycle-livedata-ktx:2.8.7'
-    implementation 'androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.7'
+    implementation 'androidx.lifecycle:lifecycle-livedata-ktx:2.9.1'
+    implementation 'androidx.lifecycle:lifecycle-viewmodel-ktx:2.9.1'
     implementation 'androidx.preference:preference-ktx:1.2.1'
-    implementation 'androidx.navigation:navigation-fragment-ktx:2.8.5'
-    implementation 'androidx.navigation:navigation-ui-ktx:2.8.5'
+    implementation 'androidx.navigation:navigation-fragment-ktx:2.9.0'
+    implementation 'androidx.navigation:navigation-ui-ktx:2.9.0'
+    implementation 'androidx.compose.material3:material3-android:1.3.2'
+    implementation 'androidx.compose.runtime:runtime-livedata:1.8.3'
     testImplementation 'junit:junit:4.13.2'
     androidTestImplementation 'androidx.test.ext:junit:1.2.1'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.6.1'
 
     // Firebase
-    implementation platform('com.google.firebase:firebase-bom:33.7.0')
+    implementation platform('com.google.firebase:firebase-bom:33.15.0')
     implementation 'com.google.firebase:firebase-analytics-ktx'
 
     // Firebase Auth
     implementation 'com.google.firebase:firebase-auth-ktx'
     implementation 'com.google.android.gms:play-services-auth:21.3.0'
 
-    // Firestore
-    implementation 'com.google.firebase:firebase-firestore:25.1.1'
+    // FireStore
+    implementation 'com.google.firebase:firebase-firestore:25.1.4'
 
     // FCM
-    implementation 'com.google.firebase:firebase-messaging:24.1.0'
+    implementation 'com.google.firebase:firebase-messaging:24.1.2'
 
     // Remote Config
     implementation 'com.google.firebase:firebase-config-ktx'
+    debugImplementation 'androidx.compose.ui:ui-tooling:1.8.3'
 
     // Crashlytics
     releaseImplementation 'com.google.firebase:firebase-crashlytics-ktx'
@@ -106,10 +119,20 @@ dependencies {
     implementation 'com.github.ybq:Android-SpinKit:1.4.0'
 
     // Coil
-    implementation "io.coil-kt:coil:1.4.0"
-
+    implementation "io.coil-kt:coil:2.6.0"
+    implementation("io.coil-kt:coil-compose:2.6.0")
     // Timber for logs
     implementation 'com.jakewharton.timber:timber:4.7.1'
 
-    implementation 'com.google.android.material:material:1.12.0'
+    // Room Database
+    implementation "androidx.room:room-runtime:2.7.2"
+    implementation "androidx.room:room-ktx:2.7.2"
+    kapt "androidx.room:room-compiler:2.7.2"
+
+    // ViewModel and LiveData
+    implementation "androidx.lifecycle:lifecycle-viewmodel-compose:2.9.1"
+    implementation "androidx.lifecycle:lifecycle-runtime-compose:2.9.1"
+
+    implementation 'androidx.dynamicanimation:dynamicanimation-ktx:1.1.0'
+    implementation 'com.github.jeziellago:compose-markdown:0.5.7'
 }

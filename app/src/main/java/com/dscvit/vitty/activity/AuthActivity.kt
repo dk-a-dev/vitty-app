@@ -1,11 +1,15 @@
 package com.dscvit.vitty.activity
 
+import android.Manifest
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
+import android.os.Build
 import android.os.Bundle
 import android.view.View
 import android.widget.Toast
+import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.databinding.DataBindingUtil
 import androidx.lifecycle.ViewModelProvider
@@ -18,6 +22,7 @@ import com.dscvit.vitty.util.Constants
 import com.dscvit.vitty.util.Constants.TOKEN
 import com.dscvit.vitty.util.Constants.UID
 import com.dscvit.vitty.util.Constants.USER_INFO
+import com.dscvit.vitty.util.NotificationPermissionHelper
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
@@ -30,7 +35,6 @@ import com.google.firebase.auth.GoogleAuthProvider
 import timber.log.Timber
 
 class AuthActivity : AppCompatActivity() {
-
     private lateinit var binding: ActivityAuthBinding
 
     private val SIGNIN: Int = 1
@@ -43,14 +47,72 @@ class AuthActivity : AppCompatActivity() {
     private val pages = listOf("○", "○", "○")
     private var loginClick = false
 
+    private lateinit var notificationPermissionLauncher: ActivityResultLauncher<String>
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = DataBindingUtil.setContentView(this, R.layout.activity_auth)
         firebaseAuth = FirebaseAuth.getInstance()
         sharedPref = getSharedPreferences(USER_INFO, Context.MODE_PRIVATE)
         authViewModel = ViewModelProvider(this)[AuthViewModel::class.java]
+
+        setupNotificationPermissionLauncher()
+        requestNotificationPermissionIfNeeded()
+
         configureGoogleSignIn()
         setupUI()
+    }
+
+    private fun setupNotificationPermissionLauncher() {
+        notificationPermissionLauncher =
+            registerForActivityResult(
+                ActivityResultContracts.RequestPermission(),
+            ) { isGranted ->
+                if (isGranted) {
+                    Timber.d("Notification permission granted")
+                    // Check and request exact alarm permission if needed
+                    if (!NotificationPermissionHelper.canScheduleExactAlarms(this)) {
+                        NotificationPermissionHelper.requestExactAlarmPermission(this)
+                    }
+                } else {
+                    Timber.d("Notification permission denied")
+                    Toast
+                        .makeText(
+                            this,
+                            "Notification permission is required for reminders to work properly",
+                            Toast.LENGTH_LONG,
+                        ).show()
+                }
+            }
+    }
+
+    private fun requestNotificationPermissionIfNeeded() {
+        // For Android 13+ (API 33+), request POST_NOTIFICATIONS permission
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (!NotificationPermissionHelper.hasNotificationPermission(this)) {
+                Timber.d("Requesting POST_NOTIFICATIONS permission for Android 13+")
+                notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+            } else {
+                Timber.d("POST_NOTIFICATIONS permission already granted")
+                checkAdditionalPermissions()
+            }
+        } else {
+            // For Android 12 and below, notifications are enabled by default
+            // but we still need to check other permissions
+            Timber.d("Android version < 13, notifications enabled by default")
+            checkAdditionalPermissions()
+        }
+    }
+
+    private fun checkAdditionalPermissions() {
+        // Check and request exact alarm permission if needed (Android 12+)
+        if (!NotificationPermissionHelper.canScheduleExactAlarms(this)) {
+            Timber.d("Requesting exact alarm permission")
+            NotificationPermissionHelper.requestExactAlarmPermission(this)
+        }
+
+        // Note: Battery optimization can be checked later in the app flow
+        // as it's more intrusive and not immediately necessary
     }
 
     override fun onStart() {
@@ -79,15 +141,15 @@ class AuthActivity : AppCompatActivity() {
                 finish()
             }
         }
-
-
     }
 
     private fun configureGoogleSignIn() {
-        mGoogleSignInOptions = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-            .requestIdToken(getString(R.string.default_web_client_id))
-            .requestEmail()
-            .build()
+        mGoogleSignInOptions =
+            GoogleSignInOptions
+                .Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+                .requestIdToken(getString(R.string.default_web_client_id))
+                .requestEmail()
+                .build()
         mGoogleSignInClient = GoogleSignIn.getClient(this, mGoogleSignInOptions)
         mGoogleSignInClient.signOut()
     }
@@ -96,30 +158,33 @@ class AuthActivity : AppCompatActivity() {
         val pagerAdapter = IntroAdapter(this)
         binding.introPager.adapter = pagerAdapter
 
-        val pageChangeCallback = object : ViewPager2.OnPageChangeCallback() {
-            override fun onPageSelected(position: Int) {
-                binding.apply {
-                    if (position == 0 || position == 1) {
-                        loginButton.visibility = View.INVISIBLE
-                        nextButton.visibility = View.VISIBLE
-                    } else {
-                        nextButton.visibility = View.INVISIBLE
-                        loginButton.visibility = View.VISIBLE
+        val pageChangeCallback =
+            object : ViewPager2.OnPageChangeCallback() {
+                override fun onPageSelected(position: Int) {
+                    binding.apply {
+                        if (position == 0 || position == 1) {
+                            loginButton.visibility = View.INVISIBLE
+                            nextButton.visibility = View.VISIBLE
+                        } else {
+                            nextButton.visibility = View.INVISIBLE
+                            loginButton.visibility = View.VISIBLE
+                        }
                     }
                 }
             }
-        }
 
         binding.introPager.registerOnPageChangeCallback(pageChangeCallback)
 
         TabLayoutMediator(
-            binding.introTabs, binding.introPager
+            binding.introTabs,
+            binding.introPager,
         ) { tab, position -> tab.text = pages[position] }.attach()
 
         binding.nextButton.setOnClickListener {
             binding.apply {
-                if (introPager.currentItem != pages.size - 1)
+                if (introPager.currentItem != pages.size - 1) {
                     introPager.currentItem++
+                }
             }
         }
 
@@ -145,7 +210,10 @@ class AuthActivity : AppCompatActivity() {
         loginClick = false
     }
 
-    private fun saveInfo(token: String?, uid: String?) {
+    private fun saveInfo(
+        token: String?,
+        uid: String?,
+    ) {
         with(sharedPref.edit()) {
             putString("simethod", "Google")
             putString(TOKEN, token)
@@ -154,7 +222,11 @@ class AuthActivity : AppCompatActivity() {
         }
     }
 
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+    override fun onActivityResult(
+        requestCode: Int,
+        resultCode: Int,
+        data: Intent?,
+    ) {
         super.onActivityResult(requestCode, resultCode, data)
         Timber.d("Activity Result")
         if (requestCode == SIGNIN) {
@@ -175,28 +247,26 @@ class AuthActivity : AppCompatActivity() {
     private fun firebaseAuthWithGoogle(acct: GoogleSignInAccount) {
         val credential = GoogleAuthProvider.getCredential(acct.idToken, null)
 
-        firebaseAuth.signInWithCredential(credential).addOnCompleteListener {
-            if (it.isSuccessful) {
-                loginClick = true
-                val uid = firebaseAuth.currentUser?.uid
-                saveInfo(acct.idToken, uid)
-                Timber.d("success uid: $uid")
-                authViewModel.signInAndGetTimeTable("", "", uid ?: "")
-                leadToNextPage()
-
-
-            } else {
-                Timber.d(it.toString())
-                logoutFailed()
+        firebaseAuth
+            .signInWithCredential(credential)
+            .addOnCompleteListener {
+                if (it.isSuccessful) {
+                    loginClick = true
+                    val uid = firebaseAuth.currentUser?.uid
+                    saveInfo(acct.idToken, uid)
+                    Timber.d("success uid: $uid")
+                    authViewModel.signInAndGetTimeTable("", "", uid ?: "")
+                    leadToNextPage()
+                } else {
+                    Timber.d(it.toString())
+                    logoutFailed()
+                }
+            }.addOnFailureListener { e ->
+                Timber.d(e.toString())
             }
-        }.addOnFailureListener { e ->
-            Timber.d(e.toString())
-        }
     }
 
     private fun leadToNextPage() {
-
-
         authViewModel.signInResponse.observe(this) {
             if (it != null) {
                 Timber.d("here--$it")
@@ -215,8 +285,17 @@ class AuthActivity : AppCompatActivity() {
         authViewModel.user.observe(this) {
             if (it != null) {
                 val timetableDays = it.timetable?.data
-                if (!timetableDays?.Monday.isNullOrEmpty() || !timetableDays?.Tuesday.isNullOrEmpty() || !timetableDays?.Wednesday.isNullOrEmpty() || !timetableDays?.Thursday.isNullOrEmpty() || !timetableDays?.Friday.isNullOrEmpty() || !timetableDays?.Saturday.isNullOrEmpty() || !timetableDays?.Sunday.isNullOrEmpty()) {
-                    sharedPref.edit().putBoolean(Constants.COMMUNITY_TIMETABLE_AVAILABLE, true)
+                if (!timetableDays?.Monday.isNullOrEmpty() ||
+                    !timetableDays?.Tuesday.isNullOrEmpty() ||
+                    !timetableDays?.Wednesday.isNullOrEmpty() ||
+                    !timetableDays?.Thursday.isNullOrEmpty() ||
+                    !timetableDays?.Friday.isNullOrEmpty() ||
+                    !timetableDays?.Saturday.isNullOrEmpty() ||
+                    !timetableDays?.Sunday.isNullOrEmpty()
+                ) {
+                    sharedPref
+                        .edit()
+                        .putBoolean(Constants.COMMUNITY_TIMETABLE_AVAILABLE, true)
                         .apply()
                     val intent = Intent(this, HomeActivity::class.java)
                     startActivity(intent)
@@ -231,7 +310,6 @@ class AuthActivity : AppCompatActivity() {
             }
         }
     }
-
 
     override fun onBackPressed() {
         binding.apply {
