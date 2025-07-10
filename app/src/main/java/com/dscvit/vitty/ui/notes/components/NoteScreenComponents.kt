@@ -1,18 +1,19 @@
 package com.dscvit.vitty.ui.notes.components
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -20,13 +21,13 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.dscvit.vitty.R
 import com.dscvit.vitty.theme.Accent
 import com.dscvit.vitty.theme.Background
 import com.dscvit.vitty.theme.TextColor
 
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3Api::class)
 @Composable
 fun NoteHeader(
     onBackClick: () -> Unit,
@@ -35,37 +36,25 @@ fun NoteHeader(
     onSaveNote: () -> Unit = {},
     canSave: Boolean = false,
 ) {
-    Box(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .background(Background)
-                .padding(horizontal = 10.dp, vertical = 16.dp),
-    ) {
-        IconButton(
-            onClick = onBackClick,
-            modifier = Modifier.align(Alignment.CenterStart),
-        ) {
-            Icon(
-                painter = painterResource(id = R.drawable.ic_round_chevron_left),
-                contentDescription = "Back",
-                tint = TextColor,
+    CenterAlignedTopAppBar(
+        title = {
+            Text(
+                text = "Note",
+                style = MaterialTheme.typography.headlineSmall,
+                color = TextColor,
+                fontWeight = FontWeight.Medium,
             )
-        }
-
-        Text(
-            text = "Note",
-            style = MaterialTheme.typography.headlineSmall,
-            color = TextColor,
-            fontWeight = FontWeight.Medium,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.align(Alignment.Center),
-        )
-
-        Row(
-            modifier = Modifier.align(Alignment.CenterEnd),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
+        },
+        navigationIcon = {
+            IconButton(onClick = onBackClick) {
+                Icon(
+                    painter = painterResource(id = R.drawable.ic_round_chevron_left),
+                    contentDescription = "Back",
+                    tint = TextColor,
+                )
+            }
+        },
+        actions = {
             IconButton(
                 onClick = onSaveNote,
                 enabled = canSave,
@@ -77,20 +66,25 @@ fun NoteHeader(
                 )
             }
 
-            IconButton(
-                onClick = onTogglePreview,
-            ) {
+            IconButton(onClick = onTogglePreview) {
                 Icon(
                     painter =
                         painterResource(
-                            id = if (isPreviewMode) R.drawable.ic_edit_document else R.drawable.ic_notif,
+                            id = if (isPreviewMode) R.drawable.ic_edit_document else R.drawable.ic_visibility_outlined,
                         ),
                     contentDescription = if (isPreviewMode) "Edit" else "Preview",
                     tint = if (isPreviewMode) Accent else TextColor,
                 )
             }
-        }
-    }
+        },
+        colors =
+            TopAppBarDefaults.centerAlignedTopAppBarColors(
+                containerColor = Background,
+                navigationIconContentColor = TextColor,
+                titleContentColor = TextColor,
+                actionIconContentColor = TextColor,
+            ),
+    )
 }
 
 @Composable

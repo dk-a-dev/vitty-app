@@ -1,10 +1,17 @@
 package com.dscvit.vitty.ui.academics
 
-import android.os.Build
-import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -12,8 +19,14 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import coil.compose.AsyncImage
+import com.dscvit.vitty.R
 import com.dscvit.vitty.theme.Background
 import com.dscvit.vitty.ui.academics.components.AcademicsContent
 import com.dscvit.vitty.ui.academics.components.AcademicsHeader
@@ -21,7 +34,7 @@ import com.dscvit.vitty.ui.academics.models.Course
 import com.dscvit.vitty.ui.coursepage.models.Reminder
 import com.dscvit.vitty.util.SemesterUtils
 
-@RequiresApi(Build.VERSION_CODES.O)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AcademicsScreenContent(
     modifier: Modifier = Modifier,
@@ -61,9 +74,36 @@ fun AcademicsScreenContent(
                 .fillMaxSize()
                 .background(Background),
     ) {
+        TopAppBar(
+            title = {
+                Text(
+                    text = "Academics",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                )
+            },
+            colors =
+                TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background,
+                    titleContentColor = MaterialTheme.colorScheme.onBackground,
+                ),
+            actions = {
+                Box(modifier = Modifier.padding(end = 8.dp)) {
+                    AsyncImage(
+                        model = profilePictureUrl,
+                        contentDescription = "Profile Picture",
+                        modifier =
+                            Modifier
+                                .size(40.dp)
+                                .clip(CircleShape),
+                        placeholder = painterResource(R.drawable.ic_gdscvit),
+                        error = painterResource(R.drawable.ic_gdscvit),
+                    )
+                }
+            },
+        )
+
         AcademicsHeader(
-            userName = userName,
-            profilePictureUrl = profilePictureUrl,
             tabs = tabs,
             selectedTab = selectedTab,
             onTabSelected = { selectedTab = it },
