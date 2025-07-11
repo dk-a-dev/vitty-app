@@ -34,7 +34,6 @@ import timber.log.Timber
 import java.util.Date
 
 class AddInfoActivity : AppCompatActivity() {
-
     private lateinit var binding: ActivityAddInfoBinding
     private lateinit var authViewModel: AuthViewModel
     private lateinit var prefs: SharedPreferences
@@ -70,10 +69,14 @@ class AddInfoActivity : AppCompatActivity() {
         authViewModel.user.observe(this) {
             Timber.d("User: $it")
             if (it != null) {
-
                 val timetableDays = it.timetable?.data
-                if (!timetableDays?.Monday.isNullOrEmpty() || !timetableDays?.Tuesday.isNullOrEmpty() || !timetableDays?.Wednesday.isNullOrEmpty() || !timetableDays?.Thursday.isNullOrEmpty() || !timetableDays?.Friday.isNullOrEmpty()
-                    || !timetableDays?.Saturday.isNullOrEmpty() || !timetableDays?.Sunday.isNullOrEmpty()
+                if (!timetableDays?.Monday.isNullOrEmpty() ||
+                    !timetableDays?.Tuesday.isNullOrEmpty() ||
+                    !timetableDays?.Wednesday.isNullOrEmpty() ||
+                    !timetableDays?.Thursday.isNullOrEmpty() ||
+                    !timetableDays?.Friday.isNullOrEmpty() ||
+                    !timetableDays?.Saturday.isNullOrEmpty() ||
+                    !timetableDays?.Sunday.isNullOrEmpty()
                 ) {
                     binding.loadingView.visibility = View.GONE
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -88,25 +91,35 @@ class AddInfoActivity : AppCompatActivity() {
                     startActivity(intent)
                     finish()
                 }
-            }else{
+            } else {
                 Toast.makeText(this, R.string.something_went_wrong, Toast.LENGTH_LONG).show()
                 binding.loadingView.visibility = View.GONE
             }
         }
 
+        binding.etUsername.addTextChangedListener(
+            object : TextWatcher {
+                override fun beforeTextChanged(
+                    s: CharSequence?,
+                    start: Int,
+                    count: Int,
+                    after: Int,
+                ) {}
 
-        binding.etUsername.addTextChangedListener(object : TextWatcher {
-            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+                override fun onTextChanged(
+                    s: CharSequence?,
+                    start: Int,
+                    before: Int,
+                    count: Int,
+                ) {
+                    val username = s.toString().trim()
+                    authViewModel.checkUsername(username)
+                }
 
-            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
-                val username = s.toString().trim()
-                authViewModel.checkUsername(username)
-            }
-
-            override fun afterTextChanged(s: Editable?) {
-
-            }
-        })
+                override fun afterTextChanged(s: Editable?) {
+                }
+            },
+        )
 
         authViewModel.usernameValidity.observe(this) {
             Timber.d("Validity: $it")
@@ -120,15 +133,20 @@ class AddInfoActivity : AppCompatActivity() {
                 }
             }
         }
-
     }
-
 
     private fun setupContinueButton() {
         binding.loadingView.visibility = View.VISIBLE
         val uuid = prefs.getString(Constants.UID, null)
-        val username = binding.etUsername.text.toString().trim { it <= ' ' }
-        val regno = binding.etRegno.text.toString().uppercase().trim { it <= ' ' }
+        val username =
+            binding.etUsername.text
+                .toString()
+                .trim { it <= ' ' }
+        val regno =
+            binding.etRegno.text
+                .toString()
+                .uppercase()
+                .trim { it <= ' ' }
         val regexPattern = Regex("^[0-9]{2}[a-zA-Z]{3}[0-9]{4}$")
         if (username.isEmpty() || regno.isEmpty()) {
             Toast.makeText(this, getString(R.string.fill_all_fields), Toast.LENGTH_LONG).show()
@@ -142,13 +160,12 @@ class AddInfoActivity : AppCompatActivity() {
                 prefs.edit().putString(Constants.COMMUNITY_REGNO, regno).apply()
                 authViewModel.signInAndGetTimeTable(username, regno, uuid)
             } else {
-                Toast.makeText(this, getString(R.string.something_went_wrong), Toast.LENGTH_LONG)
+                Toast
+                    .makeText(this, getString(R.string.something_went_wrong), Toast.LENGTH_LONG)
                     .show()
                 binding.loadingView.visibility = View.GONE
             }
         }
-
-
     }
 
     private fun setupToolbar() {
@@ -175,7 +192,8 @@ class AddInfoActivity : AppCompatActivity() {
         }
         val newNotifChannels: ArrayList<String> = ArrayList()
         for (day in days) {
-            db.collection("users")
+            db
+                .collection("users")
                 .document(uid)
                 .collection("timetable")
                 .document(day)
@@ -190,7 +208,7 @@ class AddInfoActivity : AppCompatActivity() {
                             this,
                             cn,
                             "Course Code: $cc",
-                            Constants.GROUP_ID
+                            Constants.GROUP_ID,
                         )
                         newNotifChannels.add(cn)
                         Timber.d(cn)
@@ -198,13 +216,13 @@ class AddInfoActivity : AppCompatActivity() {
                     ArraySaverLoader.saveArray(
                         newNotifChannels,
                         Constants.NOTIFICATION_CHANNELS,
-                        this
+                        this,
                     )
 
-                    if (day == "sunday")
+                    if (day == "sunday") {
                         tellUpdated()
-                }
-                .addOnFailureListener { e ->
+                    }
+                }.addOnFailureListener { e ->
                     Timber.d("Error: $e")
                 }
         }
@@ -213,11 +231,13 @@ class AddInfoActivity : AppCompatActivity() {
     private fun tellUpdated() {
         prefs.edit().putInt(Constants.TIMETABLE_AVAILABLE, 1).apply()
         prefs.edit().putInt(Constants.UPDATE, 0).apply()
-        val updated = hashMapOf(
-            "isTimetableAvailable" to true,
-            "isUpdated" to false
-        )
-        db.collection("users")
+        val updated =
+            hashMapOf(
+                "isTimetableAvailable" to true,
+                "isUpdated" to false,
+            )
+        db
+            .collection("users")
             .document(uid)
             .set(updated)
             .addOnSuccessListener {
@@ -225,38 +245,37 @@ class AddInfoActivity : AppCompatActivity() {
                 UtilFunctions.reloadWidgets(this)
                 val pm: PowerManager = getSystemService(Context.POWER_SERVICE) as PowerManager
                 if (!pm.isIgnoringBatteryOptimizations(packageName)) {
-                    Toast.makeText(
-                        this,
-                        "Please turn off the Battery Optimization Settings for VITTY to receive notifications on time.",
-                        Toast.LENGTH_LONG
-                    ).show()
+                    Toast
+                        .makeText(
+                            this,
+                            "Please turn off the Battery Optimization Settings for VITTY to receive notifications on time.",
+                            Toast.LENGTH_LONG,
+                        ).show()
                     val pmIntent = Intent()
                     pmIntent.action = Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS
                     startActivity(pmIntent)
                 } else {
-                    val intent = Intent(this, HomeActivity::class.java)
+                    val intent = Intent(this, HomeComposeActivity::class.java)
                     startActivity(intent)
                     finish()
                 }
-            }
-            .addOnFailureListener { e ->
+            }.addOnFailureListener { e ->
                 Timber.d("Error: $e")
             }
     }
-
 
     private fun setGDSCVITChannel() {
         if (!prefs.getBoolean("gdscvitChannelCreated", false)) {
             NotificationHelper.createNotificationGroup(
                 this,
                 getString(R.string.gdscvit),
-                Constants.GROUP_ID_2
+                Constants.GROUP_ID_2,
             )
             NotificationHelper.createNotificationChannel(
                 this,
                 getString(R.string.default_notification_channel_name),
                 "Notifications from GDSC VIT",
-                Constants.GROUP_ID_2
+                Constants.GROUP_ID_2,
             )
             prefs.edit {
                 putBoolean("gdscvitChannelCreated", true)
@@ -270,7 +289,7 @@ class AddInfoActivity : AppCompatActivity() {
             NotificationHelper.createNotificationGroup(
                 this,
                 getString(R.string.notif_group),
-                Constants.GROUP_ID
+                Constants.GROUP_ID,
             )
             prefs.edit {
                 putBoolean("groupCreated", true)
@@ -286,8 +305,10 @@ class AddInfoActivity : AppCompatActivity() {
 
                 val pendingIntent =
                     PendingIntent.getBroadcast(
-                        this, Constants.ALARM_INTENT, intent,
-                        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                        this,
+                        Constants.ALARM_INTENT,
+                        intent,
+                        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
                     )
                 val alarmManager = getSystemService(ALARM_SERVICE) as AlarmManager
 
@@ -297,7 +318,7 @@ class AddInfoActivity : AppCompatActivity() {
                     AlarmManager.RTC_WAKEUP,
                     date,
                     (1000 * 60 * Constants.NOTIF_DELAY).toLong(),
-                    pendingIntent
+                    pendingIntent,
                 )
 
                 prefs.edit {
@@ -307,7 +328,4 @@ class AddInfoActivity : AppCompatActivity() {
             }
         }
     }
-
 }
-
-

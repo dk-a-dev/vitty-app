@@ -21,7 +21,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
@@ -51,13 +50,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import coil.compose.AsyncImage
-import com.dscvit.vitty.R
 import com.dscvit.vitty.theme.Accent
 import com.dscvit.vitty.theme.Background
 import com.dscvit.vitty.theme.Green
@@ -75,8 +71,6 @@ import java.time.temporal.ChronoUnit
 
 @Composable
 fun AcademicsHeader(
-    userName: String,
-    profilePictureUrl: String?,
     tabs: List<String>,
     selectedTab: Int,
     onTabSelected: (Int) -> Unit,
@@ -96,11 +90,6 @@ fun AcademicsHeader(
                 .background(Background)
                 .padding(bottom = 16.dp),
     ) {
-        ProfileHeader(
-            userName = userName,
-            profilePictureUrl = profilePictureUrl,
-        )
-
         AcademicsTabRow(
             tabs = tabs,
             selectedTab = selectedTab,
@@ -125,37 +114,6 @@ fun AcademicsHeader(
                     onSearchQueryChange = onReminderSearchQueryChange,
                 )
         }
-    }
-}
-
-@Composable
-fun ProfileHeader(
-    userName: String,
-    profilePictureUrl: String?,
-) {
-    Row(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .padding(vertical = 20.dp, horizontal = 20.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(
-            text = userName,
-            style = MaterialTheme.typography.headlineLarge,
-            color = TextColor,
-            modifier = Modifier.weight(1f),
-        )
-        AsyncImage(
-            model = profilePictureUrl,
-            contentDescription = "Profile Image",
-            modifier =
-                Modifier
-                    .size(36.dp)
-                    .clip(CircleShape),
-            placeholder = painterResource(R.drawable.ic_gdscvit),
-            error = painterResource(R.drawable.ic_gdscvit),
-        )
     }
 }
 

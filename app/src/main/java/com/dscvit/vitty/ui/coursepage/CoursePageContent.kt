@@ -89,7 +89,10 @@ fun CoursePageContent(
                     .fillMaxSize()
                     .alpha(backgroundAlpha),
         ) {
-            CoursePageHeader(onBackClick = onBackClick)
+            CoursePageHeader(
+                onBackClick = onBackClick,
+                courseTitle = courseTitle
+            )
             SearchBar(
                 searchQuery = searchQuery,
                 onSearchQueryChange = { viewModel.setSearchQuery(it) },

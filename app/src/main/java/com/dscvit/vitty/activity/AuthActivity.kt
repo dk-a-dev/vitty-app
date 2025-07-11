@@ -126,7 +126,7 @@ class AuthActivity : AppCompatActivity() {
         val user = FirebaseAuth.getInstance().currentUser
         Timber.d("isTimeTableAvailable: $isTimeTableAvailable token: $token username: $username regno: $regno")
         if (isTimeTableAvailable) {
-            val intent = Intent(this, HomeActivity::class.java)
+            val intent = Intent(this, HomeComposeActivity::class.java)
             startActivity(intent)
             finish()
         } else if (token != null && username != null) {
@@ -297,7 +297,7 @@ class AuthActivity : AppCompatActivity() {
                         .edit()
                         .putBoolean(Constants.COMMUNITY_TIMETABLE_AVAILABLE, true)
                         .apply()
-                    val intent = Intent(this, HomeActivity::class.java)
+                    val intent = Intent(this, HomeComposeActivity::class.java)
                     startActivity(intent)
                     finish()
                     binding.loadingView.visibility = View.GONE

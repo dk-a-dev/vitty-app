@@ -35,15 +35,8 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.FloatingActionButtonDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SwipeToDismissBox
-import androidx.compose.material3.SwipeToDismissBoxValue
-import androidx.compose.material3.Text
-import androidx.compose.material3.rememberSwipeToDismissBoxState
+import androidx.compose.material3.*
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -300,34 +293,35 @@ fun SwipeToDismissNote(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CoursePageHeader(onBackClick: () -> Unit) {
-    Box(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 10.dp, vertical = 16.dp),
-    ) {
-        IconButton(
-            onClick = onBackClick,
-            modifier = Modifier.align(Alignment.CenterStart),
-        ) {
-            Icon(
-                painter = painterResource(id = R.drawable.ic_round_chevron_left),
-                contentDescription = "Back",
-                tint = TextColor,
+fun CoursePageHeader(
+    onBackClick: () -> Unit,
+    courseTitle: String = "Course Page",
+) {
+    TopAppBar(
+        title = {
+            Text(
+                text = courseTitle,
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Medium,
             )
-        }
-
-        Text(
-            text = "Course Page",
-            style = MaterialTheme.typography.headlineSmall,
-            color = TextColor,
-            fontWeight = FontWeight.Medium,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.align(Alignment.Center),
-        )
-    }
+        },
+        navigationIcon = {
+            IconButton(onClick = onBackClick) {
+                Icon(
+                    painter = painterResource(id = R.drawable.ic_round_chevron_left),
+                    contentDescription = "Back",
+                    tint = MaterialTheme.colorScheme.onBackground,
+                )
+            }
+        },
+        colors =
+            TopAppBarDefaults.topAppBarColors(
+                containerColor = MaterialTheme.colorScheme.background,
+                titleContentColor = MaterialTheme.colorScheme.onBackground,
+            ),
+    )
 }
 
 @Composable

@@ -270,7 +270,7 @@ class HomeActivity : FragmentActivity() {
                 when (selectedId) {
                     R.id.navigation_academics -> Pair(binding.navAcademics, binding.textAcademics)
                     R.id.navigation_schedule -> Pair(binding.navTimetable, binding.textTimetable)
-                    R.id.navigation_community -> Pair(binding.navCommunity, binding.textCommunity)
+                    R.id.navigation_connect -> Pair(binding.navCommunity, binding.textCommunity)
                     else -> {
                         isAnimating = false
                         return
@@ -379,7 +379,7 @@ class HomeActivity : FragmentActivity() {
             } catch (e: Exception) {
             }
             animateButtonPress(it)
-            navigateIfNeeded(R.id.navigation_community)
+            navigateIfNeeded(R.id.navigation_connect)
         }
 
         navController.addOnDestinationChangedListener { _, destination, _ ->
@@ -410,10 +410,10 @@ class HomeActivity : FragmentActivity() {
                         }, 25)
                     }
 
-                    R.id.navigation_community -> {
+                    R.id.navigation_connect -> {
                         showBottomNavSafely()
                         android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
-                            highlightSelectedTab(R.id.navigation_community)
+                            highlightSelectedTab(R.id.navigation_connect)
                         }, 25)
                     }
 
