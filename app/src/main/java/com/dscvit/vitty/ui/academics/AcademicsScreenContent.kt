@@ -1,6 +1,7 @@
 package com.dscvit.vitty.ui.academics
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -42,6 +43,7 @@ fun AcademicsScreenContent(
     profilePictureUrl: String?,
     allCourses: List<Course>,
     onCourseClick: (Course) -> Unit = {},
+    onOpenDrawer: () -> Unit = {},
     viewModel: AcademicsViewModel = viewModel(),
 ) {
     val tabs = listOf("Courses", "Reminders")
@@ -95,7 +97,8 @@ fun AcademicsScreenContent(
                         modifier =
                             Modifier
                                 .size(40.dp)
-                                .clip(CircleShape),
+                                .clip(CircleShape)
+                                .clickable { onOpenDrawer() },
                         placeholder = painterResource(R.drawable.ic_gdscvit),
                         error = painterResource(R.drawable.ic_gdscvit),
                     )

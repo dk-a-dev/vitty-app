@@ -32,8 +32,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -68,7 +66,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.dscvit.vitty.R
 import com.dscvit.vitty.activity.SettingsActivity
-import com.dscvit.vitty.activity.VITEventsActivity
 import com.dscvit.vitty.model.PeriodDetails
 import com.dscvit.vitty.network.api.community.responses.user.UserResponse
 import com.dscvit.vitty.theme.Accent
@@ -91,7 +88,7 @@ import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ScheduleScreenContent() {
+fun ScheduleScreenContent(onOpenDrawer: () -> Unit = {}) {
     val context = LocalContext.current
     val prefs = context.getSharedPreferences(Constants.USER_INFO, Context.MODE_PRIVATE)
     val scheduleViewModel: ScheduleViewModel = viewModel()
@@ -124,13 +121,33 @@ fun ScheduleScreenContent() {
     var hasLoadedData by remember { mutableStateOf(false) }
 
     var showExamModeAlert by remember { mutableStateOf(prefs.getBoolean(Constants.EXAM_MODE, false)) }
-    var showDropdownMenu by remember { mutableStateOf(false) }
+    var satModeSettingKey by remember { mutableStateOf(UtilFunctions.getSatModeCode()) }
 
     DisposableEffect(context) {
         val listener =
             SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
-                if (key == Constants.EXAM_MODE) {
-                    showExamModeAlert = prefs.getBoolean(Constants.EXAM_MODE, false)
+                when (key) {
+                    Constants.EXAM_MODE -> {
+                        showExamModeAlert = prefs.getBoolean(Constants.EXAM_MODE, false)
+                    }
+                    satModeSettingKey -> {
+                        scope.launch {
+                            withContext(Dispatchers.Default) {
+                                val cachedData = prefs.getString(Constants.CACHE_COMMUNITY_TIMETABLE, null)
+                                if (cachedData != null) {
+                                    try {
+                                        val response = Gson().fromJson(cachedData, UserResponse::class.java)
+                                        val processedData = processAllDaysData(response, prefs)
+                                        withContext(Dispatchers.Main) {
+                                            allDaysData = processedData
+                                        }
+                                    } catch (e: Exception) {
+                                        Timber.e("Error refreshing schedule data: ${e.message}")
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             }
         prefs.registerOnSharedPreferenceChangeListener(listener)
@@ -216,51 +233,10 @@ fun ScheduleScreenContent() {
                             Modifier
                                 .size(40.dp)
                                 .clip(CircleShape)
-                                .clickable { showDropdownMenu = true },
+                                .clickable { onOpenDrawer() },
                         placeholder = painterResource(R.drawable.ic_gdscvit),
                         error = painterResource(R.drawable.ic_gdscvit),
                     )
-
-                    DropdownMenu(
-                        modifier = Modifier.background(Secondary),
-                        expanded = showDropdownMenu,
-                        onDismissRequest = { showDropdownMenu = false },
-                    ) {
-                        DropdownMenuItem(
-                            text = { Text("Settings") },
-                            onClick = {
-                                showDropdownMenu = false
-                                context.startActivity(Intent(context, SettingsActivity::class.java))
-                            },
-                        )
-                        DropdownMenuItem(
-                            text = { Text("VIT Events") },
-                            onClick = {
-                                showDropdownMenu = false
-                                context.startActivity(Intent(context, VITEventsActivity::class.java))
-                            },
-                        )
-                        DropdownMenuItem(
-                            text = { Text("Support") },
-                            onClick = {
-                                showDropdownMenu = false
-                                UtilFunctions.openLink(context, context.getString(R.string.telegram_link))
-                            },
-                        )
-                        DropdownMenuItem(
-                            text = { Text("Share") },
-                            onClick = {
-                                showDropdownMenu = false
-                                val shareIntent =
-                                    Intent().apply {
-                                        action = Intent.ACTION_SEND
-                                        type = "text/plain"
-                                        putExtra(Intent.EXTRA_TEXT, context.getString(R.string.share_text))
-                                    }
-                                context.startActivity(Intent.createChooser(shareIntent, null))
-                            },
-                        )
-                    }
                 }
             },
             colors =

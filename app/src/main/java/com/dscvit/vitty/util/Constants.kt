@@ -1,6 +1,7 @@
 package com.dscvit.vitty.util
 
 object Constants {
+    const val GHOST_MODE = "false"
     const val PERIODS = "periods"
     const val TIME_SLOTS = "time_slots"
     const val UID = "uid"
