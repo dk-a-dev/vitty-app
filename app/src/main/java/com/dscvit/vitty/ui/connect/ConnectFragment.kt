@@ -6,6 +6,7 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.dscvit.vitty.databinding.FragmentConnectBinding
 import com.dscvit.vitty.theme.VittyTheme
 
@@ -27,9 +28,10 @@ class ConnectFragment : Fragment() {
             )
             setContent {
                 VittyTheme {
+                    val connectViewModel: ConnectViewModel = viewModel()
                     ConnectScreenContent(
                         onSearchClick = {},
-                        onRequestsClick = {},
+                        connectViewModel = connectViewModel,
                     )
                 }
             }

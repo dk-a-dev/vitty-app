@@ -8,6 +8,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -538,17 +539,11 @@ private fun PeriodCard(
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            Text(
-                                text = "🧭",
-                                style =
-                                    MaterialTheme.typography.bodyMedium.copy(
-                                        fontSize = 12.sp,
-                                        lineHeight = 12.sp,
-                                        letterSpacing = (-0.12).sp,
-                                        textAlign = TextAlign.Center,
-                                    ),
-                                color = MaterialTheme.colorScheme.primary,
-                                fontWeight = FontWeight.Medium,
+                            Image(
+                                painter = painterResource(id = R.drawable.ic_compass),
+                                contentDescription = "Compass icon",
+                                modifier = Modifier.size(12.dp),
+                                alignment = Alignment.Center,
                             )
                             Spacer(modifier = Modifier.width(4.dp))
                             Text(

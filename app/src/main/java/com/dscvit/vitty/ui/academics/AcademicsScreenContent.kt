@@ -39,7 +39,6 @@ import com.dscvit.vitty.util.SemesterUtils
 @Composable
 fun AcademicsScreenContent(
     modifier: Modifier = Modifier,
-    userName: String = "Academics",
     profilePictureUrl: String?,
     allCourses: List<Course>,
     onCourseClick: (Course) -> Unit = {},

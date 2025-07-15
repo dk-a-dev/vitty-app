@@ -88,7 +88,11 @@ import com.dscvit.vitty.theme.TextColor
 import com.dscvit.vitty.theme.VittyTheme
 import com.dscvit.vitty.ui.academics.AcademicsScreenContent
 import com.dscvit.vitty.ui.academics.models.Course
+import com.dscvit.vitty.ui.connect.AddFriendScreenContent
 import com.dscvit.vitty.ui.connect.ConnectScreenContent
+import com.dscvit.vitty.ui.connect.ConnectViewModel
+import com.dscvit.vitty.ui.connect.FriendDetailScreenContent
+import com.dscvit.vitty.ui.connect.FriendRequestsScreenContent
 import com.dscvit.vitty.ui.coursepage.CoursePageContent
 import com.dscvit.vitty.ui.coursepage.CoursePageViewModel
 import com.dscvit.vitty.ui.coursepage.models.Note
@@ -114,13 +118,19 @@ fun MainComposeApp() {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
     val scope = rememberCoroutineScope()
+    val connectViewModel: ConnectViewModel = viewModel()
 
     var bottomNavVisible by remember { mutableStateOf(true) }
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
 
     LaunchedEffect(currentRoute) {
         bottomNavVisible = currentRoute?.let { route ->
-            !route.startsWith("course_page") && !route.startsWith("note_screen") && route != "empty_classrooms"
+            !route.startsWith("course_page") &&
+                !route.startsWith("note_screen") &&
+                route != "empty_classrooms" &&
+                !route.startsWith("friend_detail") &&
+                route != "add_friend" &&
+                route != "friend_requests"
         } ?: true
     }
 
@@ -265,7 +275,117 @@ fun MainComposeApp() {
                             ) + fadeOut(animationSpec = tween(200))
                         },
                     ) {
-                        ConnectComposeScreen()
+                        ConnectComposeScreen(
+                            navController = navController,
+                            connectViewModel = connectViewModel,
+                        )
+                    }
+                    composable(
+                        "friend_detail/{friendData}",
+                        enterTransition = {
+                            slideInHorizontally(
+                                initialOffsetX = { it },
+                                animationSpec =
+                                    spring(
+                                        dampingRatio = 0.9f,
+                                        stiffness = 400f,
+                                    ),
+                            ) + fadeIn(animationSpec = tween(250))
+                        },
+                        exitTransition = {
+                            slideOutHorizontally(
+                                targetOffsetX = { it },
+                                animationSpec =
+                                    spring(
+                                        dampingRatio = 0.9f,
+                                        stiffness = 400f,
+                                    ),
+                            ) + fadeOut(animationSpec = tween(150))
+                        },
+                    ) { backStackEntry ->
+                        val encodedFriendData =
+                            backStackEntry.arguments?.getString("friendData") ?: ""
+                        val friendData = URLDecoder.decode(encodedFriendData, StandardCharsets.UTF_8.toString())
+
+                        val friend =
+                            try {
+                                Gson().fromJson(friendData, UserResponse::class.java)
+                            } catch (e: Exception) {
+                                null
+                            }
+
+                        if (friend != null) {
+                            FriendDetailScreenContent(
+                                friend = friend,
+                                onBackClick = {
+                                    navController.popBackStack()
+                                },
+                                connectViewModel = connectViewModel,
+                            )
+                        } else {
+                            LaunchedEffect(Unit) {
+                                navController.popBackStack()
+                            }
+                        }
+                    }
+                    composable(
+                        "add_friend",
+                        enterTransition = {
+                            slideInHorizontally(
+                                initialOffsetX = { it },
+                                animationSpec =
+                                    spring(
+                                        dampingRatio = 0.9f,
+                                        stiffness = 400f,
+                                    ),
+                            ) + fadeIn(animationSpec = tween(250))
+                        },
+                        exitTransition = {
+                            slideOutHorizontally(
+                                targetOffsetX = { it },
+                                animationSpec =
+                                    spring(
+                                        dampingRatio = 0.9f,
+                                        stiffness = 400f,
+                                    ),
+                            ) + fadeOut(animationSpec = tween(150))
+                        },
+                    ) {
+                        AddFriendScreenContent(
+                            onBackClick = {
+                                navController.popBackStack()
+                            },
+                        )
+                    }
+                    composable(
+                        "friend_requests",
+                        enterTransition = {
+                            slideInHorizontally(
+                                initialOffsetX = { it },
+                                animationSpec =
+                                    spring(
+                                        dampingRatio = 0.9f,
+                                        stiffness = 400f,
+                                    ),
+                            ) + fadeIn(animationSpec = tween(250))
+                        },
+                        exitTransition = {
+                            slideOutHorizontally(
+                                targetOffsetX = { it },
+                                animationSpec =
+                                    spring(
+                                        dampingRatio = 0.9f,
+                                        stiffness = 400f,
+                                    ),
+                            ) + fadeOut(animationSpec = tween(150))
+                        },
+                    ) {
+                        FriendRequestsScreenContent(
+                            onBackClick = {
+                                navController.popBackStack()
+                            },
+                            connectViewModel = connectViewModel,
+                        )
                     }
                     composable(
                         "course_page/{courseTitle}/{courseCode}",
@@ -415,7 +535,7 @@ fun MainComposeApp() {
                         EmptyClassroomsContent(
                             onBackClick = {
                                 navController.popBackStack()
-                            }
+                            },
                         )
                     }
                 }
@@ -552,12 +672,23 @@ fun ScheduleComposeScreen(onOpenDrawer: () -> Unit) {
 }
 
 @Composable
-fun ConnectComposeScreen() {
+fun ConnectComposeScreen(
+    navController: NavHostController,
+    connectViewModel: ConnectViewModel,
+) {
     ConnectScreenContent(
         onSearchClick = {
+            navController.navigate("add_friend")
         },
-        onRequestsClick = {
+        onFriendClick = { friend ->
+            val friendJson = Gson().toJson(friend)
+            val encodedFriendData = URLEncoder.encode(friendJson, StandardCharsets.UTF_8.toString())
+            navController.navigate("friend_detail/$encodedFriendData")
         },
+        onFriendRequestsClick = {
+            navController.navigate("friend_requests")
+        },
+        connectViewModel = connectViewModel,
     )
 }
 
@@ -568,14 +699,15 @@ fun BottomNavigationBar(
     modifier: Modifier = Modifier,
 ) {
     val hapticFeedback = LocalHapticFeedback.current
-    
+
     val cardScale by animateFloatAsState(
         targetValue = 1.0f,
-        animationSpec = spring(
-            dampingRatio = 0.6f,
-            stiffness = 200f,
-        ),
-        label = "cardScale"
+        animationSpec =
+            spring(
+                dampingRatio = 0.6f,
+                stiffness = 200f,
+            ),
+        label = "cardScale",
     )
 
     Card(
@@ -690,7 +822,7 @@ fun NavigationItem(
 @Composable
 fun DrawerContent(
     navController: NavHostController,
-    onCloseDrawer: () -> Unit
+    onCloseDrawer: () -> Unit,
 ) {
     val context = LocalContext.current
     val prefs = remember { context.getSharedPreferences(Constants.USER_INFO, 0) }
@@ -698,10 +830,8 @@ fun DrawerContent(
     val username = remember { prefs.getString(Constants.COMMUNITY_USERNAME, "") ?: "User" }
     val name = remember { prefs.getString(Constants.COMMUNITY_NAME, "") ?: "Name" }
 
-    
     var isGhostModeEnabled by remember { mutableStateOf(prefs.getBoolean(Constants.GHOST_MODE, false)) }
 
-    
     DisposableEffect(Unit) {
         val listener =
             SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
@@ -854,7 +984,6 @@ fun DrawerContent(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            
             NavigationDrawerItem(
                 icon = {
                     Icon(
@@ -892,7 +1021,6 @@ fun DrawerContent(
                     ),
             )
 
-            
             NavigationDrawerItem(
                 icon = {
                     Icon(
@@ -933,7 +1061,6 @@ fun DrawerContent(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -995,13 +1122,12 @@ fun DrawerContent(
 
             Spacer(modifier = Modifier.weight(1f))
 
-            
             NavigationDrawerItem(
                 icon = {
                     Icon(
                         painter = painterResource(R.drawable.ic_logout_2),
                         contentDescription = "log out",
-                        tint = Color(0xffFF0000), 
+                        tint = Color(0xffFF0000),
                     )
                 },
                 label = {
@@ -1011,13 +1137,13 @@ fun DrawerContent(
                                 fontWeight = FontWeight.Normal,
                             ),
                         text = "log out",
-                        color = Color(0xffFF0000), 
+                        color = Color(0xffFF0000),
                     )
                 },
                 selected = false,
                 onClick = {
                     onCloseDrawer()
-                    
+
                     val activity = context as? Activity
                     if (activity != null) {
                         LogoutHelper.logout(context, activity, prefs)
