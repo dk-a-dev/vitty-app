@@ -73,19 +73,17 @@ fun FriendRequestsScreenContent(
 
     val requestActionResponse by connectViewModel.requestActionResponse.observeAsState()
 
-    
     LaunchedEffect(friendRequests) {
         isLoading = false
     }
 
-    
     LaunchedEffect(requestActionResponse?.detail) {
         requestActionResponse?.let { response ->
             if (response.detail == "Friend request accepted successfully!" ||
                 response.detail == "Friend request rejected successfully"
             ) {
                 connectViewModel.clearRequestActionResponse()
-                
+
                 val sharedPreferences = context.getSharedPreferences(Constants.USER_INFO, Context.MODE_PRIVATE)
                 val token = sharedPreferences.getString(Constants.COMMUNITY_TOKEN, "") ?: ""
                 val username = sharedPreferences.getString(Constants.COMMUNITY_USERNAME, "") ?: ""
@@ -132,14 +130,12 @@ fun FriendRequestsScreenContent(
 
         if (isLoading) {
             Box(
-                
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center,
             ) {
                 CircularProgressIndicator(color = Accent)
             }
         } else if (pendingRequests.isEmpty()) {
-            
             Box(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center,

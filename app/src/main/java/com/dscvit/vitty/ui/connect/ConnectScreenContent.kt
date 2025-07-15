@@ -98,14 +98,12 @@ fun ConnectScreenContent(
     val isRefreshing by connectViewModel.isRefreshing.observeAsState(false)
     val friendRequests by connectViewModel.friendRequest.observeAsState()
 
-    
     val isNetworkAvailable = remember { mutableStateOf(isNetworkAvailable(context)) }
 
-    
     LaunchedEffect(Unit) {
         while (true) {
             isNetworkAvailable.value = isNetworkAvailable(context)
-            kotlinx.coroutines.delay(5000) 
+            kotlinx.coroutines.delay(5000)
         }
     }
 
@@ -131,7 +129,6 @@ fun ConnectScreenContent(
             }
         }
 
-    
     LaunchedEffect(isNetworkAvailable.value) {
         if (isNetworkAvailable.value && friendList == null && !isLoading) {
             val sharedPreferences = context.getSharedPreferences(Constants.USER_INFO, Context.MODE_PRIVATE)
@@ -145,14 +142,12 @@ fun ConnectScreenContent(
         }
     }
 
-    
     LaunchedEffect(selectedTab) {
         coroutineScope.launch {
             pagerState.animateScrollToPage(selectedTab)
         }
     }
 
-    
     LaunchedEffect(pagerState.currentPage) {
         selectedTab = pagerState.currentPage
     }
@@ -172,7 +167,6 @@ fun ConnectScreenContent(
                 )
             },
             actions = {
-                
                 if (isNetworkAvailable.value) {
                     IconButton(
                         modifier = Modifier.padding(end = 4.dp),
@@ -194,7 +188,6 @@ fun ConnectScreenContent(
         )
 
         if (isNetworkAvailable.value) {
-            
             ConnectHeader(
                 tabs = tabs,
                 selectedTab = selectedTab,
@@ -225,7 +218,6 @@ fun ConnectScreenContent(
                 )
             }
         } else {
-            
             NoNetworkMessage()
         }
     }
@@ -367,7 +359,6 @@ fun ConnectHeader(
                             .padding(horizontal = 20.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    
                     val requestCount = friendRequests?.size ?: 0
                     if (requestCount > 0) {
                         Box(
@@ -388,7 +379,6 @@ fun ConnectHeader(
                         Spacer(Modifier.width(12.dp))
                     }
 
-                    
                     val options = listOf("Available", "View All")
                     options.forEachIndexed { index, label ->
                         FilterChip(

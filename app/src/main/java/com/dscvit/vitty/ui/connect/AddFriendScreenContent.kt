@@ -73,7 +73,6 @@ fun AddFriendScreenContent(onBackClick: () -> Unit = {}) {
     var sentRequests by remember { mutableStateOf(setOf<String>()) }
     var pendingRequest by remember { mutableStateOf<String?>(null) }
 
-    
     val sharedPreferences =
         remember {
             context.getSharedPreferences(Constants.USER_INFO, Context.MODE_PRIVATE)
@@ -112,20 +111,18 @@ fun AddFriendScreenContent(onBackClick: () -> Unit = {}) {
         }
     }
 
-    
     LaunchedEffect(actionResponse?.detail, pendingRequest) {
         actionResponse?.let { response ->
             pendingRequest?.let { username ->
                 if (response.detail == "Friend request sent successfully") {
                     sentRequests = sentRequests + username
                 }
-                
+
                 pendingRequest = null
             }
         }
     }
 
-    
     fun sendFriendRequest(user: UserResponse) {
         if (token.isNotEmpty() && pendingRequest == null) {
             pendingRequest = user.username
@@ -133,7 +130,6 @@ fun AddFriendScreenContent(onBackClick: () -> Unit = {}) {
         }
     }
 
-    
     val filteredSuggestedFriends =
         suggestedFriends?.filter { user ->
             user.username != currentUsername && user.name != currentName

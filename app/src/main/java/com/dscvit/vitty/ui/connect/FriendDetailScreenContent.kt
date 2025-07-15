@@ -242,7 +242,6 @@ fun FriendDetailScreenContent(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        
         if (!hasUnfriended) {
             Text(
                 text = "Schedule",
@@ -315,7 +314,6 @@ fun FriendDetailScreenContent(
                 }
             }
         } else {
-            
             Box(
                 modifier =
                     Modifier
@@ -353,7 +351,6 @@ fun FriendDetailScreenContent(
         }
     }
 
-    
     if (showUnfriendDialog) {
         AlertDialog(
             onDismissRequest = { showUnfriendDialog = false },
