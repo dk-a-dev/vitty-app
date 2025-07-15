@@ -44,6 +44,7 @@ class ConnectViewModel : ViewModel() {
                     call: Call<FriendResponse>?,
                     response: FriendResponse?,
                 ) {
+                    Timber.d("ConnectFriendList: $response")
                     _friendList.postValue(response)
                     _isLoading.postValue(false)
                 }

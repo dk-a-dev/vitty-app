@@ -1,10 +1,10 @@
 package com.dscvit.vitty.ui.connect
 
 import android.content.Context
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -73,7 +73,6 @@ import com.dscvit.vitty.theme.TextColor
 import com.dscvit.vitty.ui.schedule.ScheduleViewModel
 import com.dscvit.vitty.util.Constants
 import com.dscvit.vitty.util.Quote
-import com.dscvit.vitty.util.UtilFunctions
 import com.google.firebase.Timestamp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -308,6 +307,7 @@ fun FriendDetailScreenContent(
                     ) { page ->
                         DayScheduleContent(
                             periods = friendTimetableData[page] ?: emptyList(),
+                            dayIndex = page,
                             quote = quote,
                         )
                     }
@@ -588,6 +588,7 @@ fun FriendProfileCard(
 @Composable
 private fun DayScheduleContent(
     periods: List<PeriodDetails>,
+    dayIndex: Int,
     quote: String = "Every day is a new opportunity to learn and grow.",
 ) {
     if (periods.isEmpty()) {
@@ -639,6 +640,7 @@ private fun DayScheduleContent(
             ) { period ->
                 FriendPeriodCard(
                     period = period,
+                    dayIndex = dayIndex,
                 )
             }
         }
@@ -646,7 +648,10 @@ private fun DayScheduleContent(
 }
 
 @Composable
-private fun FriendPeriodCard(period: PeriodDetails) {
+private fun FriendPeriodCard(
+    period: PeriodDetails,
+    dayIndex: Int,
+) {
     val context = LocalContext.current
     val timeFormat = remember { SimpleDateFormat("h:mm a", Locale.getDefault()) }
     val startTimeStr =
@@ -658,20 +663,54 @@ private fun FriendPeriodCard(period: PeriodDetails) {
             timeFormat.format(period.endTime.toDate()).uppercase()
         }
 
+    val now = Calendar.getInstance()
+
+    val isToday =
+        remember(dayIndex) {
+            val todayIndex =
+                when (now.get(Calendar.DAY_OF_WEEK)) {
+                    Calendar.MONDAY -> 0
+                    Calendar.TUESDAY -> 1
+                    Calendar.WEDNESDAY -> 2
+                    Calendar.THURSDAY -> 3
+                    Calendar.FRIDAY -> 4
+                    Calendar.SATURDAY -> 5
+                    Calendar.SUNDAY -> 6
+                    else -> -1
+                }
+            dayIndex == todayIndex
+        }
+
+    val isActive =
+        if (!isToday) {
+            false
+        } else {
+            val startTime = Calendar.getInstance().apply { time = period.startTime.toDate() }
+            val endTime = Calendar.getInstance().apply { time = period.endTime.toDate() }
+            val currentTime = Calendar.getInstance()
+
+            val currentHourMinute = currentTime.get(Calendar.HOUR_OF_DAY) * 60 + currentTime.get(Calendar.MINUTE)
+            val startHourMinute = startTime.get(Calendar.HOUR_OF_DAY) * 60 + startTime.get(Calendar.MINUTE)
+            val endHourMinute = endTime.get(Calendar.HOUR_OF_DAY) * 60 + endTime.get(Calendar.MINUTE)
+
+            currentHourMinute in startHourMinute..endHourMinute
+        }
+
     Card(
         modifier =
             Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(16.dp))
-                .clickable {
-                    UtilFunctions.copyItem(
-                        context,
-                        "Class Details",
-                        "CLASS_DETAILS",
-                        "${period.courseName} - ${period.courseCode}\n$startTimeStr - $endTimeStr\n${period.slot}\n${period.roomNo}",
-                    )
-                },
+                .fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = Secondary),
+        border =
+            if (isActive) {
+                BorderStroke(
+                    1.dp,
+                    Accent,
+                )
+            } else {
+                null
+            },
+        shape = RoundedCornerShape(16.dp),
     ) {
         Column(
             modifier =
@@ -689,7 +728,7 @@ private fun FriendPeriodCard(period: PeriodDetails) {
                         text = period.courseName,
                         style = MaterialTheme.typography.labelLarge,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface,
+                        color = TextColor,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
                     )

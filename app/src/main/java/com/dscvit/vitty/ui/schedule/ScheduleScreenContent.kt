@@ -8,6 +8,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -436,48 +437,57 @@ private fun PeriodCard(
             timeFormat.format(period.endTime.toDate()).uppercase()
         }
 
-    val now = remember { Calendar.getInstance() }
-    val isToday = remember(dayIndex) { ((dayIndex + 1) % 7) + 1 == now.get(Calendar.DAY_OF_WEEK) }
+    val now = Calendar.getInstance()
+
+    val isToday =
+        remember(dayIndex) {
+            val todayIndex =
+                when (now.get(Calendar.DAY_OF_WEEK)) {
+                    Calendar.MONDAY -> 0
+                    Calendar.TUESDAY -> 1
+                    Calendar.WEDNESDAY -> 2
+                    Calendar.THURSDAY -> 3
+                    Calendar.FRIDAY -> 4
+                    Calendar.SATURDAY -> 5
+                    Calendar.SUNDAY -> 6
+                    else -> -1
+                }
+            dayIndex == todayIndex
+        }
 
     val isActive =
-        remember(period, isToday, now.get(Calendar.MINUTE)) {
-            if (!isToday) return@remember false
-
+        if (!isToday) {
+            false
+        } else {
             val startTime = Calendar.getInstance().apply { time = period.startTime.toDate() }
             val endTime = Calendar.getInstance().apply { time = period.endTime.toDate() }
             val currentTime = Calendar.getInstance()
 
-            (startTime.before(currentTime) && endTime.after(currentTime)) ||
-                startTime == currentTime ||
-                (startTime.after(currentTime) && isNextClass(period, dayIndex))
+            val currentHourMinute = currentTime.get(Calendar.HOUR_OF_DAY) * 60 + currentTime.get(Calendar.MINUTE)
+            val startHourMinute = startTime.get(Calendar.HOUR_OF_DAY) * 60 + startTime.get(Calendar.MINUTE)
+            val endHourMinute = endTime.get(Calendar.HOUR_OF_DAY) * 60 + endTime.get(Calendar.MINUTE)
+
+            currentHourMinute in startHourMinute..endHourMinute
         }
 
     Card(
         modifier =
             Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(16.dp))
-                .clickable {
-                    UtilFunctions.copyItem(
-                        context,
-                        "Class Details",
-                        "CLASS_DETAILS",
-                        "${period.courseName} - ${period.courseCode}\n$startTimeStr - $endTimeStr\n${period.slot}\n${period.roomNo}",
-                    )
-                },
+                .fillMaxWidth(),
         colors =
             CardDefaults.cardColors(
                 containerColor = Secondary,
             ),
         border =
             if (isActive) {
-                androidx.compose.foundation.BorderStroke(
-                    2.dp,
-                    MaterialTheme.colorScheme.primary,
+                BorderStroke(
+                    1.dp,
+                    Accent,
                 )
             } else {
                 null
             },
+        shape = RoundedCornerShape(16.dp),
     ) {
         Column(
             modifier =
@@ -497,12 +507,7 @@ private fun PeriodCard(
                         text = period.courseName,
                         style = MaterialTheme.typography.labelLarge,
                         fontWeight = FontWeight.Bold,
-                        color =
-                            if (isActive) {
-                                MaterialTheme.colorScheme.onPrimaryContainer
-                            } else {
-                                MaterialTheme.colorScheme.onSurface
-                            },
+                        color = TextColor,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
                     )
