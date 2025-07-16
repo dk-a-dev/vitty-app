@@ -265,7 +265,7 @@ class AuthActivity : AppCompatActivity() {
                     val email = firebaseAuth.currentUser?.email
                     Timber.d("Firebase authentication successful - uid: $uid, email: $email")
                     saveInfo(acct.idToken, uid)
-                    authViewModel.signInAndGetTimeTable("", "", uid ?: "")
+                    authViewModel.signInAndGetTimeTable("", "", uid ?: "", campus = "")
                     leadToNextPage()
                 } else {
                     Timber.e("Firebase authentication failed: ${authResult.exception?.message}")

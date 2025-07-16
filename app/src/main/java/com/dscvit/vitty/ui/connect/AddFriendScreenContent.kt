@@ -288,10 +288,14 @@ private fun SuggestedFriendsContent(
                         modifier = Modifier.size(64.dp),
                         tint = Accent.copy(alpha = 0.5f),
                     )
+
+                    Spacer(modifier = Modifier.height(0.dp))
+
                     Text(
                         text = "No suggested friends",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = Accent,
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Medium,
+                        color = TextColor,
                         textAlign = TextAlign.Center,
                     )
                 }

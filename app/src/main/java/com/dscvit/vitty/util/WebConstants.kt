@@ -5,5 +5,7 @@ object WebConstants {
         "https://vitty-api.dscvit.com"
 
 //        "https://visiting-eba-vitty-d61856bb.koyeb.app"
+//        "https://f9f6e04fe202.ngrok-free.app"
+//        "http://192.168.137.205"
     const val TIMEOUT = 10
 }

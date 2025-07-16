@@ -636,7 +636,7 @@ private fun DayScheduleContent(
         ) {
             items(
                 items = periods,
-                key = { period -> "${period.courseCode}_${period.startTime.seconds}" },
+                key = { period -> "${period.courseCode}_${period.slot}" },
             ) { period ->
                 FriendPeriodCard(
                     period = period,

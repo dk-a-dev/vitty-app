@@ -27,6 +27,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -410,28 +411,40 @@ fun CourseCard(
             .clickable { onClick() }
             .padding(20.dp),
     ) {
-        Column {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = course.title,
-                    color = TextColor,
-                    style = MaterialTheme.typography.labelLarge,
-                )
-                if (course.isStarred) {
-                    Spacer(Modifier.width(6.dp))
-                    Icon(
-                        imageVector = Icons.Default.Star,
-                        contentDescription = "Starred",
-                        tint = Accent,
-                        modifier = Modifier.size(18.dp),
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = course.title,
+                        color = TextColor,
+                        style = MaterialTheme.typography.labelLarge,
                     )
+                    if (course.isStarred) {
+                        Spacer(Modifier.width(6.dp))
+                        Icon(
+                            imageVector = Icons.Default.Star,
+                            contentDescription = "Starred",
+                            tint = Accent,
+                            modifier = Modifier.size(18.dp),
+                        )
+                    }
                 }
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    text = course.details,
+                    color = Accent,
+                    style = MaterialTheme.typography.bodyMedium,
+                )
             }
-            Spacer(Modifier.height(6.dp))
-            Text(
-                text = course.details,
-                color = Accent,
-                style = MaterialTheme.typography.bodyMedium,
+            Spacer(Modifier.weight(1f))
+            Icon(
+                imageVector = Icons.Default.Edit,
+                contentDescription = "Edit Course",
+                tint = Accent,
             )
         }
     }

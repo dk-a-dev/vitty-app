@@ -44,6 +44,7 @@ object Constants {
     const val COMMUNITY_NAME = "community_name"
     const val COMMUNITY_PICTURE = "community_picture"
     const val COMMUNITY_REGNO = "community_regno"
+    const val COMMUNITY_CAMPUS = "community_campus"
     const val COMMUNITY_TIMETABLE_AVAILABLE = "community_timetable_available"
     const val COMMUNITY_PINNED_FRIEND_1 = "community_pinned_friend_1"
     const val COMMUNITY_PINNED_FRIEND_2 = "community_pinned_friend_2"

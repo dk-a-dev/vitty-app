@@ -3,7 +3,7 @@ package com.dscvit.vitty.ui.connect
 import android.content.Context
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
-import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -786,28 +786,30 @@ fun CircleCard(circle: Circle) {
 @Composable
 fun ShimmerListItem() {
     val infiniteTransition = rememberInfiniteTransition(label = "shimmer")
-    val alpha =
+    val shimmerTranslateAnim =
         infiniteTransition.animateFloat(
-            initialValue = 0.2f,
-            targetValue = 1f,
+            initialValue = 0f,
+            targetValue = 1000f,
             animationSpec =
                 infiniteRepeatable(
-                    animation = tween(1000, easing = LinearEasing),
-                    repeatMode = RepeatMode.Reverse,
+                    animation = tween(1200, easing = FastOutSlowInEasing),
+                    repeatMode = RepeatMode.Restart,
                 ),
-            label = "alpha",
+            label = "shimmerTranslateAnim",
         )
 
     val shimmerBrush =
         Brush.linearGradient(
             colors =
                 listOf(
-                    Secondary.copy(alpha = alpha.value),
-                    Secondary.copy(alpha = 0.5f),
-                    Secondary.copy(alpha = alpha.value),
+                    Secondary.copy(alpha = 0.6f),
+                    Secondary.copy(alpha = 0.2f),
+                    Secondary.copy(alpha = 0.6f),
+                    Secondary.copy(alpha = 0.2f),
+                    Secondary.copy(alpha = 0.6f),
                 ),
             start = Offset.Zero,
-            end = Offset(x = 300f, y = 300f),
+            end = Offset(x = shimmerTranslateAnim.value, y = shimmerTranslateAnim.value),
         )
 
     Box(

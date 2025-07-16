@@ -13,6 +13,7 @@ import android.provider.Settings
 import android.text.Editable
 import android.text.TextWatcher
 import android.view.View
+import android.widget.ArrayAdapter
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.edit
@@ -50,6 +51,7 @@ class AddInfoActivity : AppCompatActivity() {
         uid = prefs.getString(Constants.UID, "").toString()
         setupToolbar()
         setGDSCVITChannel()
+        setupCampusSpinner()
 
         binding.continueButton.setOnClickListener {
             setupContinueButton()
@@ -135,20 +137,29 @@ class AddInfoActivity : AppCompatActivity() {
         }
     }
 
+    private fun setupCampusSpinner() {
+        val campusOptions = arrayOf("Select Campus", "Vellore", "Chennai", "Bhopal")
+        val adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, campusOptions)
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        binding.spinnerCampus.adapter = adapter
+    }
+
     private fun setupContinueButton() {
         binding.loadingView.visibility = View.VISIBLE
         val uuid = prefs.getString(Constants.UID, null)
         val username =
             binding.etUsername.text
                 .toString()
-                .trim { it <= ' ' }
+                .trim()
         val regno =
             binding.etRegno.text
                 .toString()
                 .uppercase()
-                .trim { it <= ' ' }
+                .trim()
+        val selectedCampus = binding.spinnerCampus.selectedItem.toString()
         val regexPattern = Regex("^[0-9]{2}[a-zA-Z]{3}[0-9]{4}$")
-        if (username.isEmpty() || regno.isEmpty()) {
+
+        if (username.isEmpty() || regno.isEmpty() || selectedCampus == "Select Campus") {
             Toast.makeText(this, getString(R.string.fill_all_fields), Toast.LENGTH_LONG).show()
             binding.loadingView.visibility = View.GONE
         } else if (!regexPattern.matches(regno)) {
@@ -157,8 +168,9 @@ class AddInfoActivity : AppCompatActivity() {
         } else {
             if (uuid != null) {
                 prefs.edit().putString(Constants.COMMUNITY_USERNAME, username).apply()
-                prefs.edit().putString(Constants.COMMUNITY_REGNO, regno).apply()
-                authViewModel.signInAndGetTimeTable(username, regno, uuid)
+                prefs.edit { putString(Constants.COMMUNITY_REGNO, regno) }
+                prefs.edit { putString(Constants.COMMUNITY_CAMPUS, selectedCampus) }
+                authViewModel.signInAndGetTimeTable(username, regno, uuid, selectedCampus.lowercase())
             } else {
                 Toast
                     .makeText(this, getString(R.string.something_went_wrong), Toast.LENGTH_LONG)

@@ -405,7 +405,7 @@ private fun DayContent(
         ) {
             items(
                 items = periods,
-                key = { period -> "${period.courseCode}_${period.startTime.seconds}" },
+                key = { period -> "${period.courseCode}_${period.slot}" },
             ) { period ->
                 PeriodCard(
                     period = period,

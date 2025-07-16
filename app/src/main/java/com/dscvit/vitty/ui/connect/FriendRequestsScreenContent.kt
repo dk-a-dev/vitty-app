@@ -79,17 +79,19 @@ fun FriendRequestsScreenContent(
 
     LaunchedEffect(requestActionResponse?.detail) {
         requestActionResponse?.let { response ->
-            if (response.detail == "Friend request accepted successfully!" ||
-                response.detail == "Friend request rejected successfully"
-            ) {
-                connectViewModel.clearRequestActionResponse()
+            val sharedPreferences = context.getSharedPreferences(Constants.USER_INFO, Context.MODE_PRIVATE)
+            val token = sharedPreferences.getString(Constants.COMMUNITY_TOKEN, "") ?: ""
+            val username = sharedPreferences.getString(Constants.COMMUNITY_USERNAME, "") ?: ""
 
-                val sharedPreferences = context.getSharedPreferences(Constants.USER_INFO, Context.MODE_PRIVATE)
-                val token = sharedPreferences.getString(Constants.COMMUNITY_TOKEN, "") ?: ""
-                val username = sharedPreferences.getString(Constants.COMMUNITY_USERNAME, "") ?: ""
+            connectViewModel.clearRequestActionResponse()
+            if (response.detail == "Friend request accepted successfully!") {
                 if (token.isNotEmpty()) {
                     connectViewModel.getFriendRequest(token)
                     connectViewModel.getFriendList(token, username)
+                }
+            } else if (response.detail == "Friend request rejected successfully!") {
+                if (token.isNotEmpty()) {
+                    connectViewModel.getFriendRequest(token)
                 }
             }
         }
