@@ -47,8 +47,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -65,8 +64,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.dscvit.vitty.R
-import com.dscvit.vitty.network.api.community.APICommunityRestClient
-import com.dscvit.vitty.network.api.community.RetrofitFriendListListener
 import com.dscvit.vitty.network.api.community.responses.requests.RequestsResponse
 import com.dscvit.vitty.network.api.community.responses.user.CircleItem
 import com.dscvit.vitty.network.api.community.responses.user.CircleResponse
@@ -76,8 +73,8 @@ import com.dscvit.vitty.theme.Accent
 import com.dscvit.vitty.theme.Background
 import com.dscvit.vitty.theme.Secondary
 import com.dscvit.vitty.theme.TextColor
+import com.dscvit.vitty.ui.connect.ConnectViewModel
 import com.dscvit.vitty.util.Constants
-import retrofit2.Call
 import java.util.Locale
 
 @Composable
@@ -303,9 +300,11 @@ fun ConnectTabContent(
     isRefreshing: Boolean = false,
     isCircleLoading: Boolean = false,
     isCircleRefreshing: Boolean = false,
+    viewModel: ConnectViewModel,
     onFriendClick: (UserResponse) -> Unit = {},
     onCircleClick: (CircleItem, FriendResponse?) -> Unit = { _: CircleItem, _: FriendResponse? -> },
-    onRefresh: () -> Unit = {},
+    onFriendsRefresh: () -> Unit = {},
+    onCirclesRefresh: () -> Unit = {},
 ) {
     val allFriends = friendList?.data ?: emptyList()
     val displayedFriends =
@@ -324,7 +323,6 @@ fun ConnectTabContent(
             matchesSearch && matchesFilter
         }
 
-    // Use real API circle data directly without conversion
     val apiCircles = circleList?.data ?: emptyList()
     val filteredCircles =
         apiCircles.filter { circle ->
@@ -340,7 +338,7 @@ fun ConnectTabContent(
             val pullToRefreshState =
                 rememberPullRefreshState(
                     refreshing = isRefreshing,
-                    onRefresh = onRefresh,
+                    onRefresh = onFriendsRefresh,
                 )
 
             Box(
@@ -407,7 +405,7 @@ fun ConnectTabContent(
             val pullToRefreshState =
                 rememberPullRefreshState(
                     refreshing = isCircleRefreshing,
-                    onRefresh = onRefresh,
+                    onRefresh = onCirclesRefresh,
                 )
 
             Box(
@@ -438,6 +436,7 @@ fun ConnectTabContent(
                         items(filteredCircles) { circle ->
                             CircleCard(
                                 circle = circle,
+                                viewModel = viewModel,
                                 onClick = onCircleClick,
                             )
                         }
@@ -593,49 +592,36 @@ fun FriendCard(
 @Composable
 fun CircleCard(
     circle: CircleItem,
+    viewModel: ConnectViewModel,
     onClick: (CircleItem, FriendResponse?) -> Unit = { _: CircleItem, _: FriendResponse? -> },
 ) {
     val context = LocalContext.current
-    var circleMembers by remember { mutableStateOf<FriendResponse?>(null) }
-    var isLoadingMembers by remember { mutableStateOf(true) }
+    val circleMembers by viewModel.circleMembers.observeAsState()
+    val circleMembersLoading by viewModel.circleMembersLoading.observeAsState()
 
-    LaunchedEffect(circle.circle_id) {
-        val sharedPreferences = context.getSharedPreferences(Constants.USER_INFO, Context.MODE_PRIVATE)
-        val token = sharedPreferences.getString(Constants.COMMUNITY_TOKEN, "") ?: ""
+    val circleData = circleMembers?.get(circle.circle_id)
+    val isLoadingMembers = circleMembersLoading?.contains(circle.circle_id) == true
 
-        if (token.isNotEmpty()) {
-            APICommunityRestClient.instance.getCircleDetails(
-                token,
-                circle.circle_id,
-                object : RetrofitFriendListListener {
-                    override fun onSuccess(
-                        call: Call<FriendResponse>?,
-                        response: FriendResponse?,
-                    ) {
-                        circleMembers = response
-                        isLoadingMembers = false
-                    }
+    LaunchedEffect(circle.circle_id, circleData) {
+        val currentCircleData = circleMembers?.get(circle.circle_id)
+        val currentIsLoading = circleMembersLoading?.contains(circle.circle_id) == true
 
-                    override fun onError(
-                        call: Call<FriendResponse>?,
-                        t: Throwable?,
-                    ) {
-                        isLoadingMembers = false
-                    }
-                },
-            )
-        } else {
-            isLoadingMembers = false
+        if (currentCircleData == null && !currentIsLoading) {
+            val sharedPreferences = context.getSharedPreferences(Constants.USER_INFO, Context.MODE_PRIVATE)
+            val token = sharedPreferences.getString(Constants.COMMUNITY_TOKEN, "") ?: ""
+
+            if (token.isNotEmpty()) {
+                viewModel.getCircleDetails(token, circle.circle_id)
+            }
         }
     }
 
-    // Calculate available members count
     val availableCount =
-        circleMembers?.data?.count { member ->
+        circleData?.data?.count { member ->
             member.current_status?.status?.lowercase(Locale.ROOT) == "free"
         } ?: 0
 
-    val totalMembers = circleMembers?.data?.size ?: 0
+    val totalMembers = circleData?.data?.size ?: 0
     val busyCount = totalMembers - availableCount
 
     Box(
@@ -644,7 +630,7 @@ fun CircleCard(
                 .fillMaxWidth()
                 .background(Secondary, RoundedCornerShape(16.dp))
                 .clickable(enabled = !isLoadingMembers) {
-                    onClick(circle, circleMembers)
+                    onClick(circle, circleData)
                 }.padding(horizontal = 24.dp, vertical = 28.dp),
     ) {
         Column {
@@ -685,7 +671,6 @@ fun CircleCard(
                     Spacer(modifier = Modifier.height(4.dp))
 
                     if (isLoadingMembers) {
-                        // Show loading indicator
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(4.dp),
@@ -710,12 +695,11 @@ fun CircleCard(
                                         ),
                             )
                         }
-                    } else if (circleMembers != null && totalMembers > 0) {
+                    } else if (circleData != null && totalMembers > 0) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(16.dp),
                         ) {
-                            // Available members
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(4.dp),
@@ -732,7 +716,6 @@ fun CircleCard(
                                 )
                             }
 
-                            // Busy members
                             if (busyCount > 0) {
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,

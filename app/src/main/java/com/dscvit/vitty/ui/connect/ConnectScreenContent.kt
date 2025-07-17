@@ -97,7 +97,7 @@ fun ConnectScreenContent(
         }
     }
 
-    val refreshData =
+    val refreshFriendsData =
         remember {
             {
                 val sharedPreferences = context.getSharedPreferences(Constants.USER_INFO, Context.MODE_PRIVATE)
@@ -106,8 +106,20 @@ fun ConnectScreenContent(
 
                 if (token.isNotEmpty()) {
                     connectViewModel.refreshFriendList(token, username)
-                    connectViewModel.refreshCircleList(token)
+
                     connectViewModel.getFriendRequest(token)
+                }
+            }
+        }
+
+    val refreshCirclesData =
+        remember {
+            {
+                val sharedPreferences = context.getSharedPreferences(Constants.USER_INFO, Context.MODE_PRIVATE)
+                val token = sharedPreferences.getString(Constants.COMMUNITY_TOKEN, "") ?: ""
+
+                if (token.isNotEmpty()) {
+                    connectViewModel.refreshCircleList(token)
                 }
             }
         }
@@ -129,17 +141,6 @@ fun ConnectScreenContent(
                 connectViewModel.getFriendList(token, username)
                 connectViewModel.getCircleList(token)
                 connectViewModel.getFriendRequest(token)
-            }
-        }
-    }
-
-    // Fetch circle details when circle list is loaded
-    LaunchedEffect(circleList) {
-        if (circleList?.data?.isNotEmpty() == true) {
-            val sharedPreferences = context.getSharedPreferences(Constants.USER_INFO, Context.MODE_PRIVATE)
-            val token = sharedPreferences.getString(Constants.COMMUNITY_TOKEN, "") ?: ""
-            if (token.isNotEmpty()) {
-                connectViewModel.fetchAllCircleDetails(token)
             }
         }
     }
@@ -219,9 +220,11 @@ fun ConnectScreenContent(
                     isRefreshing = isRefreshing,
                     isCircleLoading = isCircleLoading,
                     isCircleRefreshing = isCircleRefreshing,
+                    viewModel = connectViewModel,
                     onFriendClick = onFriendClick,
                     onCircleClick = onCircleClick,
-                    onRefresh = refreshData,
+                    onFriendsRefresh = refreshFriendsData,
+                    onCirclesRefresh = refreshCirclesData,
                 )
             }
         } else {

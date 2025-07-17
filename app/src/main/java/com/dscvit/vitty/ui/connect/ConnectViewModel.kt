@@ -26,6 +26,7 @@ class ConnectViewModel : ViewModel() {
     private val _isCircleLoading = MutableLiveData<Boolean>()
     private val _isCircleRefreshing = MutableLiveData<Boolean>()
     private val _circleMembers = MutableLiveData<Map<String, FriendResponse>>()
+    private val _circleMembersLoading = MutableLiveData<Set<String>>()
 
     val friendList: MutableLiveData<FriendResponse?> = _friendList
     val friendRequest: MutableLiveData<RequestsResponse?> = _friendRequest
@@ -38,6 +39,7 @@ class ConnectViewModel : ViewModel() {
     val isCircleLoading: MutableLiveData<Boolean> = _isCircleLoading
     val isCircleRefreshing: MutableLiveData<Boolean> = _isCircleRefreshing
     val circleMembers: MutableLiveData<Map<String, FriendResponse>> = _circleMembers
+    val circleMembersLoading: MutableLiveData<Set<String>> = _circleMembersLoading
 
     fun getFriendList(
         token: String,
@@ -290,6 +292,10 @@ class ConnectViewModel : ViewModel() {
         token: String,
         circleId: String,
     ) {
+        val currentLoading = _circleMembersLoading.value?.toMutableSet() ?: mutableSetOf()
+        currentLoading.add(circleId)
+        _circleMembersLoading.postValue(currentLoading)
+
         APICommunityRestClient.instance.getCircleDetails(
             token,
             circleId,
@@ -304,6 +310,10 @@ class ConnectViewModel : ViewModel() {
                         currentMembers[circleId] = response
                         _circleMembers.postValue(currentMembers)
                     }
+
+                    val updatedLoading = _circleMembersLoading.value?.toMutableSet() ?: mutableSetOf()
+                    updatedLoading.remove(circleId)
+                    _circleMembersLoading.postValue(updatedLoading)
                 }
 
                 override fun onError(
@@ -311,6 +321,10 @@ class ConnectViewModel : ViewModel() {
                     t: Throwable?,
                 ) {
                     Timber.d("CircleDetailsError for $circleId: ${t?.message}")
+
+                    val updatedLoading = _circleMembersLoading.value?.toMutableSet() ?: mutableSetOf()
+                    updatedLoading.remove(circleId)
+                    _circleMembersLoading.postValue(updatedLoading)
                 }
             },
         )
