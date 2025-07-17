@@ -2,6 +2,7 @@ package com.dscvit.vitty.network.api.community
 
 import com.dscvit.vitty.network.api.community.requests.UsernameRequestBody
 import com.dscvit.vitty.network.api.community.responses.circle.CreateCircleResponse
+import com.dscvit.vitty.network.api.community.responses.circle.JoinCircleResponse
 import com.dscvit.vitty.network.api.community.responses.requests.RequestsResponse
 import com.dscvit.vitty.network.api.community.responses.timetable.TimetableResponse
 import com.dscvit.vitty.network.api.community.responses.user.CircleResponse
@@ -119,6 +120,12 @@ interface APICommunity {
         @Header("Authorization") authToken: String,
         @Path("circleName") circleName: String,
     ): Call<CreateCircleResponse>
+
+    @POST("/api/v2/circles/join")
+    fun joinCircleByCode(
+        @Header("Authorization") authToken: String,
+        @Query("code") joinCode: String,
+    ): Call<JoinCircleResponse>
 
     @GET("/api/v2/circles/{circleId}")
     fun getCircleDetails(

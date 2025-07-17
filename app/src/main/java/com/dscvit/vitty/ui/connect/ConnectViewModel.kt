@@ -7,8 +7,10 @@ import com.dscvit.vitty.network.api.community.RetrofitCircleListener
 import com.dscvit.vitty.network.api.community.RetrofitCreateCircleListener
 import com.dscvit.vitty.network.api.community.RetrofitFriendListListener
 import com.dscvit.vitty.network.api.community.RetrofitFriendRequestListener
+import com.dscvit.vitty.network.api.community.RetrofitJoinCircleListener
 import com.dscvit.vitty.network.api.community.RetrofitUserActionListener
 import com.dscvit.vitty.network.api.community.responses.circle.CreateCircleResponse
+import com.dscvit.vitty.network.api.community.responses.circle.JoinCircleResponse
 import com.dscvit.vitty.network.api.community.responses.requests.RequestsResponse
 import com.dscvit.vitty.network.api.community.responses.user.CircleResponse
 import com.dscvit.vitty.network.api.community.responses.user.FriendResponse
@@ -26,6 +28,8 @@ class ConnectViewModel : ViewModel() {
     private val _unfriendSuccess = MutableLiveData<String?>()
     private val _circleList = MutableLiveData<CircleResponse?>()
     private val _createCircleResponse = MutableLiveData<CreateCircleResponse?>()
+    private val _joinCircleResponse = MutableLiveData<JoinCircleResponse?>()
+    private val _joinCircleError = MutableLiveData<String?>()
     private val _isCircleLoading = MutableLiveData<Boolean>()
     private val _isCircleRefreshing = MutableLiveData<Boolean>()
     private val _circleMembers = MutableLiveData<Map<String, FriendResponse>>()
@@ -40,6 +44,8 @@ class ConnectViewModel : ViewModel() {
     val unfriendSuccess: MutableLiveData<String?> = _unfriendSuccess
     val circleList: MutableLiveData<CircleResponse?> = _circleList
     val createCircleResponse: MutableLiveData<CreateCircleResponse?> = _createCircleResponse
+    val joinCircleResponse: MutableLiveData<JoinCircleResponse?> = _joinCircleResponse
+    val joinCircleError: MutableLiveData<String?> = _joinCircleError
     val isCircleLoading: MutableLiveData<Boolean> = _isCircleLoading
     val isCircleRefreshing: MutableLiveData<Boolean> = _isCircleRefreshing
     val circleMembers: MutableLiveData<Map<String, FriendResponse>> = _circleMembers
@@ -365,6 +371,40 @@ class ConnectViewModel : ViewModel() {
                 ) {
                     Timber.d("CreateCircle Error: ${t?.message}")
                     _createCircleResponse.postValue(null)
+                }
+            },
+        )
+    }
+
+    fun joinCircleByCode(
+        token: String,
+        joinCode: String,
+    ) {
+        Timber.d("ConnectViewModel.joinCircleByCode called with token: ${if (token.isNotEmpty()) "exists" else "empty"}, joinCode: $joinCode")
+        
+        // Clear previous responses
+        _joinCircleResponse.postValue(null)
+        _joinCircleError.postValue(null)
+        
+        APICommunityRestClient.instance.joinCircleByCode(
+            token,
+            joinCode,
+            object : RetrofitJoinCircleListener {
+                override fun onSuccess(
+                    call: Call<JoinCircleResponse>?,
+                    response: JoinCircleResponse?,
+                ) {
+                    Timber.d("JoinCircle Success: $response")
+                    _joinCircleResponse.postValue(response)
+                }
+
+                override fun onError(
+                    call: Call<JoinCircleResponse>?,
+                    t: Throwable?,
+                ) {
+                    val errorMessage = t?.message ?: "Unknown error occurred"
+                    Timber.d("JoinCircle Error: $errorMessage")
+                    _joinCircleError.postValue(errorMessage)
                 }
             },
         )

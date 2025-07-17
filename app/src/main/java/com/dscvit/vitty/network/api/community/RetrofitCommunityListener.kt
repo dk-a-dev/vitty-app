@@ -1,6 +1,7 @@
 package com.dscvit.vitty.network.api.community
 
 import com.dscvit.vitty.network.api.community.responses.circle.CreateCircleResponse
+import com.dscvit.vitty.network.api.community.responses.circle.JoinCircleResponse
 import com.dscvit.vitty.network.api.community.responses.requests.RequestsResponse
 import com.dscvit.vitty.network.api.community.responses.timetable.TimetableResponse
 import com.dscvit.vitty.network.api.community.responses.user.CircleResponse
@@ -114,6 +115,18 @@ interface RetrofitCreateCircleListener {
 
     fun onError(
         call: Call<CreateCircleResponse>?,
+        t: Throwable?,
+    )
+}
+
+interface RetrofitJoinCircleListener {
+    fun onSuccess(
+        call: Call<JoinCircleResponse>?,
+        response: JoinCircleResponse?,
+    )
+
+    fun onError(
+        call: Call<JoinCircleResponse>?,
         t: Throwable?,
     )
 }

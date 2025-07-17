@@ -57,6 +57,8 @@ fun ConnectScreenContent(
     val friendList by connectViewModel.friendList.observeAsState()
     val circleList by connectViewModel.circleList.observeAsState()
     val createCircleResponse by connectViewModel.createCircleResponse.observeAsState()
+    val joinCircleResponse by connectViewModel.joinCircleResponse.observeAsState()
+    val joinCircleError by connectViewModel.joinCircleError.observeAsState()
     val circleMembers by connectViewModel.circleMembers.observeAsState(emptyMap())
     val isLoading by connectViewModel.isLoading.observeAsState(false)
     val isRefreshing by connectViewModel.isRefreshing.observeAsState(false)
@@ -173,6 +175,35 @@ fun ConnectScreenContent(
             if (token.isNotEmpty()) {
                 connectViewModel.getCircleList(token)
             }
+        }
+    }
+
+    // Handle join circle success response
+    LaunchedEffect(joinCircleResponse) {
+        joinCircleResponse?.let { response ->
+            Toast.makeText(
+                context,
+                response.detail,
+                Toast.LENGTH_LONG
+            ).show()
+            
+            // Refresh circle list to show the joined circle
+            val sharedPreferences = context.getSharedPreferences(Constants.USER_INFO, Context.MODE_PRIVATE)
+            val token = sharedPreferences.getString(Constants.COMMUNITY_TOKEN, "") ?: ""
+            if (token.isNotEmpty()) {
+                connectViewModel.getCircleList(token)
+            }
+        }
+    }
+
+    // Handle join circle error response
+    LaunchedEffect(joinCircleError) {
+        joinCircleError?.let { error ->
+            Toast.makeText(
+                context,
+                error,
+                Toast.LENGTH_LONG
+            ).show()
         }
     }
 

@@ -4,6 +4,7 @@ import com.dscvit.vitty.network.api.community.requests.AuthRequestBodyWithCampus
 import com.dscvit.vitty.network.api.community.requests.AuthRequestBodyWithoutCampus
 import com.dscvit.vitty.network.api.community.requests.UsernameRequestBody
 import com.dscvit.vitty.network.api.community.responses.circle.CreateCircleResponse
+import com.dscvit.vitty.network.api.community.responses.circle.JoinCircleResponse
 import com.dscvit.vitty.network.api.community.responses.requests.RequestsResponse
 import com.dscvit.vitty.network.api.community.responses.timetable.TimetableResponse
 import com.dscvit.vitty.network.api.community.responses.user.CircleResponse
@@ -249,6 +250,53 @@ class APICommunityRestClient {
                 ) {
                     Timber.e("API Call failed: ${t.message}")
                     retrofitCreateCircleListener.onError(call, t)
+                }
+            },
+        )
+    }
+
+    fun joinCircleByCode(
+        token: String,
+        joinCode: String,
+        retrofitJoinCircleListener: RetrofitJoinCircleListener,
+    ) {
+        val bearerToken = "Bearer $token"
+        
+        Timber.d("APICommunityRestClient.joinCircleByCode called with joinCode: $joinCode")
+
+        mApiUser = retrofit.create<APICommunity>(APICommunity::class.java)
+        val apiJoinCircleCall = mApiUser!!.joinCircleByCode(bearerToken, joinCode)
+        
+        Timber.d("Join circle API call created, enqueueing request...")
+        
+        apiJoinCircleCall.enqueue(
+            object : Callback<JoinCircleResponse> {
+                override fun onResponse(
+                    call: Call<JoinCircleResponse>,
+                    response: Response<JoinCircleResponse>,
+                ) {
+                    Timber.d("Join Circle API Response received: ${response.code()}, body: ${response.body()}")
+                    if (response.isSuccessful) {
+                        retrofitJoinCircleListener.onSuccess(call, response.body())
+                    } else {
+                        // Handle error responses (400, 409, 500)
+                        val errorMessage = when (response.code()) {
+                            400 -> "Invalid join code"
+                            409 -> "You are already part of the circle"
+                            500 -> "Failed to join circle"
+                            else -> "Unknown error occurred"
+                        }
+                        Timber.e("Join Circle API Error: ${response.code()} - $errorMessage")
+                        retrofitJoinCircleListener.onError(call, Throwable(errorMessage))
+                    }
+                }
+
+                override fun onFailure(
+                    call: Call<JoinCircleResponse>,
+                    t: Throwable,
+                ) {
+                    Timber.e("Join Circle API Call failed: ${t.message}")
+                    retrofitJoinCircleListener.onError(call, t)
                 }
             },
         )

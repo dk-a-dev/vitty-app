@@ -59,7 +59,24 @@ fun CircleActionBottomSheet(
     var isCreateCircleSheetVisible by remember { mutableStateOf(false) }
 
     val handleJoinWithCode = { code: String ->
-        // TODO: Implement joining with code functionality
+        Timber.d("handleJoinWithCode called with code: $code")
+        
+        // Get the authentication token
+        val sharedPreferences = context.getSharedPreferences(Constants.USER_INFO, Context.MODE_PRIVATE)
+        val token = sharedPreferences.getString(Constants.COMMUNITY_TOKEN, "") ?: ""
+        
+        Timber.d("Token retrieved for join: ${if (token.isNotEmpty()) "Token exists" else "Token is empty"}")
+        
+        if (token.isNotEmpty() && code.isNotBlank()) {
+            Timber.d("Calling connectViewModel.joinCircleByCode with token and code: $code")
+            // Call the ViewModel to join the circle
+            connectViewModel.joinCircleByCode(token, code)
+            
+            // Close the sheet
+            isJoinCircleSheetVisible = false
+        } else {
+            Timber.e("Cannot join circle: ${if (token.isEmpty()) "Token is empty" else "Code is blank"}")
+        }
     }
 
     val handleCreateCircle = { name: String, friends: List<String>, imageUri: Uri? ->
