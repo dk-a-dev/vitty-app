@@ -32,6 +32,7 @@ import com.dscvit.vitty.R
 import com.dscvit.vitty.network.api.community.responses.user.UserResponse
 import com.dscvit.vitty.theme.Background
 import com.dscvit.vitty.theme.TextColor
+import com.dscvit.vitty.ui.connect.components.CircleActionBottomSheet
 import com.dscvit.vitty.ui.connect.components.ConnectHeader
 import com.dscvit.vitty.ui.connect.components.ConnectTabContent
 import com.dscvit.vitty.ui.connect.components.NoNetworkMessage
@@ -55,6 +56,8 @@ fun ConnectScreenContent(
 
     val isNetworkAvailable = remember { mutableStateOf(isNetworkAvailable(context)) }
 
+    var isCircleActionSheetVisible by remember { mutableStateOf(false) }
+
     LaunchedEffect(Unit) {
         while (true) {
             isNetworkAvailable.value = isNetworkAvailable(context)
@@ -67,8 +70,24 @@ fun ConnectScreenContent(
     var searchQuery by remember { mutableStateOf("") }
     var friendsFilter by remember { mutableIntStateOf(0) }
 
+    val onCreateCircleClick = {
+        isCircleActionSheetVisible = false
+    }
+
+    val onJoinCircleClick = {
+        isCircleActionSheetVisible = false
+    }
+
     val pagerState = rememberPagerState(pageCount = { tabs.size })
     val coroutineScope = rememberCoroutineScope()
+
+    val handleActionButtonClick = {
+        if (selectedTab == 1) {
+            isCircleActionSheetVisible = true
+        } else {
+            onSearchClick()
+        }
+    }
 
     val refreshData =
         remember {
@@ -83,6 +102,13 @@ fun ConnectScreenContent(
                 }
             }
         }
+
+    CircleActionBottomSheet(
+        isVisible = isCircleActionSheetVisible,
+        onDismiss = { isCircleActionSheetVisible = false },
+        onCreateCircleClick = onCreateCircleClick,
+        onJoinCircleClick = onJoinCircleClick,
+    )
 
     LaunchedEffect(isNetworkAvailable.value) {
         if (isNetworkAvailable.value && friendList == null && !isLoading) {
@@ -125,7 +151,7 @@ fun ConnectScreenContent(
                 if (isNetworkAvailable.value) {
                     IconButton(
                         modifier = Modifier.padding(end = 4.dp),
-                        onClick = onSearchClick,
+                        onClick = { handleActionButtonClick() },
                     ) {
                         Icon(
                             painter = painterResource(id = R.drawable.ic_group_add),
