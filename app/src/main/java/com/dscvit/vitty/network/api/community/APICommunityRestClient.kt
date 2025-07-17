@@ -3,6 +3,7 @@ package com.dscvit.vitty.network.api.community
 import com.dscvit.vitty.network.api.community.requests.AuthRequestBodyWithCampus
 import com.dscvit.vitty.network.api.community.requests.AuthRequestBodyWithoutCampus
 import com.dscvit.vitty.network.api.community.requests.UsernameRequestBody
+import com.dscvit.vitty.network.api.community.responses.circle.CreateCircleResponse
 import com.dscvit.vitty.network.api.community.responses.requests.RequestsResponse
 import com.dscvit.vitty.network.api.community.responses.timetable.TimetableResponse
 import com.dscvit.vitty.network.api.community.responses.user.CircleResponse
@@ -213,6 +214,41 @@ class APICommunityRestClient {
                     t: Throwable,
                 ) {
                     retrofitCircleListener.onError(call, t)
+                }
+            },
+        )
+    }
+
+    fun createCircle(
+        token: String,
+        circleName: String,
+        retrofitCreateCircleListener: RetrofitCreateCircleListener,
+    ) {
+        val bearerToken = "Bearer $token"
+        
+        Timber.d("APICommunityRestClient.createCircle called with circleName: $circleName")
+
+        mApiUser = retrofit.create<APICommunity>(APICommunity::class.java)
+        val apiCreateCircleCall = mApiUser!!.createCircle(bearerToken, circleName)
+        
+        Timber.d("API call created, enqueueing request...")
+        
+        apiCreateCircleCall.enqueue(
+            object : Callback<CreateCircleResponse> {
+                override fun onResponse(
+                    call: Call<CreateCircleResponse>,
+                    response: Response<CreateCircleResponse>,
+                ) {
+                    Timber.d("API Response received: ${response.code()}, body: ${response.body()}")
+                    retrofitCreateCircleListener.onSuccess(call, response.body())
+                }
+
+                override fun onFailure(
+                    call: Call<CreateCircleResponse>,
+                    t: Throwable,
+                ) {
+                    Timber.e("API Call failed: ${t.message}")
+                    retrofitCreateCircleListener.onError(call, t)
                 }
             },
         )

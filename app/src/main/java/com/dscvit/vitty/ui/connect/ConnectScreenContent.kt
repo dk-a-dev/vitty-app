@@ -1,6 +1,7 @@
 package com.dscvit.vitty.ui.connect
 
 import android.content.Context
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -55,6 +56,7 @@ fun ConnectScreenContent(
     val context = LocalContext.current
     val friendList by connectViewModel.friendList.observeAsState()
     val circleList by connectViewModel.circleList.observeAsState()
+    val createCircleResponse by connectViewModel.createCircleResponse.observeAsState()
     val circleMembers by connectViewModel.circleMembers.observeAsState(emptyMap())
     val isLoading by connectViewModel.isLoading.observeAsState(false)
     val isRefreshing by connectViewModel.isRefreshing.observeAsState(false)
@@ -129,6 +131,7 @@ fun ConnectScreenContent(
         onDismiss = { isCircleActionSheetVisible = false },
         onCreateCircleClick = onCreateCircleClick,
         onJoinCircleClick = onJoinCircleClick,
+        connectViewModel = connectViewModel,
     )
 
     LaunchedEffect(isNetworkAvailable.value) {
@@ -153,6 +156,24 @@ fun ConnectScreenContent(
 
     LaunchedEffect(pagerState.currentPage) {
         selectedTab = pagerState.currentPage
+    }
+
+    // Handle create circle response
+    LaunchedEffect(createCircleResponse) {
+        createCircleResponse?.let { response ->
+            Toast.makeText(
+                context,
+                "Circle created successfully! Join code: ${response.join_code}",
+                Toast.LENGTH_LONG
+            ).show()
+            
+            // Refresh circle list to show the new circle
+            val sharedPreferences = context.getSharedPreferences(Constants.USER_INFO, Context.MODE_PRIVATE)
+            val token = sharedPreferences.getString(Constants.COMMUNITY_TOKEN, "") ?: ""
+            if (token.isNotEmpty()) {
+                connectViewModel.getCircleList(token)
+            }
+        }
     }
 
     Column(

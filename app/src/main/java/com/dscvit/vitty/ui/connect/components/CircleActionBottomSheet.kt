@@ -1,5 +1,6 @@
 package com.dscvit.vitty.ui.connect.components
 
+import android.content.Context
 import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -30,6 +31,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -38,6 +40,9 @@ import com.dscvit.vitty.theme.Accent
 import com.dscvit.vitty.theme.Background
 import com.dscvit.vitty.theme.Secondary
 import com.dscvit.vitty.theme.TextColor
+import com.dscvit.vitty.ui.connect.ConnectViewModel
+import com.dscvit.vitty.util.Constants
+import timber.log.Timber
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -46,7 +51,9 @@ fun CircleActionBottomSheet(
     onDismiss: () -> Unit,
     onCreateCircleClick: () -> Unit,
     onJoinCircleClick: () -> Unit,
+    connectViewModel: ConnectViewModel,
 ) {
+    val context = LocalContext.current
     var isJoinCircleSheetVisible by remember { mutableStateOf(false) }
 
     var isCreateCircleSheetVisible by remember { mutableStateOf(false) }
@@ -56,7 +63,24 @@ fun CircleActionBottomSheet(
     }
 
     val handleCreateCircle = { name: String, friends: List<String>, imageUri: Uri? ->
-        // TODO: Implement create circle functionality with image
+        Timber.d("handleCreateCircle called with name: $name")
+        
+        // Get the authentication token
+        val sharedPreferences = context.getSharedPreferences(Constants.USER_INFO, Context.MODE_PRIVATE)
+        val token = sharedPreferences.getString(Constants.COMMUNITY_TOKEN, "") ?: ""
+        
+        Timber.d("Token retrieved: ${if (token.isNotEmpty()) "Token exists" else "Token is empty"}")
+        
+        if (token.isNotEmpty() && name.isNotBlank()) {
+            Timber.d("Calling connectViewModel.createCircle with token and name: $name")
+            // Call the ViewModel to create the circle
+            connectViewModel.createCircle(token, name)
+            
+            // Close the sheet
+            isCreateCircleSheetVisible = false
+        } else {
+            Timber.e("Cannot create circle - token empty: ${token.isEmpty()}, name blank: ${name.isBlank()}")
+        }
     }
 
     val handleJoinCircleClick = {

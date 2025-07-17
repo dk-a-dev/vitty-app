@@ -4,9 +4,11 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import com.dscvit.vitty.network.api.community.APICommunityRestClient
 import com.dscvit.vitty.network.api.community.RetrofitCircleListener
+import com.dscvit.vitty.network.api.community.RetrofitCreateCircleListener
 import com.dscvit.vitty.network.api.community.RetrofitFriendListListener
 import com.dscvit.vitty.network.api.community.RetrofitFriendRequestListener
 import com.dscvit.vitty.network.api.community.RetrofitUserActionListener
+import com.dscvit.vitty.network.api.community.responses.circle.CreateCircleResponse
 import com.dscvit.vitty.network.api.community.responses.requests.RequestsResponse
 import com.dscvit.vitty.network.api.community.responses.user.CircleResponse
 import com.dscvit.vitty.network.api.community.responses.user.FriendResponse
@@ -23,6 +25,7 @@ class ConnectViewModel : ViewModel() {
     private val _isRefreshing = MutableLiveData<Boolean>()
     private val _unfriendSuccess = MutableLiveData<String?>()
     private val _circleList = MutableLiveData<CircleResponse?>()
+    private val _createCircleResponse = MutableLiveData<CreateCircleResponse?>()
     private val _isCircleLoading = MutableLiveData<Boolean>()
     private val _isCircleRefreshing = MutableLiveData<Boolean>()
     private val _circleMembers = MutableLiveData<Map<String, FriendResponse>>()
@@ -36,6 +39,7 @@ class ConnectViewModel : ViewModel() {
     val isRefreshing: MutableLiveData<Boolean> = _isRefreshing
     val unfriendSuccess: MutableLiveData<String?> = _unfriendSuccess
     val circleList: MutableLiveData<CircleResponse?> = _circleList
+    val createCircleResponse: MutableLiveData<CreateCircleResponse?> = _createCircleResponse
     val isCircleLoading: MutableLiveData<Boolean> = _isCircleLoading
     val isCircleRefreshing: MutableLiveData<Boolean> = _isCircleRefreshing
     val circleMembers: MutableLiveData<Map<String, FriendResponse>> = _circleMembers
@@ -335,5 +339,34 @@ class ConnectViewModel : ViewModel() {
         circles.forEach { circle ->
             getCircleDetails(token, circle.circle_id)
         }
+    }
+
+    fun createCircle(
+        token: String,
+        circleName: String,
+    ) {
+        Timber.d("ConnectViewModel.createCircle called with token: ${if (token.isNotEmpty()) "exists" else "empty"}, circleName: $circleName")
+        
+        APICommunityRestClient.instance.createCircle(
+            token,
+            circleName,
+            object : RetrofitCreateCircleListener {
+                override fun onSuccess(
+                    call: Call<CreateCircleResponse>?,
+                    response: CreateCircleResponse?,
+                ) {
+                    Timber.d("CreateCircle: $response")
+                    _createCircleResponse.postValue(response)
+                }
+
+                override fun onError(
+                    call: Call<CreateCircleResponse>?,
+                    t: Throwable?,
+                ) {
+                    Timber.d("CreateCircle Error: ${t?.message}")
+                    _createCircleResponse.postValue(null)
+                }
+            },
+        )
     }
 }
