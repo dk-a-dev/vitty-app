@@ -599,7 +599,6 @@ fun CircleCard(
     var circleMembers by remember { mutableStateOf<FriendResponse?>(null) }
     var isLoadingMembers by remember { mutableStateOf(true) }
 
-    // Fetch circle members when the card is composed
     LaunchedEffect(circle.circle_id) {
         val sharedPreferences = context.getSharedPreferences(Constants.USER_INFO, Context.MODE_PRIVATE)
         val token = sharedPreferences.getString(Constants.COMMUNITY_TOKEN, "") ?: ""

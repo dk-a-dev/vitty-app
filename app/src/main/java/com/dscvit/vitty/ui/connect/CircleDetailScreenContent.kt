@@ -63,10 +63,21 @@ fun CircleDetailScreenContent(
     circle: CircleItem,
     circleMembers: FriendResponse?,
     onBackClick: () -> Unit = {},
+    onMemberClick: (UserResponse, String) -> Unit = { _, _ -> },
 ) {
     var searchQuery by remember { mutableStateOf("") }
 
     val circleFriends = circleMembers?.data
+
+    val busyCount =
+        circleFriends?.count { friend ->
+            friend.current_status?.status?.lowercase(Locale.ROOT) != "free"
+        } ?: 0
+
+    val availableCount =
+        circleFriends?.count { friend ->
+            friend.current_status?.status?.lowercase(Locale.ROOT) == "free"
+        } ?: 0
 
     val filteredFriends =
         circleFriends?.filter { friend ->
@@ -220,50 +231,54 @@ fun CircleDetailScreenContent(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Box(
-                    modifier =
-                        Modifier
-                            .background(Secondary, RoundedCornerShape(20.dp))
-                            .padding(horizontal = 12.dp, vertical = 8.dp),
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                if (busyCount > 0) {
+                    Box(
+                        modifier =
+                            Modifier
+                                .background(Secondary, RoundedCornerShape(20.dp))
+                                .padding(horizontal = 12.dp, vertical = 8.dp),
                     ) {
-                        Image(
-                            painter = painterResource(id = R.drawable.ic_busy),
-                            contentDescription = "Busy",
-                            modifier = Modifier.size(16.dp),
-                        )
-                        Text(
-                            text = "2 busy",
-                            color = TextColor,
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.Medium,
-                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        ) {
+                            Image(
+                                painter = painterResource(id = R.drawable.ic_busy),
+                                contentDescription = "Busy",
+                                modifier = Modifier.size(16.dp),
+                            )
+                            Text(
+                                text = "$busyCount busy",
+                                color = TextColor,
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Medium,
+                            )
+                        }
                     }
                 }
-                Box(
-                    modifier =
-                        Modifier
-                            .background(Secondary, RoundedCornerShape(20.dp))
-                            .padding(horizontal = 12.dp, vertical = 8.dp),
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                if (availableCount > 0) {
+                    Box(
+                        modifier =
+                            Modifier
+                                .background(Secondary, RoundedCornerShape(20.dp))
+                                .padding(horizontal = 12.dp, vertical = 8.dp),
                     ) {
-                        Image(
-                            painter = painterResource(id = R.drawable.ic_free),
-                            contentDescription = "Available",
-                            modifier = Modifier.size(16.dp),
-                        )
-                        Text(
-                            text = "2 available",
-                            color = TextColor,
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.Medium,
-                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        ) {
+                            Image(
+                                painter = painterResource(id = R.drawable.ic_free),
+                                contentDescription = "Available",
+                                modifier = Modifier.size(16.dp),
+                            )
+                            Text(
+                                text = "$availableCount available",
+                                color = TextColor,
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Medium,
+                            )
+                        }
                     }
                 }
             }
@@ -319,7 +334,10 @@ fun CircleDetailScreenContent(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 items(filteredFriends ?: emptyList()) { friend ->
-                    CircleFriendCard(friend = friend)
+                    CircleFriendCard(
+                        friend = friend,
+                        onClick = { onMemberClick(friend, circle.circle_id) },
+                    )
                 }
             }
         }

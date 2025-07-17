@@ -94,6 +94,7 @@ import com.dscvit.vitty.ui.academics.AcademicsScreenContent
 import com.dscvit.vitty.ui.academics.models.Course
 import com.dscvit.vitty.ui.connect.AddFriendScreenContent
 import com.dscvit.vitty.ui.connect.CircleDetailScreenContent
+import com.dscvit.vitty.ui.connect.CircleMemberDetailScreenContent
 import com.dscvit.vitty.ui.connect.ConnectScreenContent
 import com.dscvit.vitty.ui.connect.ConnectViewModel
 import com.dscvit.vitty.ui.connect.FriendDetailScreenContent
@@ -595,6 +596,60 @@ fun MainComposeApp() {
                             CircleDetailScreenContent(
                                 circle = circle,
                                 circleMembers = circleMembers,
+                                onBackClick = {
+                                    navController.popBackStack()
+                                },
+                                onMemberClick = { member, circleId ->
+                                    val memberJson = Gson().toJson(member)
+                                    val encodedMemberData = URLEncoder.encode(memberJson, StandardCharsets.UTF_8.toString())
+                                    navController.navigate("circleMemberDetail/$encodedMemberData/$circleId")
+                                },
+                            )
+                        } else {
+                            LaunchedEffect(Unit) {
+                                navController.popBackStack()
+                            }
+                        }
+                    }
+                    composable(
+                        "circleMemberDetail/{memberData}/{circleId}",
+                        enterTransition = {
+                            slideInHorizontally(
+                                initialOffsetX = { it },
+                                animationSpec =
+                                    spring(
+                                        dampingRatio = 0.9f,
+                                        stiffness = 400f,
+                                    ),
+                            ) + fadeIn(animationSpec = tween(250))
+                        },
+                        exitTransition = {
+                            slideOutHorizontally(
+                                targetOffsetX = { it },
+                                animationSpec =
+                                    spring(
+                                        dampingRatio = 0.9f,
+                                        stiffness = 400f,
+                                    ),
+                            ) + fadeOut(animationSpec = tween(150))
+                        },
+                    ) { backStackEntry ->
+                        val encodedMemberData =
+                            backStackEntry.arguments?.getString("memberData") ?: ""
+                        val circleId = backStackEntry.arguments?.getString("circleId") ?: ""
+                        val memberData = URLDecoder.decode(encodedMemberData, StandardCharsets.UTF_8.toString())
+
+                        val member =
+                            try {
+                                Gson().fromJson(memberData, UserResponse::class.java)
+                            } catch (e: Exception) {
+                                null
+                            }
+
+                        if (member != null && circleId.isNotEmpty()) {
+                            CircleMemberDetailScreenContent(
+                                member = member,
+                                circleId = circleId,
                                 onBackClick = {
                                     navController.popBackStack()
                                 },
