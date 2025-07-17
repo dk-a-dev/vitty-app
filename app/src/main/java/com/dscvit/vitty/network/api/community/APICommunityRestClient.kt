@@ -4,6 +4,8 @@ import com.dscvit.vitty.network.api.community.requests.AuthRequestBodyWithCampus
 import com.dscvit.vitty.network.api.community.requests.AuthRequestBodyWithoutCampus
 import com.dscvit.vitty.network.api.community.requests.UsernameRequestBody
 import com.dscvit.vitty.network.api.community.responses.requests.RequestsResponse
+import com.dscvit.vitty.network.api.community.responses.timetable.TimetableResponse
+import com.dscvit.vitty.network.api.community.responses.user.CircleResponse
 import com.dscvit.vitty.network.api.community.responses.user.FriendResponse
 import com.dscvit.vitty.network.api.community.responses.user.PostResponse
 import com.dscvit.vitty.network.api.community.responses.user.SignInResponse
@@ -89,6 +91,7 @@ class APICommunityRestClient {
                     call: Call<UserResponse>,
                     response: Response<UserResponse>,
                 ) {
+                    Timber.d("UserResponse: $response")
                     retrofitSelfUserListener.onSuccess(call, response.body())
                 }
 
@@ -96,7 +99,65 @@ class APICommunityRestClient {
                     call: Call<UserResponse>,
                     t: Throwable,
                 ) {
+                    Timber.e("Error fetching user with timetable: ${t.message}")
                     retrofitSelfUserListener.onError(call, t)
+                }
+            },
+        )
+    }
+
+    fun getTimeTable(
+        token: String,
+        username: String,
+        retrofitTimeTableListener: RetrofitTimetableListener,
+    ) {
+        val token = "Bearer $token"
+
+        mApiUser = retrofit.create(APICommunity::class.java)
+        val apiTimetableCall = mApiUser!!.getTimeTable(token, username)
+        apiTimetableCall.enqueue(
+            object : Callback<TimetableResponse> {
+                override fun onResponse(
+                    call: Call<TimetableResponse>,
+                    response: Response<TimetableResponse>,
+                ) {
+                    retrofitTimeTableListener.onSuccess(call, response.body())
+                }
+
+                override fun onFailure(
+                    call: Call<TimetableResponse>,
+                    t: Throwable,
+                ) {
+                    retrofitTimeTableListener.onError(call, t)
+                }
+            },
+        )
+    }
+
+    fun getCircleTimeTable(
+        token: String,
+        circleId: String,
+        username: String,
+        retrofitTimeTableListener: RetrofitTimetableListener,
+    ) {
+        val token = "Bearer $token"
+
+        mApiUser = retrofit.create(APICommunity::class.java)
+        val apiCircleTimetableCall = mApiUser!!.getCircleTimeTable(token, circleId, username)
+        apiCircleTimetableCall.enqueue(
+            object : Callback<TimetableResponse> {
+                override fun onResponse(
+                    call: Call<TimetableResponse>,
+                    response: Response<TimetableResponse>,
+                ) {
+                    retrofitTimeTableListener.onSuccess(call, response.body())
+                }
+
+                override fun onFailure(
+                    call: Call<TimetableResponse>,
+                    t: Throwable,
+                ) {
+                    retrofitTimeTableListener.onError(call, t)
                 }
             },
         )
@@ -112,6 +173,61 @@ class APICommunityRestClient {
         mApiUser = retrofit.create<APICommunity>(APICommunity::class.java)
         val apiFriendListCall = mApiUser!!.getFriendList(bearerToken, username)
         apiFriendListCall.enqueue(
+            object : Callback<FriendResponse> {
+                override fun onResponse(
+                    call: Call<FriendResponse>,
+                    response: Response<FriendResponse>,
+                ) {
+                    retrofitFriendListListener.onSuccess(call, response.body())
+                }
+
+                override fun onFailure(
+                    call: Call<FriendResponse>,
+                    t: Throwable,
+                ) {
+                    retrofitFriendListListener.onError(call, t)
+                }
+            },
+        )
+    }
+
+    fun getCircles(
+        token: String,
+        retrofitCircleListener: RetrofitCircleListener,
+    ) {
+        val bearerToken = "Bearer $token"
+
+        mApiUser = retrofit.create<APICommunity>(APICommunity::class.java)
+        val apiCirclesCall = mApiUser!!.getCircles(bearerToken)
+        apiCirclesCall.enqueue(
+            object : Callback<CircleResponse> {
+                override fun onResponse(
+                    call: Call<CircleResponse>,
+                    response: Response<CircleResponse>,
+                ) {
+                    retrofitCircleListener.onSuccess(call, response.body())
+                }
+
+                override fun onFailure(
+                    call: Call<CircleResponse>,
+                    t: Throwable,
+                ) {
+                    retrofitCircleListener.onError(call, t)
+                }
+            },
+        )
+    }
+
+    fun getCircleDetails(
+        token: String,
+        circleId: String,
+        retrofitFriendListListener: RetrofitFriendListListener,
+    ) {
+        val bearerToken = "Bearer $token"
+
+        mApiUser = retrofit.create<APICommunity>(APICommunity::class.java)
+        val apiCircleDetailsCall = mApiUser!!.getCircleDetails(bearerToken, circleId)
+        apiCircleDetailsCall.enqueue(
             object : Callback<FriendResponse> {
                 override fun onResponse(
                     call: Call<FriendResponse>,

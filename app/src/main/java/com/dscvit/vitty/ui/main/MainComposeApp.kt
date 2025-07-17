@@ -93,6 +93,7 @@ import com.dscvit.vitty.theme.VittyTheme
 import com.dscvit.vitty.ui.academics.AcademicsScreenContent
 import com.dscvit.vitty.ui.academics.models.Course
 import com.dscvit.vitty.ui.connect.AddFriendScreenContent
+import com.dscvit.vitty.ui.connect.CircleDetailScreenContent
 import com.dscvit.vitty.ui.connect.ConnectScreenContent
 import com.dscvit.vitty.ui.connect.ConnectViewModel
 import com.dscvit.vitty.ui.connect.FriendDetailScreenContent
@@ -134,6 +135,7 @@ fun MainComposeApp() {
                 !route.startsWith("note_screen") &&
                 route != "empty_classrooms" &&
                 !route.startsWith("friend_detail") &&
+                !route.startsWith("circle_detail") &&
                 route != "add_friend" &&
                 route != "friend_requests"
         } ?: true
@@ -543,6 +545,66 @@ fun MainComposeApp() {
                             },
                         )
                     }
+                    composable(
+                        "circle_detail/{circleData}/{circleMembersData}",
+                        enterTransition = {
+                            slideInHorizontally(
+                                initialOffsetX = { it },
+                                animationSpec =
+                                    spring(
+                                        dampingRatio = 0.9f,
+                                        stiffness = 400f,
+                                    ),
+                            ) + fadeIn(animationSpec = tween(250))
+                        },
+                        exitTransition = {
+                            slideOutHorizontally(
+                                targetOffsetX = { it },
+                                animationSpec =
+                                    spring(
+                                        dampingRatio = 0.9f,
+                                        stiffness = 400f,
+                                    ),
+                            ) + fadeOut(animationSpec = tween(150))
+                        },
+                    ) { backStackEntry ->
+                        val encodedCircleData =
+                            backStackEntry.arguments?.getString("circleData") ?: ""
+                        val encodedCircleMembersData = backStackEntry.arguments?.getString("circleMembersData")
+                        val circleData = URLDecoder.decode(encodedCircleData, StandardCharsets.UTF_8.toString())
+                        val circleMembersData = URLDecoder.decode(encodedCircleMembersData, StandardCharsets.UTF_8.toString())
+
+                        val circle =
+                            try {
+                                Gson().fromJson(circleData, com.dscvit.vitty.network.api.community.responses.user.CircleItem::class.java)
+                            } catch (e: Exception) {
+                                null
+                            }
+
+                        val circleMembers =
+                            try {
+                                Gson().fromJson(
+                                    circleMembersData,
+                                    com.dscvit.vitty.network.api.community.responses.user.FriendResponse::class.java,
+                                )
+                            } catch (e: Exception) {
+                                null
+                            }
+
+                        if (circle != null) {
+                            CircleDetailScreenContent(
+                                circle = circle,
+                                circleMembers = circleMembers,
+                                onBackClick = {
+                                    navController.popBackStack()
+                                },
+                            )
+                        } else {
+                            LaunchedEffect(Unit) {
+                                navController.popBackStack()
+                            }
+                        }
+                    }
                 }
 
                 AnimatedVisibility(
@@ -689,6 +751,17 @@ fun ConnectComposeScreen(
             val friendJson = Gson().toJson(friend)
             val encodedFriendData = URLEncoder.encode(friendJson, StandardCharsets.UTF_8.toString())
             navController.navigate("friend_detail/$encodedFriendData")
+        },
+        onCircleClick = { circle, circleMembers ->
+            val circleJson = Gson().toJson(circle)
+            val encodedCircleData = URLEncoder.encode(circleJson, StandardCharsets.UTF_8.toString())
+            val encodedCircleMembers =
+                URLEncoder.encode(
+                    Gson().toJson(circleMembers),
+                    StandardCharsets.UTF_8.toString(),
+                )
+
+            navController.navigate("circle_detail/$encodedCircleData/$encodedCircleMembers")
         },
         onFriendRequestsClick = {
             navController.navigate("friend_requests")

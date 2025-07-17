@@ -2,6 +2,8 @@ package com.dscvit.vitty.network.api.community
 
 import com.dscvit.vitty.network.api.community.requests.UsernameRequestBody
 import com.dscvit.vitty.network.api.community.responses.requests.RequestsResponse
+import com.dscvit.vitty.network.api.community.responses.timetable.TimetableResponse
+import com.dscvit.vitty.network.api.community.responses.user.CircleResponse
 import com.dscvit.vitty.network.api.community.responses.user.FriendResponse
 import com.dscvit.vitty.network.api.community.responses.user.PostResponse
 import com.dscvit.vitty.network.api.community.responses.user.SignInResponse
@@ -34,6 +36,19 @@ interface APICommunity {
         @Header("Authorization") authToken: String,
         @Path("username") username: String,
     ): Call<UserResponse>
+
+    @GET("/api/v2/timetable/{username}/")
+    fun getTimeTable(
+        @Header("Authorization") authToken: String,
+        @Path("username") username: String,
+    ): Call<TimetableResponse>
+
+    @GET("/api/v2/circles/{circleId}/{username}/")
+    fun getCircleTimeTable(
+        @Header("Authorization") authToken: String,
+        @Path("circleId") circleId: String,
+        @Path("username") username: String,
+    ): Call<TimetableResponse>
 
     @GET("/api/v2/friends/{username}/")
     fun getFriendList(
@@ -92,4 +107,15 @@ interface APICommunity {
         @Header("Authorization") authToken: String,
         @Path("username") username: String,
     ): Call<PostResponse>
+
+    @GET("/api/v2/circles")
+    fun getCircles(
+        @Header("Authorization") authToken: String,
+    ): Call<CircleResponse>
+
+    @GET("/api/v2/circles/{circleId}")
+    fun getCircleDetails(
+        @Header("Authorization") authToken: String,
+        @Path("circleId") circleId: String,
+    ): Call<FriendResponse>
 }

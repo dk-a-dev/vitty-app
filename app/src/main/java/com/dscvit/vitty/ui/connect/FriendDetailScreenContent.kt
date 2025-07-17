@@ -63,6 +63,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.dscvit.vitty.R
 import com.dscvit.vitty.model.PeriodDetails
+import com.dscvit.vitty.network.api.community.responses.timetable.TimetableResponse
 import com.dscvit.vitty.network.api.community.responses.user.UserResponse
 import com.dscvit.vitty.theme.Accent
 import com.dscvit.vitty.theme.Background
@@ -160,16 +161,16 @@ fun FriendDetailScreenContent(
 
         if (token.isNotEmpty()) {
             isLoadingTimetable = true
-            scheduleViewModel.getUserWithTimeTable(token, friend.username)
+            scheduleViewModel.getTimeTable(token, friend.username)
         } else {
             hasLoadedData = true
         }
     }
 
-    val userResponse by scheduleViewModel.user.observeAsState()
+    val timetableResponse by scheduleViewModel.timetable.observeAsState()
 
-    LaunchedEffect(userResponse) {
-        userResponse?.let { response ->
+    LaunchedEffect(timetableResponse) {
+        timetableResponse?.let { response ->
             scope.launch {
                 withContext(Dispatchers.Default) {
                     try {
@@ -652,7 +653,6 @@ private fun FriendPeriodCard(
     period: PeriodDetails,
     dayIndex: Int,
 ) {
-    val context = LocalContext.current
     val timeFormat = remember { SimpleDateFormat("h:mm a", Locale.getDefault()) }
     val startTimeStr =
         remember(period.startTime) {
@@ -788,9 +788,9 @@ private fun FriendPeriodCard(
     }
 }
 
-private suspend fun processFriendTimetableData(friend: UserResponse): Map<Int, List<PeriodDetails>> {
-    return withContext(Dispatchers.Default) {
-        val timetableData = friend.timetable?.data ?: return@withContext emptyMap()
+private suspend fun processFriendTimetableData(friend: TimetableResponse): Map<Int, List<PeriodDetails>> =
+    withContext(Dispatchers.Default) {
+        val timetableData = friend.data
         val dayNames = listOf("monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday")
 
         val result = mutableMapOf<Int, List<PeriodDetails>>()
@@ -826,20 +826,27 @@ private suspend fun processFriendTimetableData(friend: UserResponse): Map<Int, L
 
         result
     }
-}
 
 private fun parseTimeToTimestamp(timeString: String): Timestamp =
     try {
-        val time = replaceYearIfZero(timeString)
-        val dateFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.getDefault())
+        val sanitizedTime =
+            if (timeString.contains("+05:53")) {
+                timeString.replace("+05:53", "+05:30")
+            } else {
+                timeString
+            }
+        val time = replaceYearIfZero(sanitizedTime)
+
+        val dateFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX", Locale.getDefault())
         val date = dateFormat.parse(time)
         if (date != null) {
             Timestamp(date)
         } else {
+            Timber.d("Date parsing error: Unable to parse sanitized time: $time")
             Timestamp.now()
         }
     } catch (e: Exception) {
-        Timber.d("Date parsing error: ${e.message}")
+        Timber.d("Date parsing error: Unparseable date: \"$timeString\"")
         Timestamp.now()
     }
 

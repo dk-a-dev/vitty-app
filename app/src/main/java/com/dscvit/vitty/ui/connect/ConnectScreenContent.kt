@@ -22,6 +22,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -29,6 +30,8 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.dscvit.vitty.R
+import com.dscvit.vitty.network.api.community.responses.user.CircleItem
+import com.dscvit.vitty.network.api.community.responses.user.FriendResponse
 import com.dscvit.vitty.network.api.community.responses.user.UserResponse
 import com.dscvit.vitty.theme.Background
 import com.dscvit.vitty.theme.TextColor
@@ -45,13 +48,18 @@ import kotlinx.coroutines.launch
 fun ConnectScreenContent(
     onSearchClick: () -> Unit = {},
     onFriendClick: (UserResponse) -> Unit = {},
+    onCircleClick: (CircleItem, FriendResponse?) -> Unit = { _: CircleItem, _: FriendResponse? -> },
     onFriendRequestsClick: () -> Unit = {},
     connectViewModel: ConnectViewModel,
 ) {
     val context = LocalContext.current
     val friendList by connectViewModel.friendList.observeAsState()
+    val circleList by connectViewModel.circleList.observeAsState()
+    val circleMembers by connectViewModel.circleMembers.observeAsState(emptyMap())
     val isLoading by connectViewModel.isLoading.observeAsState(false)
     val isRefreshing by connectViewModel.isRefreshing.observeAsState(false)
+    val isCircleLoading by connectViewModel.isCircleLoading.observeAsState(false)
+    val isCircleRefreshing by connectViewModel.isCircleRefreshing.observeAsState(false)
     val friendRequests by connectViewModel.friendRequest.observeAsState()
 
     val isNetworkAvailable = remember { mutableStateOf(isNetworkAvailable(context)) }
@@ -66,7 +74,7 @@ fun ConnectScreenContent(
     }
 
     val tabs = listOf("Friends", "Circles")
-    var selectedTab by remember { mutableIntStateOf(0) }
+    var selectedTab by rememberSaveable { mutableIntStateOf(0) }
     var searchQuery by remember { mutableStateOf("") }
     var friendsFilter by remember { mutableIntStateOf(0) }
 
@@ -98,6 +106,7 @@ fun ConnectScreenContent(
 
                 if (token.isNotEmpty()) {
                     connectViewModel.refreshFriendList(token, username)
+                    connectViewModel.refreshCircleList(token)
                     connectViewModel.getFriendRequest(token)
                 }
             }
@@ -118,7 +127,19 @@ fun ConnectScreenContent(
 
             if (token.isNotEmpty()) {
                 connectViewModel.getFriendList(token, username)
+                connectViewModel.getCircleList(token)
                 connectViewModel.getFriendRequest(token)
+            }
+        }
+    }
+
+    // Fetch circle details when circle list is loaded
+    LaunchedEffect(circleList) {
+        if (circleList?.data?.isNotEmpty() == true) {
+            val sharedPreferences = context.getSharedPreferences(Constants.USER_INFO, Context.MODE_PRIVATE)
+            val token = sharedPreferences.getString(Constants.COMMUNITY_TOKEN, "") ?: ""
+            if (token.isNotEmpty()) {
+                connectViewModel.fetchAllCircleDetails(token)
             }
         }
     }
@@ -186,15 +207,20 @@ fun ConnectScreenContent(
             HorizontalPager(
                 state = pagerState,
                 modifier = Modifier.fillMaxSize(),
+                beyondViewportPageCount = 1,
             ) { page ->
                 ConnectTabContent(
                     tabIndex = page,
                     searchQuery = searchQuery,
                     friendsFilter = friendsFilter,
                     friendList = friendList,
+                    circleList = circleList,
                     isLoading = isLoading,
                     isRefreshing = isRefreshing,
+                    isCircleLoading = isCircleLoading,
+                    isCircleRefreshing = isCircleRefreshing,
                     onFriendClick = onFriendClick,
+                    onCircleClick = onCircleClick,
                     onRefresh = refreshData,
                 )
             }
