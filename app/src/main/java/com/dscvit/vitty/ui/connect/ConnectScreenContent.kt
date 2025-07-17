@@ -1,28 +1,117 @@
 package com.dscvit.vitty.ui.connect
 
+import android.content.Context
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import com.dscvit.vitty.R
+import com.dscvit.vitty.network.api.community.responses.user.UserResponse
+import com.dscvit.vitty.theme.Background
+import com.dscvit.vitty.theme.TextColor
+import com.dscvit.vitty.ui.connect.components.ConnectHeader
+import com.dscvit.vitty.ui.connect.components.ConnectTabContent
+import com.dscvit.vitty.ui.connect.components.NoNetworkMessage
+import com.dscvit.vitty.util.Constants
+import com.dscvit.vitty.util.UtilFunctions.isNetworkAvailable
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ConnectScreenContent(
     onSearchClick: () -> Unit = {},
-    onRequestsClick: () -> Unit = {},
+    onFriendClick: (UserResponse) -> Unit = {},
+    onFriendRequestsClick: () -> Unit = {},
+    connectViewModel: ConnectViewModel,
 ) {
+    val context = LocalContext.current
+    val friendList by connectViewModel.friendList.observeAsState()
+    val isLoading by connectViewModel.isLoading.observeAsState(false)
+    val isRefreshing by connectViewModel.isRefreshing.observeAsState(false)
+    val friendRequests by connectViewModel.friendRequest.observeAsState()
+
+    val isNetworkAvailable = remember { mutableStateOf(isNetworkAvailable(context)) }
+
+    LaunchedEffect(Unit) {
+        while (true) {
+            isNetworkAvailable.value = isNetworkAvailable(context)
+            kotlinx.coroutines.delay(5000)
+        }
+    }
+
+    val tabs = listOf("Friends", "Circles")
+    var selectedTab by remember { mutableIntStateOf(0) }
+    var searchQuery by remember { mutableStateOf("") }
+    var friendsFilter by remember { mutableIntStateOf(0) }
+
+    val pagerState = rememberPagerState(pageCount = { tabs.size })
+    val coroutineScope = rememberCoroutineScope()
+
+    val refreshData =
+        remember {
+            {
+                val sharedPreferences = context.getSharedPreferences(Constants.USER_INFO, Context.MODE_PRIVATE)
+                val token = sharedPreferences.getString(Constants.COMMUNITY_TOKEN, "") ?: ""
+                val username = sharedPreferences.getString(Constants.COMMUNITY_USERNAME, "") ?: ""
+
+                if (token.isNotEmpty()) {
+                    connectViewModel.refreshFriendList(token, username)
+                    connectViewModel.getFriendRequest(token)
+                }
+            }
+        }
+
+    LaunchedEffect(isNetworkAvailable.value) {
+        if (isNetworkAvailable.value && friendList == null && !isLoading) {
+            val sharedPreferences = context.getSharedPreferences(Constants.USER_INFO, Context.MODE_PRIVATE)
+            val token = sharedPreferences.getString(Constants.COMMUNITY_TOKEN, "") ?: ""
+            val username = sharedPreferences.getString(Constants.COMMUNITY_USERNAME, "") ?: ""
+
+            if (token.isNotEmpty()) {
+                connectViewModel.getFriendList(token, username)
+                connectViewModel.getFriendRequest(token)
+            }
+        }
+    }
+
+    LaunchedEffect(selectedTab) {
+        coroutineScope.launch {
+            pagerState.animateScrollToPage(selectedTab)
+        }
+    }
+
+    LaunchedEffect(pagerState.currentPage) {
+        selectedTab = pagerState.currentPage
+    }
+
     Column(
         modifier =
             Modifier
                 .fillMaxSize()
-                .background(MaterialTheme.colorScheme.background),
+                .background(Background),
     ) {
         TopAppBar(
             title = {
@@ -32,11 +121,59 @@ fun ConnectScreenContent(
                     fontWeight = FontWeight.Bold,
                 )
             },
+            actions = {
+                if (isNetworkAvailable.value) {
+                    IconButton(
+                        modifier = Modifier.padding(end = 4.dp),
+                        onClick = onSearchClick,
+                    ) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_group_add),
+                            contentDescription = "Add",
+                            tint = TextColor,
+                        )
+                    }
+                }
+            },
             colors =
                 TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.background,
                     titleContentColor = MaterialTheme.colorScheme.onBackground,
                 ),
         )
+
+        if (isNetworkAvailable.value) {
+            ConnectHeader(
+                tabs = tabs,
+                selectedTab = selectedTab,
+                onTabSelected = { index ->
+                    selectedTab = index
+                },
+                searchQuery = searchQuery,
+                onSearchQueryChange = { searchQuery = it },
+                friendsFilter = friendsFilter,
+                onFriendsFilterChange = { friendsFilter = it },
+                friendRequests = friendRequests,
+                onFriendRequestsClick = onFriendRequestsClick,
+            )
+
+            HorizontalPager(
+                state = pagerState,
+                modifier = Modifier.fillMaxSize(),
+            ) { page ->
+                ConnectTabContent(
+                    tabIndex = page,
+                    searchQuery = searchQuery,
+                    friendsFilter = friendsFilter,
+                    friendList = friendList,
+                    isLoading = isLoading,
+                    isRefreshing = isRefreshing,
+                    onFriendClick = onFriendClick,
+                    onRefresh = refreshData,
+                )
+            }
+        } else {
+            NoNetworkMessage()
+        }
     }
 }

@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<layout xmlns:android="http://schemas.android.com/apk/res/android">
+<layout xmlns:tools="http://schemas.android.com/tools"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <androidx.constraintlayout.widget.ConstraintLayout xmlns:app="http://schemas.android.com/apk/res-auto"
-        xmlns:tools="http://schemas.android.com/tools"
+    <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         tools:context=".activity.AddInfoActivity">
@@ -97,6 +98,15 @@
                 android:textCursorDrawable="@drawable/cursor_white"
                 android:textSize="16dp" />
 
+            <Spinner
+                android:id="@+id/spinner_campus"
+                android:layout_width="match_parent"
+                android:layout_height="50dp"
+                android:layout_marginTop="15dp"
+                android:background="@drawable/et_style"
+                android:paddingStart="12dp"
+                android:popupBackground="@color/tab_back"
+                android:textSize="16dp" />
 
         </LinearLayout>
 

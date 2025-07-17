@@ -295,14 +295,11 @@ fun SwipeToDismissNote(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CoursePageHeader(
-    onBackClick: () -> Unit,
-    courseTitle: String = "Course Page",
-) {
-    TopAppBar(
+fun CoursePageHeader(onBackClick: () -> Unit) {
+    CenterAlignedTopAppBar(
         title = {
             Text(
-                text = courseTitle,
+                text = "Course Page",
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Medium,
             )

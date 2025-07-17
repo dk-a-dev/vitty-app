@@ -91,7 +91,6 @@ fun CoursePageContent(
         ) {
             CoursePageHeader(
                 onBackClick = onBackClick,
-                courseTitle = courseTitle
             )
             SearchBar(
                 searchQuery = searchQuery,

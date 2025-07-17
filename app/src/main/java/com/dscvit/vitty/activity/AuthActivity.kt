@@ -204,6 +204,7 @@ class AuthActivity : AppCompatActivity() {
     }
 
     private fun logoutFailed() {
+        Timber.e("Google sign-in failed - showing error message to user")
         Toast.makeText(this, getString(R.string.sign_in_fail), Toast.LENGTH_LONG).show()
         binding.loadingView.visibility = View.GONE
         binding.introPager.currentItem = 0
@@ -228,41 +229,51 @@ class AuthActivity : AppCompatActivity() {
         data: Intent?,
     ) {
         super.onActivityResult(requestCode, resultCode, data)
-        Timber.d("Activity Result")
+        Timber.d("Activity Result - requestCode: $requestCode, resultCode: $resultCode")
         if (requestCode == SIGNIN) {
             val task: Task<GoogleSignInAccount> = GoogleSignIn.getSignedInAccountFromIntent(data)
             try {
                 val account = task.getResult(ApiException::class.java)
-                Timber.d("account: $account")
+                Timber.d("Google sign-in account: $account")
                 if (account != null) {
+                    Timber.d("Google sign-in successful, proceeding with Firebase auth")
                     firebaseAuthWithGoogle(account)
+                } else {
+                    Timber.e("Google sign-in account is null")
+                    logoutFailed()
                 }
+            } catch (e: ApiException) {
+                Timber.e("Google sign-in failed with ApiException: ${e.message}, statusCode: ${e.statusCode}")
+                logoutFailed()
             } catch (e: Exception) {
-                Timber.d(e.toString())
+                Timber.e("Google sign-in failed with Exception: ${e.message}")
                 logoutFailed()
             }
         }
     }
 
     private fun firebaseAuthWithGoogle(acct: GoogleSignInAccount) {
+        Timber.d("Starting Firebase authentication with Google account: ${acct.email}")
         val credential = GoogleAuthProvider.getCredential(acct.idToken, null)
 
         firebaseAuth
             .signInWithCredential(credential)
-            .addOnCompleteListener {
-                if (it.isSuccessful) {
+            .addOnCompleteListener { authResult ->
+                if (authResult.isSuccessful) {
                     loginClick = true
                     val uid = firebaseAuth.currentUser?.uid
+                    val email = firebaseAuth.currentUser?.email
+                    Timber.d("Firebase authentication successful - uid: $uid, email: $email")
                     saveInfo(acct.idToken, uid)
-                    Timber.d("success uid: $uid")
-                    authViewModel.signInAndGetTimeTable("", "", uid ?: "")
+                    authViewModel.signInAndGetTimeTable("", "", uid ?: "", campus = "")
                     leadToNextPage()
                 } else {
-                    Timber.d(it.toString())
+                    Timber.e("Firebase authentication failed: ${authResult.exception?.message}")
                     logoutFailed()
                 }
-            }.addOnFailureListener { e ->
-                Timber.d(e.toString())
+            }.addOnFailureListener { exception ->
+                Timber.e("Firebase authentication failed with exception: ${exception.message}")
+                logoutFailed()
             }
     }
 

@@ -1,36 +1,70 @@
-package com.dscvit.vitty.ui.community
+package com.dscvit.vitty.ui.connect
 
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import com.dscvit.vitty.network.api.community.APICommunityRestClient
 import com.dscvit.vitty.network.api.community.RetrofitFriendListListener
 import com.dscvit.vitty.network.api.community.RetrofitFriendRequestListener
-import com.dscvit.vitty.network.api.community.RetrofitSearchResultListener
 import com.dscvit.vitty.network.api.community.RetrofitUserActionListener
 import com.dscvit.vitty.network.api.community.responses.requests.RequestsResponse
 import com.dscvit.vitty.network.api.community.responses.user.FriendResponse
 import com.dscvit.vitty.network.api.community.responses.user.PostResponse
-import com.dscvit.vitty.network.api.community.responses.user.UserResponse
 import retrofit2.Call
 import timber.log.Timber
 
-class CommunityViewModel : ViewModel() {
+class ConnectViewModel : ViewModel() {
     private val _friendList = MutableLiveData<FriendResponse?>()
     private val _friendRequest = MutableLiveData<RequestsResponse?>()
-    private val _suggestedFriends = MutableLiveData<List<UserResponse>?>()
-    private val _searchResult = MutableLiveData<List<UserResponse>?>()
     private val _actionResponse = MutableLiveData<PostResponse?>()
+    private val _requestActionResponse = MutableLiveData<PostResponse?>()
+    private val _sendRequestResponse = MutableLiveData<PostResponse?>()
+    private val _isLoading = MutableLiveData<Boolean>()
+    private val _isRefreshing = MutableLiveData<Boolean>()
+    private val _unfriendSuccess = MutableLiveData<String?>()
 
     val friendList: MutableLiveData<FriendResponse?> = _friendList
     val friendRequest: MutableLiveData<RequestsResponse?> = _friendRequest
-    val suggestedFriends: MutableLiveData<List<UserResponse>?> = _suggestedFriends
-    val searchResult: MutableLiveData<List<UserResponse>?> = _searchResult
     val actionResponse: MutableLiveData<PostResponse?> = _actionResponse
+    val requestActionResponse: MutableLiveData<PostResponse?> = _requestActionResponse
+    val sendRequestResponse: MutableLiveData<PostResponse?> = _sendRequestResponse
+    val isLoading: MutableLiveData<Boolean> = _isLoading
+    val isRefreshing: MutableLiveData<Boolean> = _isRefreshing
+    val unfriendSuccess: MutableLiveData<String?> = _unfriendSuccess
 
     fun getFriendList(
         token: String,
         username: String,
     ) {
+        _isLoading.postValue(true)
+        APICommunityRestClient.instance.getFriendList(
+            token,
+            username,
+            object : RetrofitFriendListListener {
+                override fun onSuccess(
+                    call: Call<FriendResponse>?,
+                    response: FriendResponse?,
+                ) {
+                    Timber.d("ConnectFriendList: $response")
+                    _friendList.postValue(response)
+                    _isLoading.postValue(false)
+                }
+
+                override fun onError(
+                    call: Call<FriendResponse>?,
+                    t: Throwable?,
+                ) {
+                    _friendList.postValue(null)
+                    _isLoading.postValue(false)
+                }
+            },
+        )
+    }
+
+    fun refreshFriendList(
+        token: String,
+        username: String,
+    ) {
+        _isRefreshing.postValue(true)
         APICommunityRestClient.instance.getFriendList(
             token,
             username,
@@ -40,6 +74,7 @@ class CommunityViewModel : ViewModel() {
                     response: FriendResponse?,
                 ) {
                     _friendList.postValue(response)
+                    _isRefreshing.postValue(false)
                 }
 
                 override fun onError(
@@ -47,33 +82,7 @@ class CommunityViewModel : ViewModel() {
                     t: Throwable?,
                 ) {
                     _friendList.postValue(null)
-                }
-            },
-        )
-    }
-
-    fun getSearchResult(
-        token: String,
-        query: String,
-    ) {
-        APICommunityRestClient.instance.getSearchResult(
-            token,
-            query,
-            object : RetrofitSearchResultListener {
-                override fun onSuccess(
-                    call: Call<List<UserResponse>>?,
-                    response: List<UserResponse>?,
-                ) {
-                    Timber.d("SearchResult2: $response")
-                    _searchResult.postValue(response)
-                }
-
-                override fun onError(
-                    call: Call<List<UserResponse>>?,
-                    t: Throwable?,
-                ) {
-                    Timber.d("SearchResult3: ${t?.message}")
-                    _searchResult.postValue(null)
+                    _isRefreshing.postValue(false)
                 }
             },
         )
@@ -87,7 +96,7 @@ class CommunityViewModel : ViewModel() {
                     call: Call<RequestsResponse>?,
                     response: RequestsResponse?,
                 ) {
-                    Timber.d("FriendRequest--: $response")
+                    Timber.d("ConnectFriendRequest: $response")
                     _friendRequest.postValue(response)
                 }
 
@@ -101,28 +110,71 @@ class CommunityViewModel : ViewModel() {
         )
     }
 
-    fun getSuggestedFriends(token: String) {
-        APICommunityRestClient.instance.getSuggestedFriends(
+    fun sendRequest(
+        token: String,
+        username: String,
+    ) {
+        APICommunityRestClient.instance.sendRequest(
             token,
-            object : RetrofitSearchResultListener {
+            username,
+            object : RetrofitUserActionListener {
                 override fun onSuccess(
-                    call: Call<List<UserResponse>>?,
-                    response: List<UserResponse>?,
+                    call: Call<PostResponse>?,
+                    response: PostResponse?,
                 ) {
-                    Timber.d("SearchResult2Sugg: $response")
-                    Timber.d("SearchResult2Sugg Size: ${response?.size ?: 0}")
-                    _suggestedFriends.postValue(response ?: emptyList())
+                    Timber.d("ConnectSendRequest: $response")
+                    _sendRequestResponse.postValue(response)
                 }
 
                 override fun onError(
-                    call: Call<List<UserResponse>>?,
+                    call: Call<PostResponse>?,
                     t: Throwable?,
                 ) {
-                    Timber.d("SearchResult3: ${t?.message}")
-                    _suggestedFriends.postValue(emptyList())
+                    Timber.d("ConnectSendRequestError: ${t?.message}")
+                    _sendRequestResponse.postValue(null)
                 }
             },
         )
+    }
+
+    fun unfriend(
+        token: String,
+        username: String,
+    ) {
+        APICommunityRestClient.instance.unfriend(
+            token,
+            username,
+            object : RetrofitUserActionListener {
+                override fun onSuccess(
+                    call: Call<PostResponse>?,
+                    response: PostResponse?,
+                ) {
+                    Timber.d("ConnectUnfriend: $response")
+                    _actionResponse.postValue(response)
+                    _unfriendSuccess.postValue(username)
+                }
+
+                override fun onError(
+                    call: Call<PostResponse>?,
+                    t: Throwable?,
+                ) {
+                    Timber.d("ConnectUnfriendError: ${t?.message}")
+                    _unfriendSuccess.postValue(null)
+                }
+            },
+        )
+    }
+
+    fun clearUnfriendSuccess() {
+        _unfriendSuccess.postValue(null)
+    }
+
+    fun clearSendRequestResponse() {
+        _sendRequestResponse.postValue(null)
+    }
+
+    fun clearRequestActionResponse() {
+        _requestActionResponse.postValue(null)
     }
 
     fun acceptRequest(
@@ -138,7 +190,7 @@ class CommunityViewModel : ViewModel() {
                     response: PostResponse?,
                 ) {
                     Timber.d("AcceptRequest: $response")
-                    _actionResponse.postValue(response)
+                    _requestActionResponse.postValue(response)
                 }
 
                 override fun onError(
@@ -164,7 +216,7 @@ class CommunityViewModel : ViewModel() {
                     response: PostResponse?,
                 ) {
                     Timber.d("RejectRequest: $response")
-                    _actionResponse.postValue(response)
+                    _requestActionResponse.postValue(response)
                 }
 
                 override fun onError(
@@ -172,58 +224,6 @@ class CommunityViewModel : ViewModel() {
                     t: Throwable?,
                 ) {
                     Timber.d("RejectRequest: ${t?.message}")
-                }
-            },
-        )
-    }
-
-    fun sendRequest(
-        token: String,
-        username: String,
-    ) {
-        APICommunityRestClient.instance.sendRequest(
-            token,
-            username,
-            object : RetrofitUserActionListener {
-                override fun onSuccess(
-                    call: Call<PostResponse>?,
-                    response: PostResponse?,
-                ) {
-                    Timber.d("SendRequest: $response")
-                    _actionResponse.postValue(response)
-                }
-
-                override fun onError(
-                    call: Call<PostResponse>?,
-                    t: Throwable?,
-                ) {
-                    Timber.d("SendRequest: ${t?.message}")
-                }
-            },
-        )
-    }
-
-    fun unfriend(
-        token: String,
-        username: String,
-    ) {
-        APICommunityRestClient.instance.unfriend(
-            token,
-            username,
-            object : RetrofitUserActionListener {
-                override fun onSuccess(
-                    call: Call<PostResponse>?,
-                    response: PostResponse?,
-                ) {
-                    Timber.d("Unfriend: $response")
-                    _actionResponse.postValue(response)
-                }
-
-                override fun onError(
-                    call: Call<PostResponse>?,
-                    t: Throwable?,
-                ) {
-                    Timber.d("Unfriend: ${t?.message}")
                 }
             },
         )

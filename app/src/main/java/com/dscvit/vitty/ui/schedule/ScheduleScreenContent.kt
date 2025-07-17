@@ -8,6 +8,8 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -32,8 +34,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -68,7 +68,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.dscvit.vitty.R
 import com.dscvit.vitty.activity.SettingsActivity
-import com.dscvit.vitty.activity.VITEventsActivity
 import com.dscvit.vitty.model.PeriodDetails
 import com.dscvit.vitty.network.api.community.responses.user.UserResponse
 import com.dscvit.vitty.theme.Accent
@@ -91,7 +90,7 @@ import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ScheduleScreenContent() {
+fun ScheduleScreenContent(onOpenDrawer: () -> Unit = {}) {
     val context = LocalContext.current
     val prefs = context.getSharedPreferences(Constants.USER_INFO, Context.MODE_PRIVATE)
     val scheduleViewModel: ScheduleViewModel = viewModel()
@@ -124,13 +123,33 @@ fun ScheduleScreenContent() {
     var hasLoadedData by remember { mutableStateOf(false) }
 
     var showExamModeAlert by remember { mutableStateOf(prefs.getBoolean(Constants.EXAM_MODE, false)) }
-    var showDropdownMenu by remember { mutableStateOf(false) }
+    var satModeSettingKey by remember { mutableStateOf(UtilFunctions.getSatModeCode()) }
 
     DisposableEffect(context) {
         val listener =
             SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
-                if (key == Constants.EXAM_MODE) {
-                    showExamModeAlert = prefs.getBoolean(Constants.EXAM_MODE, false)
+                when (key) {
+                    Constants.EXAM_MODE -> {
+                        showExamModeAlert = prefs.getBoolean(Constants.EXAM_MODE, false)
+                    }
+                    satModeSettingKey -> {
+                        scope.launch {
+                            withContext(Dispatchers.Default) {
+                                val cachedData = prefs.getString(Constants.CACHE_COMMUNITY_TIMETABLE, null)
+                                if (cachedData != null) {
+                                    try {
+                                        val response = Gson().fromJson(cachedData, UserResponse::class.java)
+                                        val processedData = processAllDaysData(response, prefs)
+                                        withContext(Dispatchers.Main) {
+                                            allDaysData = processedData
+                                        }
+                                    } catch (e: Exception) {
+                                        Timber.e("Error refreshing schedule data: ${e.message}")
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             }
         prefs.registerOnSharedPreferenceChangeListener(listener)
@@ -216,51 +235,10 @@ fun ScheduleScreenContent() {
                             Modifier
                                 .size(40.dp)
                                 .clip(CircleShape)
-                                .clickable { showDropdownMenu = true },
+                                .clickable { onOpenDrawer() },
                         placeholder = painterResource(R.drawable.ic_gdscvit),
                         error = painterResource(R.drawable.ic_gdscvit),
                     )
-
-                    DropdownMenu(
-                        modifier = Modifier.background(Secondary),
-                        expanded = showDropdownMenu,
-                        onDismissRequest = { showDropdownMenu = false },
-                    ) {
-                        DropdownMenuItem(
-                            text = { Text("Settings") },
-                            onClick = {
-                                showDropdownMenu = false
-                                context.startActivity(Intent(context, SettingsActivity::class.java))
-                            },
-                        )
-                        DropdownMenuItem(
-                            text = { Text("VIT Events") },
-                            onClick = {
-                                showDropdownMenu = false
-                                context.startActivity(Intent(context, VITEventsActivity::class.java))
-                            },
-                        )
-                        DropdownMenuItem(
-                            text = { Text("Support") },
-                            onClick = {
-                                showDropdownMenu = false
-                                UtilFunctions.openLink(context, context.getString(R.string.telegram_link))
-                            },
-                        )
-                        DropdownMenuItem(
-                            text = { Text("Share") },
-                            onClick = {
-                                showDropdownMenu = false
-                                val shareIntent =
-                                    Intent().apply {
-                                        action = Intent.ACTION_SEND
-                                        type = "text/plain"
-                                        putExtra(Intent.EXTRA_TEXT, context.getString(R.string.share_text))
-                                    }
-                                context.startActivity(Intent.createChooser(shareIntent, null))
-                            },
-                        )
-                    }
                 }
             },
             colors =
@@ -427,7 +405,7 @@ private fun DayContent(
         ) {
             items(
                 items = periods,
-                key = { period -> "${period.courseCode}_${period.startTime.seconds}" },
+                key = { period -> "${period.courseCode}_${period.slot}" },
             ) { period ->
                 PeriodCard(
                     period = period,
@@ -459,48 +437,57 @@ private fun PeriodCard(
             timeFormat.format(period.endTime.toDate()).uppercase()
         }
 
-    val now = remember { Calendar.getInstance() }
-    val isToday = remember(dayIndex) { ((dayIndex + 1) % 7) + 1 == now.get(Calendar.DAY_OF_WEEK) }
+    val now = Calendar.getInstance()
+
+    val isToday =
+        remember(dayIndex) {
+            val todayIndex =
+                when (now.get(Calendar.DAY_OF_WEEK)) {
+                    Calendar.MONDAY -> 0
+                    Calendar.TUESDAY -> 1
+                    Calendar.WEDNESDAY -> 2
+                    Calendar.THURSDAY -> 3
+                    Calendar.FRIDAY -> 4
+                    Calendar.SATURDAY -> 5
+                    Calendar.SUNDAY -> 6
+                    else -> -1
+                }
+            dayIndex == todayIndex
+        }
 
     val isActive =
-        remember(period, isToday, now.get(Calendar.MINUTE)) {
-            if (!isToday) return@remember false
-
+        if (!isToday) {
+            false
+        } else {
             val startTime = Calendar.getInstance().apply { time = period.startTime.toDate() }
             val endTime = Calendar.getInstance().apply { time = period.endTime.toDate() }
             val currentTime = Calendar.getInstance()
 
-            (startTime.before(currentTime) && endTime.after(currentTime)) ||
-                startTime == currentTime ||
-                (startTime.after(currentTime) && isNextClass(period, dayIndex))
+            val currentHourMinute = currentTime.get(Calendar.HOUR_OF_DAY) * 60 + currentTime.get(Calendar.MINUTE)
+            val startHourMinute = startTime.get(Calendar.HOUR_OF_DAY) * 60 + startTime.get(Calendar.MINUTE)
+            val endHourMinute = endTime.get(Calendar.HOUR_OF_DAY) * 60 + endTime.get(Calendar.MINUTE)
+
+            currentHourMinute in startHourMinute..endHourMinute
         }
 
     Card(
         modifier =
             Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(16.dp))
-                .clickable {
-                    UtilFunctions.copyItem(
-                        context,
-                        "Class Details",
-                        "CLASS_DETAILS",
-                        "${period.courseName} - ${period.courseCode}\n$startTimeStr - $endTimeStr\n${period.slot}\n${period.roomNo}",
-                    )
-                },
+                .fillMaxWidth(),
         colors =
             CardDefaults.cardColors(
                 containerColor = Secondary,
             ),
         border =
             if (isActive) {
-                androidx.compose.foundation.BorderStroke(
-                    2.dp,
-                    MaterialTheme.colorScheme.primary,
+                BorderStroke(
+                    1.dp,
+                    Accent,
                 )
             } else {
                 null
             },
+        shape = RoundedCornerShape(16.dp),
     ) {
         Column(
             modifier =
@@ -520,12 +507,7 @@ private fun PeriodCard(
                         text = period.courseName,
                         style = MaterialTheme.typography.labelLarge,
                         fontWeight = FontWeight.Bold,
-                        color =
-                            if (isActive) {
-                                MaterialTheme.colorScheme.onPrimaryContainer
-                            } else {
-                                MaterialTheme.colorScheme.onSurface
-                            },
+                        color = TextColor,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
                     )
@@ -562,17 +544,11 @@ private fun PeriodCard(
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            Text(
-                                text = "🧭",
-                                style =
-                                    MaterialTheme.typography.bodyMedium.copy(
-                                        fontSize = 12.sp,
-                                        lineHeight = 12.sp,
-                                        letterSpacing = (-0.12).sp,
-                                        textAlign = TextAlign.Center,
-                                    ),
-                                color = MaterialTheme.colorScheme.primary,
-                                fontWeight = FontWeight.Medium,
+                            Image(
+                                painter = painterResource(id = R.drawable.ic_compass),
+                                contentDescription = "Compass icon",
+                                modifier = Modifier.size(12.dp),
+                                alignment = Alignment.Center,
                             )
                             Spacer(modifier = Modifier.width(4.dp))
                             Text(

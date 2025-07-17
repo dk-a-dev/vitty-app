@@ -10,6 +10,7 @@ import android.view.animation.OvershootInterpolator
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
+import androidx.core.view.isVisible
 import androidx.databinding.DataBindingUtil
 import androidx.fragment.app.FragmentActivity
 import androidx.navigation.NavOptions
@@ -278,7 +279,7 @@ class HomeActivity : FragmentActivity() {
                 }
 
             val allTextViews = listOf(binding.textAcademics, binding.textTimetable, binding.textCommunity)
-            val visibleTextViews = allTextViews.filter { it.visibility == View.VISIBLE && it != newTextView }
+            val visibleTextViews = allTextViews.filter { it.isVisible && it != newTextView }
 
             var completedOperations = 0
             val totalOperations = 1 + visibleTextViews.size
