@@ -24,12 +24,14 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -41,8 +43,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -55,6 +59,7 @@ import com.dscvit.vitty.theme.Accent
 import com.dscvit.vitty.theme.Background
 import com.dscvit.vitty.theme.Secondary
 import com.dscvit.vitty.theme.TextColor
+import com.dscvit.vitty.util.QRCodeGenerator
 import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -66,6 +71,7 @@ fun CircleDetailScreenContent(
     onMemberClick: (UserResponse, String) -> Unit = { _, _ -> },
 ) {
     var searchQuery by remember { mutableStateOf("") }
+    var showQrDialog by remember { mutableStateOf(false) }
 
     val circleFriends = circleMembers?.data
 
@@ -217,12 +223,14 @@ fun CircleDetailScreenContent(
 
                 Spacer(modifier = Modifier.width(16.dp))
 
-                Text(
-                    text = circle.circle_join_code,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = Accent,
-                    fontWeight = FontWeight.Medium,
-                )
+                IconButton(onClick = { showQrDialog = true }) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_qr),
+                        contentDescription = "Generate QR Code",
+                        tint = Accent,
+                        modifier = Modifier.size(24.dp),
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -341,6 +349,78 @@ fun CircleDetailScreenContent(
                 }
             }
         }
+    }
+
+    if (showQrDialog) {
+        val qrBitmap = remember { QRCodeGenerator.generateQRCode(circle.circle_join_code ?: "", 400) }
+
+        AlertDialog(
+            onDismissRequest = { showQrDialog = false },
+            containerColor = Background,
+            titleContentColor = TextColor,
+            textContentColor = TextColor,
+            title = {
+                Text(
+                    "Circle QR Code",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Medium,
+                    color = TextColor,
+                )
+            },
+            text = {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(
+                        text = "Scan this QR code to join the circle",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = TextColor.copy(alpha = 0.8f),
+                        textAlign = TextAlign.Center,
+                    )
+
+                    Spacer(modifier = Modifier.height(20.dp))
+
+                    qrBitmap?.let { bitmap ->
+                        Box(
+                            modifier =
+                                Modifier
+                                    .size(250.dp)
+                                    .background(Color.White, RoundedCornerShape(12.dp))
+                                    .padding(16.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Image(
+                                bitmap = bitmap.asImageBitmap(),
+                                contentDescription = "Circle QR Code",
+                                modifier = Modifier.fillMaxSize(),
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(20.dp))
+
+                    Text(
+                        text = "Join Code: ${circle.circle_join_code}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Accent,
+                        textAlign = TextAlign.Center,
+                        fontWeight = FontWeight.Medium,
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = { showQrDialog = false },
+                ) {
+                    Text(
+                        "Close",
+                        color = Accent,
+                        fontWeight = FontWeight.Medium,
+                    )
+                }
+            },
+        )
     }
 }
 

@@ -161,14 +161,13 @@ fun JoinCircleBottomSheet(
                             .height(239.dp)
                             .background(Background, RoundedCornerShape(7.dp))
                             .padding(10.dp),
-                    contentAlignment = Alignment.Center,
                 ) {
-                    Text(
-                        text = "QR Scanner will be implemented here",
-                        color = Accent,
-                        textAlign = TextAlign.Center,
-                        fontFamily = Poppins,
-                        fontSize = 14.sp,
+                    QRCodeScanner(
+                        onQRCodeScanned = { scannedCode ->
+                            onJoinWithCode(scannedCode)
+                            onDismiss()
+                        },
+                        modifier = Modifier.fillMaxWidth(),
                     )
                 }
 
@@ -199,19 +198,15 @@ fun JoinCircleBottomSheet(
                         modifier =
                             Modifier
                                 .height(37.dp)
-                                .padding(horizontal = 0.dp),
-                        contentPadding =
-                            androidx.compose.foundation.layout
-                                .PaddingValues(horizontal = 20.dp, vertical = 7.dp),
+                                .padding(start = 16.dp),
                     ) {
                         Text(
                             text = "Join",
+                            color = Background,
                             fontFamily = Poppins,
                             fontSize = 17.sp,
                             fontWeight = FontWeight.SemiBold,
-                            letterSpacing = 0.17.sp,
-                            color = Secondary,
-                            textAlign = TextAlign.Center,
+                            letterSpacing = 17.sp,
                         )
                     }
                 }
