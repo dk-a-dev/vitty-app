@@ -1,6 +1,7 @@
 package com.dscvit.vitty.network.api.community
 
-import com.dscvit.vitty.network.api.community.requests.AuthRequestBody
+import com.dscvit.vitty.network.api.community.requests.AuthRequestBodyWithCampus
+import com.dscvit.vitty.network.api.community.requests.AuthRequestBodyWithoutCampus
 import com.dscvit.vitty.network.api.community.requests.UsernameRequestBody
 import com.dscvit.vitty.network.api.community.responses.requests.RequestsResponse
 import com.dscvit.vitty.network.api.community.responses.user.FriendResponse
@@ -33,12 +34,20 @@ class APICommunityRestClient {
         mApiUser = retrofit.create(APICommunity::class.java)
 
         val requestBody =
-            AuthRequestBody(
-                reg_no = regno,
-                username = username,
-                uuid = uuid,
-                campus = campus,
-            )
+            if (campus != "") {
+                AuthRequestBodyWithCampus(
+                    reg_no = regno,
+                    username = username,
+                    uuid = uuid,
+                    campus = campus,
+                )
+            } else {
+                AuthRequestBodyWithoutCampus(
+                    reg_no = regno,
+                    username = username,
+                    uuid = uuid,
+                )
+            }
 
         val apiSignInCall = mApiUser!!.signInInfo(requestBody)
 
@@ -373,6 +382,62 @@ class APICommunityRestClient {
                     t: Throwable,
                 ) {
                     Timber.d("ErrorV: ${t.message}")
+                    retrofitUserActionListener.onError(call, t)
+                }
+            },
+        )
+    }
+
+    fun enableGhostMode(
+        token: String,
+        username: String,
+        retrofitUserActionListener: RetrofitUserActionListener,
+    ) {
+        val bearerToken = "Bearer $token"
+
+        mApiUser = retrofit.create<APICommunity>(APICommunity::class.java)
+        val apiGhostModeCall = mApiUser!!.enableGhostMode(bearerToken, username)
+        apiGhostModeCall.enqueue(
+            object : Callback<PostResponse> {
+                override fun onResponse(
+                    call: Call<PostResponse>,
+                    response: Response<PostResponse>,
+                ) {
+                    retrofitUserActionListener.onSuccess(call, response.body())
+                }
+
+                override fun onFailure(
+                    call: Call<PostResponse>,
+                    t: Throwable,
+                ) {
+                    retrofitUserActionListener.onError(call, t)
+                }
+            },
+        )
+    }
+
+    fun disableGhostMode(
+        token: String,
+        username: String,
+        retrofitUserActionListener: RetrofitUserActionListener,
+    ) {
+        val bearerToken = "Bearer $token"
+
+        mApiUser = retrofit.create<APICommunity>(APICommunity::class.java)
+        val apiGhostModeCall = mApiUser!!.disableGhostMode(bearerToken, username)
+        apiGhostModeCall.enqueue(
+            object : Callback<PostResponse> {
+                override fun onResponse(
+                    call: Call<PostResponse>,
+                    response: Response<PostResponse>,
+                ) {
+                    retrofitUserActionListener.onSuccess(call, response.body())
+                }
+
+                override fun onFailure(
+                    call: Call<PostResponse>,
+                    t: Throwable,
+                ) {
                     retrofitUserActionListener.onError(call, t)
                 }
             },

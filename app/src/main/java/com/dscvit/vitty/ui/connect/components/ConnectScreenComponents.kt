@@ -1,6 +1,6 @@
 package com.dscvit.vitty.ui.connect.components
 
-import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -27,10 +27,14 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.pullrefresh.PullRefreshIndicator
+import androidx.compose.material.pullrefresh.pullRefresh
+import androidx.compose.material.pullrefresh.rememberPullRefreshState
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -40,8 +44,6 @@ import androidx.compose.material3.TabRow
 import androidx.compose.material3.TabRowDefaults
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.material3.Text
-import androidx.compose.material3.pulltorefresh.PullToRefreshBox
-import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -278,7 +280,7 @@ fun FilterChip(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterialApi::class)
 @Composable
 fun ConnectTabContent(
     tabIndex: Int,
@@ -321,13 +323,17 @@ fun ConnectTabContent(
 
     when (tabIndex) {
         0 -> {
-            val pullToRefreshState = rememberPullToRefreshState()
+            val pullToRefreshState =
+                rememberPullRefreshState(
+                    refreshing = isRefreshing,
+                    onRefresh = onRefresh,
+                )
 
-            PullToRefreshBox(
-                isRefreshing = isRefreshing,
-                onRefresh = onRefresh,
-                state = pullToRefreshState,
-                modifier = Modifier.fillMaxSize(),
+            Box(
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .pullRefresh(pullToRefreshState),
             ) {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
@@ -374,6 +380,13 @@ fun ConnectTabContent(
                         }
                     }
                 }
+                PullRefreshIndicator(
+                    refreshing = isRefreshing,
+                    state = pullToRefreshState,
+                    modifier = Modifier.align(Alignment.TopCenter),
+                    backgroundColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.surface,
+                )
             }
         }
         1 -> {
@@ -621,11 +634,11 @@ fun ShimmerListItem() {
     val infiniteTransition = rememberInfiniteTransition(label = "shimmer")
     val shimmerTranslateAnim =
         infiniteTransition.animateFloat(
-            initialValue = 0f,
+            initialValue = -200f,
             targetValue = 1000f,
             animationSpec =
                 infiniteRepeatable(
-                    animation = tween(1200, easing = FastOutSlowInEasing),
+                    animation = tween(durationMillis = 1500, easing = LinearEasing),
                     repeatMode = RepeatMode.Restart,
                 ),
             label = "shimmerTranslateAnim",
@@ -635,14 +648,12 @@ fun ShimmerListItem() {
         Brush.linearGradient(
             colors =
                 listOf(
-                    Background.copy(alpha = 0.6f),
-                    Background.copy(alpha = 0.2f),
-                    Background.copy(alpha = 0.6f),
-                    Background.copy(alpha = 0.2f),
-                    Background.copy(alpha = 0.6f),
+                    Background.copy(alpha = 0.9f),
+                    Background.copy(alpha = 0.3f),
+                    Background.copy(alpha = 0.9f),
                 ),
-            start = Offset.Zero,
-            end = Offset(x = shimmerTranslateAnim.value, y = shimmerTranslateAnim.value),
+            start = Offset(shimmerTranslateAnim.value - 200f, 0f),
+            end = Offset(shimmerTranslateAnim.value, 0f),
         )
 
     Box(

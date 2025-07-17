@@ -3,6 +3,7 @@ package com.dscvit.vitty.ui.main
 import android.app.Activity
 import android.content.Intent
 import android.content.SharedPreferences
+import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
@@ -80,6 +81,9 @@ import androidx.navigation.compose.rememberNavController
 import coil.compose.AsyncImage
 import com.dscvit.vitty.R
 import com.dscvit.vitty.activity.SettingsActivity
+import com.dscvit.vitty.network.api.community.APICommunityRestClient
+import com.dscvit.vitty.network.api.community.RetrofitUserActionListener
+import com.dscvit.vitty.network.api.community.responses.user.PostResponse
 import com.dscvit.vitty.network.api.community.responses.user.UserResponse
 import com.dscvit.vitty.theme.Accent
 import com.dscvit.vitty.theme.Background
@@ -108,6 +112,7 @@ import com.google.gson.Gson
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import retrofit2.Call
 import java.net.URLDecoder
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
@@ -829,6 +834,7 @@ fun DrawerContent(
     val profilePictureUrl = remember { prefs.getString(Constants.COMMUNITY_PICTURE, "") }
     val username = remember { prefs.getString(Constants.COMMUNITY_USERNAME, "") ?: "User" }
     val name = remember { prefs.getString(Constants.COMMUNITY_NAME, "") ?: "Name" }
+    val campus = remember { prefs.getString(Constants.COMMUNITY_CAMPUS, "") ?: "Campus" }
 
     var isGhostModeEnabled by remember { mutableStateOf(prefs.getBoolean(Constants.GHOST_MODE, false)) }
 
@@ -913,36 +919,38 @@ fun DrawerContent(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            NavigationDrawerItem(
-                icon = {
-                    Icon(
-                        painter = painterResource(R.drawable.ic_empty_classroom),
-                        contentDescription = "Find Empty Classroom",
-                        tint = TextColor,
-                    )
-                },
-                label = {
-                    Text(
-                        modifier = Modifier.padding(start = 24.dp),
-                        text = "Find Empty Classroom",
-                        color = TextColor,
-                        style =
-                            MaterialTheme.typography.labelLarge.copy(
-                                fontWeight = FontWeight.Normal,
-                            ),
-                    )
-                },
-                selected = false,
-                onClick = {
-                    onCloseDrawer()
-                    navController.navigate("empty_classrooms")
-                },
-                colors =
-                    NavigationDrawerItemDefaults.colors(
-                        unselectedContainerColor = Color.Transparent,
-                        selectedContainerColor = Secondary,
-                    ),
-            )
+            if (campus.lowercase() == "vellore") {
+                NavigationDrawerItem(
+                    icon = {
+                        Icon(
+                            painter = painterResource(R.drawable.ic_empty_classroom),
+                            contentDescription = "Find Empty Classroom",
+                            tint = TextColor,
+                        )
+                    },
+                    label = {
+                        Text(
+                            modifier = Modifier.padding(start = 24.dp),
+                            text = "Find Empty Classroom",
+                            color = TextColor,
+                            style =
+                                MaterialTheme.typography.labelLarge.copy(
+                                    fontWeight = FontWeight.Normal,
+                                ),
+                        )
+                    },
+                    selected = false,
+                    onClick = {
+                        onCloseDrawer()
+                        navController.navigate("empty_classrooms")
+                    },
+                    colors =
+                        NavigationDrawerItemDefaults.colors(
+                            unselectedContainerColor = Color.Transparent,
+                            selectedContainerColor = Secondary,
+                        ),
+                )
+            }
 
             NavigationDrawerItem(
                 icon = {
@@ -1106,8 +1114,64 @@ fun DrawerContent(
                 Switch(
                     checked = isGhostModeEnabled,
                     onCheckedChange = { isChecked ->
-                        isGhostModeEnabled = isChecked
-                        prefs.edit { putBoolean(Constants.GHOST_MODE, isChecked) }
+                        val token = prefs.getString(Constants.COMMUNITY_TOKEN, "") ?: ""
+                        val currentUsername = prefs.getString(Constants.COMMUNITY_USERNAME, "") ?: ""
+
+                        if (token.isNotEmpty() && currentUsername.isNotEmpty()) {
+                            if (isChecked) {
+                                APICommunityRestClient.instance.enableGhostMode(
+                                    token = token,
+                                    username = currentUsername,
+                                    retrofitUserActionListener =
+                                        object : RetrofitUserActionListener {
+                                            override fun onSuccess(
+                                                call: Call<PostResponse>?,
+                                                response: PostResponse?,
+                                            ) {
+                                                isGhostModeEnabled = true
+                                                prefs.edit { putBoolean(Constants.GHOST_MODE, true) }
+                                                Toast.makeText(context, "Ghost mode enabled", Toast.LENGTH_SHORT).show()
+                                            }
+
+                                            override fun onError(
+                                                call: Call<PostResponse>?,
+                                                t: Throwable?,
+                                            ) {
+                                                isGhostModeEnabled = false
+                                                Toast.makeText(context, "Failed to enable ghost mode", Toast.LENGTH_SHORT).show()
+                                            }
+                                        },
+                                )
+                            } else {
+                                APICommunityRestClient.instance.disableGhostMode(
+                                    token = token,
+                                    username = currentUsername,
+                                    retrofitUserActionListener =
+                                        object : RetrofitUserActionListener {
+                                            override fun onSuccess(
+                                                call: Call<PostResponse>?,
+                                                response: PostResponse?,
+                                            ) {
+                                                isGhostModeEnabled = false
+                                                prefs.edit { putBoolean(Constants.GHOST_MODE, false) }
+                                                Toast.makeText(context, "Ghost mode disabled", Toast.LENGTH_SHORT).show()
+                                            }
+
+                                            override fun onError(
+                                                call: Call<PostResponse>?,
+                                                t: Throwable?,
+                                            ) {
+                                                isGhostModeEnabled = true
+                                                Toast.makeText(context, "Failed to disable ghost mode", Toast.LENGTH_SHORT).show()
+                                            }
+                                        },
+                                )
+                            }
+                        } else {
+                            isGhostModeEnabled = isChecked
+                            prefs.edit { putBoolean(Constants.GHOST_MODE, isChecked) }
+                            Toast.makeText(context, "Ghost mode updated locally", Toast.LENGTH_SHORT).show()
+                        }
                     },
                     colors =
                         SwitchDefaults.colors(

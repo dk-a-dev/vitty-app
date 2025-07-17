@@ -1,6 +1,5 @@
 package com.dscvit.vitty.network.api.community
 
-import com.dscvit.vitty.network.api.community.requests.AuthRequestBody
 import com.dscvit.vitty.network.api.community.requests.UsernameRequestBody
 import com.dscvit.vitty.network.api.community.responses.requests.RequestsResponse
 import com.dscvit.vitty.network.api.community.responses.user.FriendResponse
@@ -18,61 +17,79 @@ import retrofit2.http.Path
 import retrofit2.http.Query
 
 interface APICommunity {
-
     @Headers("Content-Type: application/json")
     @POST("/api/v2/auth/check-username")
-    fun checkUsername(@Body body: UsernameRequestBody): Call<PostResponse>
+    fun checkUsername(
+        @Body body: UsernameRequestBody,
+    ): Call<PostResponse>
 
     @Headers("Content-Type: application/json")
     @POST("/api/v2/auth/firebase/")
-    fun signInInfo(@Body body: AuthRequestBody): Call<SignInResponse>
+    fun signInInfo(
+        @Body body: Any,
+    ): Call<SignInResponse>
 
     @GET("/api/v2/users/{username}")
     fun getUser(
         @Header("Authorization") authToken: String,
-        @Path("username") username: String
+        @Path("username") username: String,
     ): Call<UserResponse>
 
     @GET("/api/v2/friends/{username}/")
     fun getFriendList(
         @Header("Authorization") authToken: String,
-        @Path("username") username: String
+        @Path("username") username: String,
     ): Call<FriendResponse>
 
     @GET("/api/v2/users/search")
     fun searchUsers(
         @Header("Authorization") authToken: String,
-        @Query("query") query: String
+        @Query("query") query: String,
     ): Call<List<UserResponse>>
 
     @GET("/api/v2/requests/")
-    fun getFriendRequests(@Header("Authorization") authToken: String): Call<RequestsResponse>
+    fun getFriendRequests(
+        @Header("Authorization") authToken: String,
+    ): Call<RequestsResponse>
 
     @GET("/api/v2/users/suggested/")
-    fun getSuggestedFriends(@Header("Authorization") authToken: String): Call<List<UserResponse>>
+    fun getSuggestedFriends(
+        @Header("Authorization") authToken: String,
+    ): Call<List<UserResponse>>
 
     @POST("/api/v2/requests/{username}/send")
     fun sendRequest(
         @Header("Authorization") authToken: String,
-        @Path("username") username: String
+        @Path("username") username: String,
     ): Call<PostResponse>
 
     @POST("/api/v2/requests/{username}/accept/")
     fun acceptRequest(
         @Header("Authorization") authToken: String,
-        @Path("username") username: String
+        @Path("username") username: String,
     ): Call<PostResponse>
 
     @POST("/api/v2/requests/{username}/decline/")
     fun declineRequest(
         @Header("Authorization") authToken: String,
-        @Path("username") username: String
+        @Path("username") username: String,
     ): Call<PostResponse>
-
 
     @DELETE("/api/v2/friends/{username}/")
     fun deleteFriend(
         @Header("Authorization") authToken: String,
-        @Path("username") username: String
+        @Path("username") username: String,
+    ): Call<PostResponse>
+
+    @POST("/api/v2/friends/ghost/{username}")
+    fun enableGhostMode(
+        @Header("Authorization") authToken: String,
+        @Path("username") username: String,
+    ): Call<PostResponse>
+
+    @POST("/api/v2/friends/alive/{username}")
+    fun disableGhostMode(
+        @Header("Authorization") authToken: String,
+        @Path("username") username: String,
     ): Call<PostResponse>
 }

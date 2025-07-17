@@ -14,21 +14,25 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.firebase.auth.FirebaseAuth
 
 object LogoutHelper {
+    fun logout(
+        context: Context,
+        activity: Activity,
+        prefs: SharedPreferences,
+    ) {
+        val v: View =
+            LayoutInflater
+                .from(context)
+                .inflate(R.layout.dialog_logout, null)
 
-    fun logout(context: Context, activity: Activity, prefs: SharedPreferences) {
-        val v: View = LayoutInflater
-            .from(context)
-            .inflate(R.layout.dialog_logout, null)
-
-        val dialog = MaterialAlertDialogBuilder(context)
-            .setView(v)
-            .setBackground(
-                AppCompatResources.getDrawable(
-                    context,
-                    R.color.transparent
-                )
-            )
-            .create()
+        val dialog =
+            MaterialAlertDialogBuilder(context)
+                .setView(v)
+                .setBackground(
+                    AppCompatResources.getDrawable(
+                        context,
+                        R.color.transparent,
+                    ),
+                ).create()
 
         dialog.show()
 
@@ -52,9 +56,11 @@ object LogoutHelper {
                 putString(Constants.COMMUNITY_REGNO, null)
                 putBoolean(Constants.COMMUNITY_TIMETABLE_AVAILABLE, false)
                 putString(Constants.CACHE_COMMUNITY_TIMETABLE, null)
+                putString(Constants.COMMUNITY_CAMPUS, null)
+
                 apply()
             }
-            prefs.edit().clear().apply();
+            prefs.edit().clear().apply()
             FirebaseAuth.getInstance().signOut()
             val intent = Intent(context, AuthActivity::class.java)
             intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK

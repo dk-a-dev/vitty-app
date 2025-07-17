@@ -425,8 +425,6 @@ private fun PeriodCard(
     dayIndex: Int,
     onLocationClick: (String) -> Unit,
 ) {
-    val context = LocalContext.current
-
     val timeFormat = remember { SimpleDateFormat("h:mm a", Locale.getDefault()) }
     val startTimeStr =
         remember(period.startTime) {
@@ -621,16 +619,24 @@ private fun processAllDaysData(
 
 private fun parseTimeToTimestamp(timeString: String): Timestamp =
     try {
-        val time = replaceYearIfZero(timeString)
-        val dateFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.getDefault())
+        val sanitizedTime =
+            if (timeString.contains("+05:53")) {
+                timeString.replace("+05:53", "+05:30")
+            } else {
+                timeString
+            }
+        val time = replaceYearIfZero(sanitizedTime)
+
+        val dateFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX", Locale.getDefault())
         val date = dateFormat.parse(time)
         if (date != null) {
             Timestamp(date)
         } else {
+            Timber.d("Date parsing error: Unable to parse sanitized time: $time")
             Timestamp.now()
         }
     } catch (e: Exception) {
-        Timber.d("Date parsing error: ${e.message}")
+        Timber.d("Date parsing error: Unparseable date: \"$timeString\"")
         Timestamp.now()
     }
 
@@ -640,16 +646,3 @@ private fun replaceYearIfZero(dateStr: String): String =
     } else {
         dateStr
     }
-
-private fun isNextClass(
-    period: PeriodDetails,
-    dayIndex: Int,
-): Boolean {
-    val now = Calendar.getInstance()
-    val isToday = ((dayIndex + 1) % 7) + 1 == now.get(Calendar.DAY_OF_WEEK)
-
-    if (!isToday) return false
-
-    val startTime = Calendar.getInstance().apply { time = period.startTime.toDate() }
-    return startTime.after(now)
-}
