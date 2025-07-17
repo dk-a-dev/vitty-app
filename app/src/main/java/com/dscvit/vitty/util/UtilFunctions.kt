@@ -9,6 +9,8 @@ import android.content.Intent
 import android.content.SharedPreferences
 import android.graphics.Bitmap
 import android.graphics.Canvas
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import android.net.Uri
 import android.provider.MediaStore
 import android.view.View
@@ -23,26 +25,34 @@ import java.util.Date
 import java.util.Locale
 
 object UtilFunctions {
-
-    fun openLink(context: Context, url: String) {
+    fun openLink(
+        context: Context,
+        url: String,
+    ) {
         try {
             context.startActivity(
                 Intent(
                     Intent.ACTION_VIEW,
-                    Uri.parse(url)
-                )
+                    Uri.parse(url),
+                ),
             )
         } catch (e: Exception) {
             Toast.makeText(context, "Browser not found!", Toast.LENGTH_LONG).show()
         }
     }
 
-    fun copyItem(context: Context, item: String, label: String, url: String) {
-        Toast.makeText(
-            context,
-            "$item Copied",
-            Toast.LENGTH_LONG
-        ).show()
+    fun copyItem(
+        context: Context,
+        item: String,
+        label: String,
+        url: String,
+    ) {
+        Toast
+            .makeText(
+                context,
+                "$item Copied",
+                Toast.LENGTH_LONG,
+            ).show()
         val clipboard: ClipboardManager? =
             context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager?
         val clip = ClipData.newPlainText(label, url)
@@ -54,7 +64,10 @@ object UtilFunctions {
         reloadWidget(context, TodayWidget::class.java)
     }
 
-    private fun reloadWidget(context: Context, cls: Class<*>) {
+    private fun reloadWidget(
+        context: Context,
+        cls: Class<*>,
+    ) {
         val intent = Intent(context, cls)
         intent.action = AppWidgetManager.ACTION_APPWIDGET_UPDATE
         val ids = AppWidgetManager.getInstance(context).getAppWidgetIds(ComponentName(context, cls))
@@ -67,21 +80,33 @@ object UtilFunctions {
         return now.get(Calendar.WEEK_OF_YEAR).toString() + now.get(Calendar.YEAR).toString()
     }
 
-    fun getSatModeCode(): String {
-        return SAT_MODE + getWeekYear()
-    }
+    fun getSatModeCode(): String = SAT_MODE + getWeekYear()
 
-    fun isUpdated(document: DocumentSnapshot, preferences: SharedPreferences): Boolean {
-        return try {
+    fun isUpdated(
+        document: DocumentSnapshot,
+        preferences: SharedPreferences,
+    ): Boolean =
+        try {
             val oldTimetableVersion = preferences.getLong("TIMETABLE_VERSION", 0)
             val timetableVersion = document.getLong("timetableVersion")
-            if (timetableVersion!! > 0)
+            if (timetableVersion!! > 0) {
                 oldTimetableVersion < timetableVersion
-            else
+            } else {
                 document.getBoolean("isUpdated") == true
+            }
         } catch (e: Exception) {
             document.getBoolean("isUpdated") == true
         }
+
+    fun isNetworkAvailable(context: Context): Boolean {
+        val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        val network = connectivityManager.activeNetwork
+        val capabilities = connectivityManager.getNetworkCapabilities(network)
+        return capabilities != null &&
+            (
+                capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) ||
+                    capabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR)
+            )
     }
 
     fun getBitmapFromView(view: View): Bitmap {
@@ -92,19 +117,25 @@ object UtilFunctions {
         return bitmap
     }
 
-    fun takeScreenshotAndShare(context: Context, bitmap: Bitmap) {
-        val dateFormatter = SimpleDateFormat(
-            "yyyy-MM-dd 'at' HH-mm-ss z", Locale.getDefault()
-        )
+    fun takeScreenshotAndShare(
+        context: Context,
+        bitmap: Bitmap,
+    ) {
+        val dateFormatter =
+            SimpleDateFormat(
+                "yyyy-MM-dd 'at' HH-mm-ss z",
+                Locale.getDefault(),
+            )
         val bitmapPath: String =
             MediaStore.Images.Media.insertImage(
-                context.contentResolver, bitmap,
+                context.contentResolver,
+                bitmap,
                 "VITTY Schedule taken on ${
                     dateFormatter.format(
-                        Date()
+                        Date(),
                     )
                 }",
-                null
+                null,
             )
         val bitmapUri = Uri.parse(bitmapPath)
 
