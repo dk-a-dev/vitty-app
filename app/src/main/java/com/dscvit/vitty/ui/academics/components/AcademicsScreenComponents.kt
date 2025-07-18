@@ -416,12 +416,17 @@ fun CourseCard(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Column {
+            Column(
+                modifier = Modifier.weight(1f),
+            ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         text = course.title,
                         color = TextColor,
                         style = MaterialTheme.typography.labelLarge,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f, fill = false),
                     )
                     if (course.isStarred) {
                         Spacer(Modifier.width(6.dp))
@@ -438,13 +443,16 @@ fun CourseCard(
                     text = course.details,
                     color = Accent,
                     style = MaterialTheme.typography.bodyMedium,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
-            Spacer(Modifier.weight(1f))
+            Spacer(Modifier.width(16.dp))
             Icon(
                 imageVector = Icons.Default.Edit,
                 contentDescription = "Edit Course",
                 tint = Accent,
+                modifier = Modifier.size(24.dp),
             )
         }
     }
@@ -680,7 +688,7 @@ fun SwipeableReminderCard(
                         }
                     }
                     else -> {
-                        // No background content for other directions
+                    
                     }
                 }
             },

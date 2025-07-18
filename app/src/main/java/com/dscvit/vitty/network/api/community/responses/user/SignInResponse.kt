@@ -5,5 +5,6 @@ data class SignInResponse(
     val picture: String,
     val role: String,
     val token: String,
-    val username: String
+    val username: String,
+    val campus: String,
 )

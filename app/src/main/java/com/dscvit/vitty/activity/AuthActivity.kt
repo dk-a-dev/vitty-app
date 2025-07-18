@@ -11,6 +11,7 @@ import android.widget.Toast
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.edit
 import androidx.databinding.DataBindingUtil
 import androidx.lifecycle.ViewModelProvider
 import androidx.viewpager2.widget.ViewPager2
@@ -265,7 +266,7 @@ class AuthActivity : AppCompatActivity() {
                     val email = firebaseAuth.currentUser?.email
                     Timber.d("Firebase authentication successful - uid: $uid, email: $email")
                     saveInfo(acct.idToken, uid)
-                    authViewModel.signInAndGetTimeTable("", "", uid ?: "", campus = "")
+                    authViewModel.signInAndGetTimeTable("", "", uid ?: "", "")
                     leadToNextPage()
                 } else {
                     Timber.e("Firebase authentication failed: ${authResult.exception?.message}")
@@ -281,10 +282,11 @@ class AuthActivity : AppCompatActivity() {
         authViewModel.signInResponse.observe(this) {
             if (it != null) {
                 Timber.d("here--$it")
-                sharedPref.edit().putString(Constants.COMMUNITY_USERNAME, it.username).apply()
-                sharedPref.edit().putString(Constants.COMMUNITY_TOKEN, it.token).apply()
-                sharedPref.edit().putString(Constants.COMMUNITY_NAME, it.name).apply()
-                sharedPref.edit().putString(Constants.COMMUNITY_PICTURE, it.picture).apply()
+                sharedPref.edit { putString(Constants.COMMUNITY_USERNAME, it.username) }
+                sharedPref.edit { putString(Constants.COMMUNITY_TOKEN, it.token) }
+                sharedPref.edit { putString(Constants.COMMUNITY_NAME, it.name) }
+                sharedPref.edit { putString(Constants.COMMUNITY_PICTURE, it.picture) }
+                sharedPref.edit { putString(Constants.COMMUNITY_CAMPUS, it.campus) }
             } else {
                 val intent = Intent(this, AddInfoActivity::class.java)
                 binding.loadingView.visibility = View.GONE
@@ -305,9 +307,9 @@ class AuthActivity : AppCompatActivity() {
                     !timetableDays?.Sunday.isNullOrEmpty()
                 ) {
                     sharedPref
-                        .edit()
-                        .putBoolean(Constants.COMMUNITY_TIMETABLE_AVAILABLE, true)
-                        .apply()
+                        .edit {
+                            putBoolean(Constants.COMMUNITY_TIMETABLE_AVAILABLE, true)
+                        }
                     val intent = Intent(this, HomeComposeActivity::class.java)
                     startActivity(intent)
                     finish()

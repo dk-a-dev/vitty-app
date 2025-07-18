@@ -1,8 +1,14 @@
 package com.dscvit.vitty.network.api.community
 
-import com.dscvit.vitty.network.api.community.requests.AuthRequestBody
+import com.dscvit.vitty.network.api.community.requests.AuthRequestBodyWithCampus
+import com.dscvit.vitty.network.api.community.requests.AuthRequestBodyWithoutCampus
 import com.dscvit.vitty.network.api.community.requests.UsernameRequestBody
+import com.dscvit.vitty.network.api.community.responses.circle.CircleRequestsResponse
+import com.dscvit.vitty.network.api.community.responses.circle.CreateCircleResponse
+import com.dscvit.vitty.network.api.community.responses.circle.JoinCircleResponse
 import com.dscvit.vitty.network.api.community.responses.requests.RequestsResponse
+import com.dscvit.vitty.network.api.community.responses.timetable.TimetableResponse
+import com.dscvit.vitty.network.api.community.responses.user.CircleResponse
 import com.dscvit.vitty.network.api.community.responses.user.FriendResponse
 import com.dscvit.vitty.network.api.community.responses.user.PostResponse
 import com.dscvit.vitty.network.api.community.responses.user.SignInResponse
@@ -33,12 +39,20 @@ class APICommunityRestClient {
         mApiUser = retrofit.create(APICommunity::class.java)
 
         val requestBody =
-            AuthRequestBody(
-                reg_no = regno,
-                username = username,
-                uuid = uuid,
-                campus = campus,
-            )
+            if (campus != "") {
+                AuthRequestBodyWithCampus(
+                    reg_no = regno,
+                    username = username,
+                    uuid = uuid,
+                    campus = campus,
+                )
+            } else {
+                AuthRequestBodyWithoutCampus(
+                    reg_no = regno,
+                    username = username,
+                    uuid = uuid,
+                )
+            }
 
         val apiSignInCall = mApiUser!!.signInInfo(requestBody)
 
@@ -80,6 +94,7 @@ class APICommunityRestClient {
                     call: Call<UserResponse>,
                     response: Response<UserResponse>,
                 ) {
+                    Timber.d("UserResponse: $response")
                     retrofitSelfUserListener.onSuccess(call, response.body())
                 }
 
@@ -87,7 +102,65 @@ class APICommunityRestClient {
                     call: Call<UserResponse>,
                     t: Throwable,
                 ) {
+                    Timber.e("Error fetching user with timetable: ${t.message}")
                     retrofitSelfUserListener.onError(call, t)
+                }
+            },
+        )
+    }
+
+    fun getTimeTable(
+        token: String,
+        username: String,
+        retrofitTimeTableListener: RetrofitTimetableListener,
+    ) {
+        val token = "Bearer $token"
+
+        mApiUser = retrofit.create(APICommunity::class.java)
+        val apiTimetableCall = mApiUser!!.getTimeTable(token, username)
+        apiTimetableCall.enqueue(
+            object : Callback<TimetableResponse> {
+                override fun onResponse(
+                    call: Call<TimetableResponse>,
+                    response: Response<TimetableResponse>,
+                ) {
+                    retrofitTimeTableListener.onSuccess(call, response.body())
+                }
+
+                override fun onFailure(
+                    call: Call<TimetableResponse>,
+                    t: Throwable,
+                ) {
+                    retrofitTimeTableListener.onError(call, t)
+                }
+            },
+        )
+    }
+
+    fun getCircleTimeTable(
+        token: String,
+        circleId: String,
+        username: String,
+        retrofitTimeTableListener: RetrofitTimetableListener,
+    ) {
+        val token = "Bearer $token"
+
+        mApiUser = retrofit.create(APICommunity::class.java)
+        val apiCircleTimetableCall = mApiUser!!.getCircleTimeTable(token, circleId, username)
+        apiCircleTimetableCall.enqueue(
+            object : Callback<TimetableResponse> {
+                override fun onResponse(
+                    call: Call<TimetableResponse>,
+                    response: Response<TimetableResponse>,
+                ) {
+                    retrofitTimeTableListener.onSuccess(call, response.body())
+                }
+
+                override fun onFailure(
+                    call: Call<TimetableResponse>,
+                    t: Throwable,
+                ) {
+                    retrofitTimeTableListener.onError(call, t)
                 }
             },
         )
@@ -103,6 +176,144 @@ class APICommunityRestClient {
         mApiUser = retrofit.create<APICommunity>(APICommunity::class.java)
         val apiFriendListCall = mApiUser!!.getFriendList(bearerToken, username)
         apiFriendListCall.enqueue(
+            object : Callback<FriendResponse> {
+                override fun onResponse(
+                    call: Call<FriendResponse>,
+                    response: Response<FriendResponse>,
+                ) {
+                    retrofitFriendListListener.onSuccess(call, response.body())
+                }
+
+                override fun onFailure(
+                    call: Call<FriendResponse>,
+                    t: Throwable,
+                ) {
+                    retrofitFriendListListener.onError(call, t)
+                }
+            },
+        )
+    }
+
+    fun getCircles(
+        token: String,
+        retrofitCircleListener: RetrofitCircleListener,
+    ) {
+        val bearerToken = "Bearer $token"
+
+        mApiUser = retrofit.create<APICommunity>(APICommunity::class.java)
+        val apiCirclesCall = mApiUser!!.getCircles(bearerToken)
+        apiCirclesCall.enqueue(
+            object : Callback<CircleResponse> {
+                override fun onResponse(
+                    call: Call<CircleResponse>,
+                    response: Response<CircleResponse>,
+                ) {
+                    retrofitCircleListener.onSuccess(call, response.body())
+                }
+
+                override fun onFailure(
+                    call: Call<CircleResponse>,
+                    t: Throwable,
+                ) {
+                    retrofitCircleListener.onError(call, t)
+                }
+            },
+        )
+    }
+
+    fun createCircle(
+        token: String,
+        circleName: String,
+        retrofitCreateCircleListener: RetrofitCreateCircleListener,
+    ) {
+        val bearerToken = "Bearer $token"
+
+        Timber.d("APICommunityRestClient.createCircle called with circleName: $circleName")
+
+        mApiUser = retrofit.create<APICommunity>(APICommunity::class.java)
+        val apiCreateCircleCall = mApiUser!!.createCircle(bearerToken, circleName)
+
+        Timber.d("API call created, enqueueing request...")
+
+        apiCreateCircleCall.enqueue(
+            object : Callback<CreateCircleResponse> {
+                override fun onResponse(
+                    call: Call<CreateCircleResponse>,
+                    response: Response<CreateCircleResponse>,
+                ) {
+                    Timber.d("API Response received: ${response.code()}, body: ${response.body()}")
+                    retrofitCreateCircleListener.onSuccess(call, response.body())
+                }
+
+                override fun onFailure(
+                    call: Call<CreateCircleResponse>,
+                    t: Throwable,
+                ) {
+                    Timber.e("API Call failed: ${t.message}")
+                    retrofitCreateCircleListener.onError(call, t)
+                }
+            },
+        )
+    }
+
+    fun joinCircleByCode(
+        token: String,
+        joinCode: String,
+        retrofitJoinCircleListener: RetrofitJoinCircleListener,
+    ) {
+        val bearerToken = "Bearer $token"
+
+        Timber.d("APICommunityRestClient.joinCircleByCode called with joinCode: $joinCode")
+
+        mApiUser = retrofit.create<APICommunity>(APICommunity::class.java)
+        val apiJoinCircleCall = mApiUser!!.joinCircleByCode(bearerToken, joinCode)
+
+        Timber.d("Join circle API call created, enqueueing request...")
+
+        apiJoinCircleCall.enqueue(
+            object : Callback<JoinCircleResponse> {
+                override fun onResponse(
+                    call: Call<JoinCircleResponse>,
+                    response: Response<JoinCircleResponse>,
+                ) {
+                    Timber.d("Join Circle API Response received: ${response.code()}, body: ${response.body()}")
+                    if (response.isSuccessful) {
+                        retrofitJoinCircleListener.onSuccess(call, response.body())
+                    } else {
+                        // Handle error responses (400, 409, 500)
+                        val errorMessage =
+                            when (response.code()) {
+                                400 -> "Invalid join code"
+                                409 -> "You are already part of the circle"
+                                500 -> "Failed to join circle"
+                                else -> "Unknown error occurred"
+                            }
+                        Timber.e("Join Circle API Error: ${response.code()} - $errorMessage")
+                        retrofitJoinCircleListener.onError(call, Throwable(errorMessage))
+                    }
+                }
+
+                override fun onFailure(
+                    call: Call<JoinCircleResponse>,
+                    t: Throwable,
+                ) {
+                    Timber.e("Join Circle API Call failed: ${t.message}")
+                    retrofitJoinCircleListener.onError(call, t)
+                }
+            },
+        )
+    }
+
+    fun getCircleDetails(
+        token: String,
+        circleId: String,
+        retrofitFriendListListener: RetrofitFriendListListener,
+    ) {
+        val bearerToken = "Bearer $token"
+
+        mApiUser = retrofit.create<APICommunity>(APICommunity::class.java)
+        val apiCircleDetailsCall = mApiUser!!.getCircleDetails(bearerToken, circleId)
+        apiCircleDetailsCall.enqueue(
             object : Callback<FriendResponse> {
                 override fun onResponse(
                     call: Call<FriendResponse>,
@@ -338,6 +549,36 @@ class APICommunityRestClient {
         )
     }
 
+    fun sendCircleRequest(
+        token: String,
+        circleId: String,
+        username: String,
+        retrofitUserActionListener: RetrofitUserActionListener,
+    ) {
+        val bearerToken = "Bearer $token"
+
+        mApiUser = retrofit.create(APICommunity::class.java)
+        val apiSendCircleRequestCall = mApiUser!!.sendCircleRequest(bearerToken, circleId, username)
+        apiSendCircleRequestCall.enqueue(
+            object : Callback<PostResponse> {
+                override fun onResponse(
+                    call: Call<PostResponse>,
+                    response: Response<PostResponse>,
+                ) {
+                    Timber.d("SendCircleResponse: $response")
+                    retrofitUserActionListener.onSuccess(call, response.body())
+                }
+
+                override fun onFailure(
+                    call: Call<PostResponse>,
+                    t: Throwable,
+                ) {
+                    retrofitUserActionListener.onError(call, t)
+                }
+            },
+        )
+    }
+
     fun checkUsername(
         username: String,
         retrofitUserActionListener: RetrofitUserActionListener,
@@ -373,6 +614,180 @@ class APICommunityRestClient {
                     t: Throwable,
                 ) {
                     Timber.d("ErrorV: ${t.message}")
+                    retrofitUserActionListener.onError(call, t)
+                }
+            },
+        )
+    }
+
+    fun enableGhostMode(
+        token: String,
+        username: String,
+        retrofitUserActionListener: RetrofitUserActionListener,
+    ) {
+        val bearerToken = "Bearer $token"
+
+        mApiUser = retrofit.create<APICommunity>(APICommunity::class.java)
+        val apiGhostModeCall = mApiUser!!.enableGhostMode(bearerToken, username)
+        apiGhostModeCall.enqueue(
+            object : Callback<PostResponse> {
+                override fun onResponse(
+                    call: Call<PostResponse>,
+                    response: Response<PostResponse>,
+                ) {
+                    retrofitUserActionListener.onSuccess(call, response.body())
+                }
+
+                override fun onFailure(
+                    call: Call<PostResponse>,
+                    t: Throwable,
+                ) {
+                    retrofitUserActionListener.onError(call, t)
+                }
+            },
+        )
+    }
+
+    fun disableGhostMode(
+        token: String,
+        username: String,
+        retrofitUserActionListener: RetrofitUserActionListener,
+    ) {
+        val bearerToken = "Bearer $token"
+
+        mApiUser = retrofit.create<APICommunity>(APICommunity::class.java)
+        val apiGhostModeCall = mApiUser!!.disableGhostMode(bearerToken, username)
+        apiGhostModeCall.enqueue(
+            object : Callback<PostResponse> {
+                override fun onResponse(
+                    call: Call<PostResponse>,
+                    response: Response<PostResponse>,
+                ) {
+                    retrofitUserActionListener.onSuccess(call, response.body())
+                }
+
+                override fun onFailure(
+                    call: Call<PostResponse>,
+                    t: Throwable,
+                ) {
+                    retrofitUserActionListener.onError(call, t)
+                }
+            },
+        )
+    }
+
+    fun getReceivedCircleRequests(
+        token: String,
+        retrofitCircleRequestListener: RetrofitCircleRequestListener,
+    ) {
+        val bearerToken = "Bearer $token"
+
+        mApiUser = retrofit.create<APICommunity>(APICommunity::class.java)
+        val apiReceivedCircleRequestsCall = mApiUser!!.getReceivedCircleRequests(bearerToken)
+        apiReceivedCircleRequestsCall.enqueue(
+            object : Callback<CircleRequestsResponse> {
+                override fun onResponse(
+                    call: Call<CircleRequestsResponse>,
+                    response: Response<CircleRequestsResponse>,
+                ) {
+                    Timber.d("ReceivedCircleRequests: ${response.body()}")
+                    retrofitCircleRequestListener.onSuccess(call, response.body())
+                }
+
+                override fun onFailure(
+                    call: Call<CircleRequestsResponse>,
+                    t: Throwable,
+                ) {
+                    Timber.d("ReceivedCircleRequestsError: ${t.message}")
+                    retrofitCircleRequestListener.onError(call, t)
+                }
+            },
+        )
+    }
+
+    fun getSentCircleRequests(
+        token: String,
+        retrofitCircleRequestListener: RetrofitCircleRequestListener,
+    ) {
+        val bearerToken = "Bearer $token"
+
+        mApiUser = retrofit.create<APICommunity>(APICommunity::class.java)
+        val apiSentCircleRequestsCall = mApiUser!!.getSentCircleRequests(bearerToken)
+        apiSentCircleRequestsCall.enqueue(
+            object : Callback<CircleRequestsResponse> {
+                override fun onResponse(
+                    call: Call<CircleRequestsResponse>,
+                    response: Response<CircleRequestsResponse>,
+                ) {
+                    Timber.d("SentCircleRequests: ${response.body()}")
+                    retrofitCircleRequestListener.onSuccess(call, response.body())
+                }
+
+                override fun onFailure(
+                    call: Call<CircleRequestsResponse>,
+                    t: Throwable,
+                ) {
+                    Timber.d("SentCircleRequestsError: ${t.message}")
+                    retrofitCircleRequestListener.onError(call, t)
+                }
+            },
+        )
+    }
+
+    fun deleteCircle(
+        token: String,
+        circleId: String,
+        retrofitUserActionListener: RetrofitUserActionListener,
+    ) {
+        val bearerToken = "Bearer $token"
+
+        mApiUser = retrofit.create<APICommunity>(APICommunity::class.java)
+        val apiDeleteCircleCall = mApiUser!!.deleteCircle(bearerToken, circleId)
+        apiDeleteCircleCall.enqueue(
+            object : Callback<PostResponse> {
+                override fun onResponse(
+                    call: Call<PostResponse>,
+                    response: Response<PostResponse>,
+                ) {
+                    Timber.d("DeleteCircle: ${response.body()}")
+                    retrofitUserActionListener.onSuccess(call, response.body())
+                }
+
+                override fun onFailure(
+                    call: Call<PostResponse>,
+                    t: Throwable,
+                ) {
+                    Timber.d("DeleteCircleError: ${t.message}")
+                    retrofitUserActionListener.onError(call, t)
+                }
+            },
+        )
+    }
+
+    fun leaveCircle(
+        token: String,
+        circleId: String,
+        retrofitUserActionListener: RetrofitUserActionListener,
+    ) {
+        val bearerToken = "Bearer $token"
+
+        mApiUser = retrofit.create<APICommunity>(APICommunity::class.java)
+        val apiLeaveCircleCall = mApiUser!!.leaveCircle(bearerToken, circleId)
+        apiLeaveCircleCall.enqueue(
+            object : Callback<PostResponse> {
+                override fun onResponse(
+                    call: Call<PostResponse>,
+                    response: Response<PostResponse>,
+                ) {
+                    Timber.d("LeaveCircle: ${response.body()}")
+                    retrofitUserActionListener.onSuccess(call, response.body())
+                }
+
+                override fun onFailure(
+                    call: Call<PostResponse>,
+                    t: Throwable,
+                ) {
+                    Timber.d("LeaveCircleError: ${t.message}")
                     retrofitUserActionListener.onError(call, t)
                 }
             },

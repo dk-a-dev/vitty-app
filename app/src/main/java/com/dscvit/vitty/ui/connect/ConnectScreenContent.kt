@@ -1,6 +1,7 @@
 package com.dscvit.vitty.ui.connect
 
 import android.content.Context
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -22,6 +23,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -29,9 +31,12 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.dscvit.vitty.R
+import com.dscvit.vitty.network.api.community.responses.user.CircleItem
+import com.dscvit.vitty.network.api.community.responses.user.FriendResponse
 import com.dscvit.vitty.network.api.community.responses.user.UserResponse
 import com.dscvit.vitty.theme.Background
 import com.dscvit.vitty.theme.TextColor
+import com.dscvit.vitty.ui.connect.components.CircleActionBottomSheet
 import com.dscvit.vitty.ui.connect.components.ConnectHeader
 import com.dscvit.vitty.ui.connect.components.ConnectTabContent
 import com.dscvit.vitty.ui.connect.components.NoNetworkMessage
@@ -44,16 +49,31 @@ import kotlinx.coroutines.launch
 fun ConnectScreenContent(
     onSearchClick: () -> Unit = {},
     onFriendClick: (UserResponse) -> Unit = {},
+    onCircleClick: (CircleItem, FriendResponse?) -> Unit = { _: CircleItem, _: FriendResponse? -> },
     onFriendRequestsClick: () -> Unit = {},
+    onCircleRequestsClick: () -> Unit = {},
     connectViewModel: ConnectViewModel,
 ) {
     val context = LocalContext.current
     val friendList by connectViewModel.friendList.observeAsState()
+    val circleList by connectViewModel.circleList.observeAsState()
+    val createCircleResponse by connectViewModel.createCircleResponse.observeAsState()
+    val joinCircleResponse by connectViewModel.joinCircleResponse.observeAsState()
+    val joinCircleError by connectViewModel.joinCircleError.observeAsState()
     val isLoading by connectViewModel.isLoading.observeAsState(false)
     val isRefreshing by connectViewModel.isRefreshing.observeAsState(false)
+    val isCircleLoading by connectViewModel.isCircleLoading.observeAsState(false)
+    val isCircleRefreshing by connectViewModel.isCircleRefreshing.observeAsState(false)
     val friendRequests by connectViewModel.friendRequest.observeAsState()
+    val receivedCircleRequests by connectViewModel.receivedCircleRequests.observeAsState()
+    val sentCircleRequests by connectViewModel.sentCircleRequests.observeAsState()
 
     val isNetworkAvailable = remember { mutableStateOf(isNetworkAvailable(context)) }
+
+    var isCircleActionSheetVisible by remember { mutableStateOf(false) }
+
+    
+    val totalCircleRequests = (receivedCircleRequests?.data?.size ?: 0) + (sentCircleRequests?.data?.size ?: 0)
 
     LaunchedEffect(Unit) {
         while (true) {
@@ -63,14 +83,30 @@ fun ConnectScreenContent(
     }
 
     val tabs = listOf("Friends", "Circles")
-    var selectedTab by remember { mutableIntStateOf(0) }
+    var selectedTab by rememberSaveable { mutableIntStateOf(0) }
     var searchQuery by remember { mutableStateOf("") }
     var friendsFilter by remember { mutableIntStateOf(0) }
+
+    val onCreateCircleClick = {
+        isCircleActionSheetVisible = false
+    }
+
+    val onJoinCircleClick = {
+        isCircleActionSheetVisible = false
+    }
 
     val pagerState = rememberPagerState(pageCount = { tabs.size })
     val coroutineScope = rememberCoroutineScope()
 
-    val refreshData =
+    val handleActionButtonClick = {
+        if (selectedTab == 1) {
+            isCircleActionSheetVisible = true
+        } else {
+            onSearchClick()
+        }
+    }
+
+    val refreshFriendsData =
         remember {
             {
                 val sharedPreferences = context.getSharedPreferences(Constants.USER_INFO, Context.MODE_PRIVATE)
@@ -84,6 +120,27 @@ fun ConnectScreenContent(
             }
         }
 
+    val refreshCirclesData =
+        remember {
+            {
+                val sharedPreferences = context.getSharedPreferences(Constants.USER_INFO, Context.MODE_PRIVATE)
+                val token = sharedPreferences.getString(Constants.COMMUNITY_TOKEN, "") ?: ""
+
+                if (token.isNotEmpty()) {
+                    connectViewModel.refreshCircleList(token)
+                    connectViewModel.refreshCircleRequests(token)
+                }
+            }
+        }
+
+    CircleActionBottomSheet(
+        isVisible = isCircleActionSheetVisible,
+        onDismiss = { isCircleActionSheetVisible = false },
+        onCreateCircleClick = onCreateCircleClick,
+        onJoinCircleClick = onJoinCircleClick,
+        connectViewModel = connectViewModel,
+    )
+
     LaunchedEffect(isNetworkAvailable.value) {
         if (isNetworkAvailable.value && friendList == null && !isLoading) {
             val sharedPreferences = context.getSharedPreferences(Constants.USER_INFO, Context.MODE_PRIVATE)
@@ -92,7 +149,9 @@ fun ConnectScreenContent(
 
             if (token.isNotEmpty()) {
                 connectViewModel.getFriendList(token, username)
+                connectViewModel.getCircleList(token)
                 connectViewModel.getFriendRequest(token)
+                connectViewModel.refreshCircleRequests(token)
             }
         }
     }
@@ -105,6 +164,65 @@ fun ConnectScreenContent(
 
     LaunchedEffect(pagerState.currentPage) {
         selectedTab = pagerState.currentPage
+    }
+
+    
+    LaunchedEffect(createCircleResponse) {
+        createCircleResponse?.let { response ->
+            Toast
+                .makeText(
+                    context,
+                    "Circle created successfully! Join code: ${response.join_code}",
+                    Toast.LENGTH_LONG,
+                ).show()
+
+            
+            val sharedPreferences = context.getSharedPreferences(Constants.USER_INFO, Context.MODE_PRIVATE)
+            val token = sharedPreferences.getString(Constants.COMMUNITY_TOKEN, "") ?: ""
+            if (token.isNotEmpty()) {
+                connectViewModel.refreshCircleList(token)
+            }
+
+            
+            connectViewModel.clearCreateCircleResponse()
+        }
+    }
+
+    
+    LaunchedEffect(joinCircleResponse) {
+        joinCircleResponse?.let { response ->
+            Toast
+                .makeText(
+                    context,
+                    response.detail,
+                    Toast.LENGTH_LONG,
+                ).show()
+
+            
+            val sharedPreferences = context.getSharedPreferences(Constants.USER_INFO, Context.MODE_PRIVATE)
+            val token = sharedPreferences.getString(Constants.COMMUNITY_TOKEN, "") ?: ""
+            if (token.isNotEmpty()) {
+                connectViewModel.refreshCircleList(token)
+            }
+
+            
+            connectViewModel.clearJoinCircleResponse()
+        }
+    }
+
+    
+    LaunchedEffect(joinCircleError) {
+        joinCircleError?.let { error ->
+            Toast
+                .makeText(
+                    context,
+                    error,
+                    Toast.LENGTH_LONG,
+                ).show()
+
+            
+            connectViewModel.clearJoinCircleError()
+        }
     }
 
     Column(
@@ -125,7 +243,7 @@ fun ConnectScreenContent(
                 if (isNetworkAvailable.value) {
                     IconButton(
                         modifier = Modifier.padding(end = 4.dp),
-                        onClick = onSearchClick,
+                        onClick = { handleActionButtonClick() },
                     ) {
                         Icon(
                             painter = painterResource(id = R.drawable.ic_group_add),
@@ -155,21 +273,30 @@ fun ConnectScreenContent(
                 onFriendsFilterChange = { friendsFilter = it },
                 friendRequests = friendRequests,
                 onFriendRequestsClick = onFriendRequestsClick,
+                circleRequests = totalCircleRequests,
+                onCircleRequestsClick = onCircleRequestsClick,
             )
 
             HorizontalPager(
                 state = pagerState,
                 modifier = Modifier.fillMaxSize(),
+                beyondViewportPageCount = 1,
             ) { page ->
                 ConnectTabContent(
                     tabIndex = page,
                     searchQuery = searchQuery,
                     friendsFilter = friendsFilter,
                     friendList = friendList,
+                    circleList = circleList,
                     isLoading = isLoading,
                     isRefreshing = isRefreshing,
+                    isCircleLoading = isCircleLoading,
+                    isCircleRefreshing = isCircleRefreshing,
+                    viewModel = connectViewModel,
                     onFriendClick = onFriendClick,
-                    onRefresh = refreshData,
+                    onCircleClick = onCircleClick,
+                    onFriendsRefresh = refreshFriendsData,
+                    onCirclesRefresh = refreshCirclesData,
                 )
             }
         } else {

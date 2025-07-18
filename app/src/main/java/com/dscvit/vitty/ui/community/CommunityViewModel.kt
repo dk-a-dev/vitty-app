@@ -203,6 +203,35 @@ class CommunityViewModel : ViewModel() {
         )
     }
 
+    fun sendCircleRequest(
+        token: String,
+        circleId: String,
+        username: String,
+    ) {
+        APICommunityRestClient.instance.sendCircleRequest(
+            token,
+            circleId,
+            username,
+            object : RetrofitUserActionListener {
+                override fun onSuccess(
+                    call: Call<PostResponse>?,
+                    response: PostResponse?,
+                ) {
+                    Timber.d("SendCircleRequest: $response")
+                    _actionResponse.postValue(response)
+                }
+
+                override fun onError(
+                    call: Call<PostResponse>?,
+                    t: Throwable?,
+                ) {
+                    Timber.d("SendCircleRequest: ${t?.message}")
+                    _actionResponse.postValue(null)
+                }
+            },
+        )
+    }
+
     fun unfriend(
         token: String,
         username: String,

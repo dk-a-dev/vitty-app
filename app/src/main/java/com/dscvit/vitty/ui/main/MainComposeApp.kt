@@ -3,6 +3,7 @@ package com.dscvit.vitty.ui.main
 import android.app.Activity
 import android.content.Intent
 import android.content.SharedPreferences
+import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
@@ -61,7 +62,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
@@ -80,6 +80,9 @@ import androidx.navigation.compose.rememberNavController
 import coil.compose.AsyncImage
 import com.dscvit.vitty.R
 import com.dscvit.vitty.activity.SettingsActivity
+import com.dscvit.vitty.network.api.community.APICommunityRestClient
+import com.dscvit.vitty.network.api.community.RetrofitUserActionListener
+import com.dscvit.vitty.network.api.community.responses.user.PostResponse
 import com.dscvit.vitty.network.api.community.responses.user.UserResponse
 import com.dscvit.vitty.theme.Accent
 import com.dscvit.vitty.theme.Background
@@ -89,6 +92,10 @@ import com.dscvit.vitty.theme.VittyTheme
 import com.dscvit.vitty.ui.academics.AcademicsScreenContent
 import com.dscvit.vitty.ui.academics.models.Course
 import com.dscvit.vitty.ui.connect.AddFriendScreenContent
+import com.dscvit.vitty.ui.connect.AddParticipantsScreenContent
+import com.dscvit.vitty.ui.connect.CircleDetailScreenContent
+import com.dscvit.vitty.ui.connect.CircleMemberDetailScreenContent
+import com.dscvit.vitty.ui.connect.CircleRequestsScreenContent
 import com.dscvit.vitty.ui.connect.ConnectScreenContent
 import com.dscvit.vitty.ui.connect.ConnectViewModel
 import com.dscvit.vitty.ui.connect.FriendDetailScreenContent
@@ -108,6 +115,7 @@ import com.google.gson.Gson
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import retrofit2.Call
 import java.net.URLDecoder
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
@@ -129,8 +137,12 @@ fun MainComposeApp() {
                 !route.startsWith("note_screen") &&
                 route != "empty_classrooms" &&
                 !route.startsWith("friend_detail") &&
+                !route.startsWith("circle_detail") &&
                 route != "add_friend" &&
-                route != "friend_requests"
+                route != "friend_requests" &&
+                route != "circle_requests" &&
+                !route.startsWith("circle_member_detail") &&
+                !route.startsWith("add_participants")
         } ?: true
     }
 
@@ -388,6 +400,65 @@ fun MainComposeApp() {
                         )
                     }
                     composable(
+                        "circle_requests",
+                        enterTransition = {
+                            slideInHorizontally(
+                                initialOffsetX = { it },
+                                animationSpec =
+                                    spring(
+                                        dampingRatio = 0.9f,
+                                        stiffness = 400f,
+                                    ),
+                            ) + fadeIn(animationSpec = tween(250))
+                        },
+                        exitTransition = {
+                            slideOutHorizontally(
+                                targetOffsetX = { it },
+                                animationSpec =
+                                    spring(
+                                        dampingRatio = 0.9f,
+                                        stiffness = 400f,
+                                    ),
+                            ) + fadeOut(animationSpec = tween(150))
+                        },
+                    ) {
+                        CircleRequestsScreenContent(
+                            onBackClick = {
+                                navController.popBackStack()
+                            },
+                            connectViewModel = connectViewModel,
+                        )
+                    }
+                    composable(
+                        "add_participants/{circleId}",
+                        enterTransition = {
+                            slideInHorizontally(
+                                initialOffsetX = { it },
+                                animationSpec =
+                                    spring(
+                                        dampingRatio = 0.9f,
+                                        stiffness = 400f,
+                                    ),
+                            ) + fadeIn(animationSpec = tween(250))
+                        },
+                        exitTransition = {
+                            slideOutHorizontally(
+                                targetOffsetX = { it },
+                                animationSpec =
+                                    spring(
+                                        dampingRatio = 0.9f,
+                                        stiffness = 400f,
+                                    ),
+                            ) + fadeOut(animationSpec = tween(150))
+                        },
+                    ) { backStackEntry ->
+                        val circleId = backStackEntry.arguments?.getString("circleId") ?: ""
+                        AddParticipantsScreenContent(
+                            navController = navController,
+                            circleId = circleId,
+                        )
+                    }
+                    composable(
                         "course_page/{courseTitle}/{courseCode}",
                         enterTransition = {
                             slideInHorizontally(
@@ -538,6 +609,124 @@ fun MainComposeApp() {
                             },
                         )
                     }
+                    composable(
+                        "circle_detail/{circleData}/{circleMembersData}",
+                        enterTransition = {
+                            slideInHorizontally(
+                                initialOffsetX = { it },
+                                animationSpec =
+                                    spring(
+                                        dampingRatio = 0.9f,
+                                        stiffness = 400f,
+                                    ),
+                            ) + fadeIn(animationSpec = tween(250))
+                        },
+                        exitTransition = {
+                            slideOutHorizontally(
+                                targetOffsetX = { it },
+                                animationSpec =
+                                    spring(
+                                        dampingRatio = 0.9f,
+                                        stiffness = 400f,
+                                    ),
+                            ) + fadeOut(animationSpec = tween(150))
+                        },
+                    ) { backStackEntry ->
+                        val encodedCircleData =
+                            backStackEntry.arguments?.getString("circleData") ?: ""
+                        val encodedCircleMembersData = backStackEntry.arguments?.getString("circleMembersData")
+                        val circleData = URLDecoder.decode(encodedCircleData, StandardCharsets.UTF_8.toString())
+                        val circleMembersData = URLDecoder.decode(encodedCircleMembersData, StandardCharsets.UTF_8.toString())
+
+                        val circle =
+                            try {
+                                Gson().fromJson(circleData, com.dscvit.vitty.network.api.community.responses.user.CircleItem::class.java)
+                            } catch (e: Exception) {
+                                null
+                            }
+
+                        val circleMembers =
+                            try {
+                                Gson().fromJson(
+                                    circleMembersData,
+                                    com.dscvit.vitty.network.api.community.responses.user.FriendResponse::class.java,
+                                )
+                            } catch (e: Exception) {
+                                null
+                            }
+
+                        if (circle != null) {
+                            CircleDetailScreenContent(
+                                circle = circle,
+                                circleMembers = circleMembers,
+                                onBackClick = {
+                                    navController.popBackStack()
+                                },
+                                onMemberClick = { member, circleId ->
+                                    val memberJson = Gson().toJson(member)
+                                    val encodedMemberData = URLEncoder.encode(memberJson, StandardCharsets.UTF_8.toString())
+                                    navController.navigate("circle_member_detail/$encodedMemberData/$circleId")
+                                },
+                                onAddParticipantsClick = { circleId: String ->
+                                    navController.navigate("add_participants/$circleId")
+                                },
+                                connectViewModel = connectViewModel,
+                            )
+                        } else {
+                            LaunchedEffect(Unit) {
+                                navController.popBackStack()
+                            }
+                        }
+                    }
+                    composable(
+                        "circle_member_detail/{memberData}/{circleId}",
+                        enterTransition = {
+                            slideInHorizontally(
+                                initialOffsetX = { it },
+                                animationSpec =
+                                    spring(
+                                        dampingRatio = 0.9f,
+                                        stiffness = 400f,
+                                    ),
+                            ) + fadeIn(animationSpec = tween(250))
+                        },
+                        exitTransition = {
+                            slideOutHorizontally(
+                                targetOffsetX = { it },
+                                animationSpec =
+                                    spring(
+                                        dampingRatio = 0.9f,
+                                        stiffness = 400f,
+                                    ),
+                            ) + fadeOut(animationSpec = tween(150))
+                        },
+                    ) { backStackEntry ->
+                        val encodedMemberData =
+                            backStackEntry.arguments?.getString("memberData") ?: ""
+                        val circleId = backStackEntry.arguments?.getString("circleId") ?: ""
+                        val memberData = URLDecoder.decode(encodedMemberData, StandardCharsets.UTF_8.toString())
+
+                        val member =
+                            try {
+                                Gson().fromJson(memberData, UserResponse::class.java)
+                            } catch (e: Exception) {
+                                null
+                            }
+
+                        if (member != null && circleId.isNotEmpty()) {
+                            CircleMemberDetailScreenContent(
+                                member = member,
+                                circleId = circleId,
+                                onBackClick = {
+                                    navController.popBackStack()
+                                },
+                            )
+                        } else {
+                            LaunchedEffect(Unit) {
+                                navController.popBackStack()
+                            }
+                        }
+                    }
                 }
 
                 AnimatedVisibility(
@@ -685,8 +874,22 @@ fun ConnectComposeScreen(
             val encodedFriendData = URLEncoder.encode(friendJson, StandardCharsets.UTF_8.toString())
             navController.navigate("friend_detail/$encodedFriendData")
         },
+        onCircleClick = { circle, circleMembers ->
+            val circleJson = Gson().toJson(circle)
+            val encodedCircleData = URLEncoder.encode(circleJson, StandardCharsets.UTF_8.toString())
+            val encodedCircleMembers =
+                URLEncoder.encode(
+                    Gson().toJson(circleMembers),
+                    StandardCharsets.UTF_8.toString(),
+                )
+
+            navController.navigate("circle_detail/$encodedCircleData/$encodedCircleMembers")
+        },
         onFriendRequestsClick = {
             navController.navigate("friend_requests")
+        },
+        onCircleRequestsClick = {
+            navController.navigate("circle_requests")
         },
         connectViewModel = connectViewModel,
     )
@@ -698,8 +901,6 @@ fun BottomNavigationBar(
     onDestinationClick: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val hapticFeedback = LocalHapticFeedback.current
-
     val cardScale by animateFloatAsState(
         targetValue = 1.0f,
         animationSpec =
@@ -733,7 +934,6 @@ fun BottomNavigationBar(
                 text = "Academics",
                 isSelected = currentRoute == "academics",
                 onClick = {
-                    hapticFeedback.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
                     onDestinationClick("academics")
                 },
             )
@@ -743,7 +943,6 @@ fun BottomNavigationBar(
                 text = "Schedule",
                 isSelected = currentRoute == "schedule",
                 onClick = {
-                    hapticFeedback.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
                     onDestinationClick("schedule")
                 },
             )
@@ -753,7 +952,6 @@ fun BottomNavigationBar(
                 text = "Connect",
                 isSelected = currentRoute == "connect",
                 onClick = {
-                    hapticFeedback.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
                     onDestinationClick("connect")
                 },
             )
@@ -829,6 +1027,7 @@ fun DrawerContent(
     val profilePictureUrl = remember { prefs.getString(Constants.COMMUNITY_PICTURE, "") }
     val username = remember { prefs.getString(Constants.COMMUNITY_USERNAME, "") ?: "User" }
     val name = remember { prefs.getString(Constants.COMMUNITY_NAME, "") ?: "Name" }
+    val campus = remember { prefs.getString(Constants.COMMUNITY_CAMPUS, "") ?: "Campus" }
 
     var isGhostModeEnabled by remember { mutableStateOf(prefs.getBoolean(Constants.GHOST_MODE, false)) }
 
@@ -913,36 +1112,38 @@ fun DrawerContent(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            NavigationDrawerItem(
-                icon = {
-                    Icon(
-                        painter = painterResource(R.drawable.ic_empty_classroom),
-                        contentDescription = "Find Empty Classroom",
-                        tint = TextColor,
-                    )
-                },
-                label = {
-                    Text(
-                        modifier = Modifier.padding(start = 24.dp),
-                        text = "Find Empty Classroom",
-                        color = TextColor,
-                        style =
-                            MaterialTheme.typography.labelLarge.copy(
-                                fontWeight = FontWeight.Normal,
-                            ),
-                    )
-                },
-                selected = false,
-                onClick = {
-                    onCloseDrawer()
-                    navController.navigate("empty_classrooms")
-                },
-                colors =
-                    NavigationDrawerItemDefaults.colors(
-                        unselectedContainerColor = Color.Transparent,
-                        selectedContainerColor = Secondary,
-                    ),
-            )
+            if (campus.lowercase() == "vellore") {
+                NavigationDrawerItem(
+                    icon = {
+                        Icon(
+                            painter = painterResource(R.drawable.ic_empty_classroom),
+                            contentDescription = "Find Empty Classroom",
+                            tint = TextColor,
+                        )
+                    },
+                    label = {
+                        Text(
+                            modifier = Modifier.padding(start = 24.dp),
+                            text = "Find Empty Classroom",
+                            color = TextColor,
+                            style =
+                                MaterialTheme.typography.labelLarge.copy(
+                                    fontWeight = FontWeight.Normal,
+                                ),
+                        )
+                    },
+                    selected = false,
+                    onClick = {
+                        onCloseDrawer()
+                        navController.navigate("empty_classrooms")
+                    },
+                    colors =
+                        NavigationDrawerItemDefaults.colors(
+                            unselectedContainerColor = Color.Transparent,
+                            selectedContainerColor = Secondary,
+                        ),
+                )
+            }
 
             NavigationDrawerItem(
                 icon = {
@@ -1106,8 +1307,64 @@ fun DrawerContent(
                 Switch(
                     checked = isGhostModeEnabled,
                     onCheckedChange = { isChecked ->
-                        isGhostModeEnabled = isChecked
-                        prefs.edit { putBoolean(Constants.GHOST_MODE, isChecked) }
+                        val token = prefs.getString(Constants.COMMUNITY_TOKEN, "") ?: ""
+                        val currentUsername = prefs.getString(Constants.COMMUNITY_USERNAME, "") ?: ""
+
+                        if (token.isNotEmpty() && currentUsername.isNotEmpty()) {
+                            if (isChecked) {
+                                APICommunityRestClient.instance.enableGhostMode(
+                                    token = token,
+                                    username = currentUsername,
+                                    retrofitUserActionListener =
+                                        object : RetrofitUserActionListener {
+                                            override fun onSuccess(
+                                                call: Call<PostResponse>?,
+                                                response: PostResponse?,
+                                            ) {
+                                                isGhostModeEnabled = true
+                                                prefs.edit { putBoolean(Constants.GHOST_MODE, true) }
+                                                Toast.makeText(context, "Ghost mode enabled", Toast.LENGTH_SHORT).show()
+                                            }
+
+                                            override fun onError(
+                                                call: Call<PostResponse>?,
+                                                t: Throwable?,
+                                            ) {
+                                                isGhostModeEnabled = false
+                                                Toast.makeText(context, "Failed to enable ghost mode", Toast.LENGTH_SHORT).show()
+                                            }
+                                        },
+                                )
+                            } else {
+                                APICommunityRestClient.instance.disableGhostMode(
+                                    token = token,
+                                    username = currentUsername,
+                                    retrofitUserActionListener =
+                                        object : RetrofitUserActionListener {
+                                            override fun onSuccess(
+                                                call: Call<PostResponse>?,
+                                                response: PostResponse?,
+                                            ) {
+                                                isGhostModeEnabled = false
+                                                prefs.edit { putBoolean(Constants.GHOST_MODE, false) }
+                                                Toast.makeText(context, "Ghost mode disabled", Toast.LENGTH_SHORT).show()
+                                            }
+
+                                            override fun onError(
+                                                call: Call<PostResponse>?,
+                                                t: Throwable?,
+                                            ) {
+                                                isGhostModeEnabled = true
+                                                Toast.makeText(context, "Failed to disable ghost mode", Toast.LENGTH_SHORT).show()
+                                            }
+                                        },
+                                )
+                            }
+                        } else {
+                            isGhostModeEnabled = isChecked
+                            prefs.edit { putBoolean(Constants.GHOST_MODE, isChecked) }
+                            Toast.makeText(context, "Ghost mode updated locally", Toast.LENGTH_SHORT).show()
+                        }
                     },
                     colors =
                         SwitchDefaults.colors(

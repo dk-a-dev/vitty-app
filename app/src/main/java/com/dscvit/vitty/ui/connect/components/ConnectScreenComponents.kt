@@ -1,6 +1,7 @@
 package com.dscvit.vitty.ui.connect.components
 
-import androidx.compose.animation.core.FastOutSlowInEasing
+import android.content.Context
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -27,11 +28,14 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Warning
-import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material.pullrefresh.PullRefreshIndicator
+import androidx.compose.material.pullrefresh.pullRefresh
+import androidx.compose.material.pullrefresh.rememberPullRefreshState
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -40,10 +44,11 @@ import androidx.compose.material3.TabRow
 import androidx.compose.material3.TabRowDefaults
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.material3.Text
-import androidx.compose.material3.pulltorefresh.PullToRefreshBox
-import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -51,6 +56,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -59,12 +65,16 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.dscvit.vitty.R
 import com.dscvit.vitty.network.api.community.responses.requests.RequestsResponse
+import com.dscvit.vitty.network.api.community.responses.user.CircleItem
+import com.dscvit.vitty.network.api.community.responses.user.CircleResponse
 import com.dscvit.vitty.network.api.community.responses.user.FriendResponse
 import com.dscvit.vitty.network.api.community.responses.user.UserResponse
 import com.dscvit.vitty.theme.Accent
 import com.dscvit.vitty.theme.Background
 import com.dscvit.vitty.theme.Secondary
 import com.dscvit.vitty.theme.TextColor
+import com.dscvit.vitty.ui.connect.ConnectViewModel
+import com.dscvit.vitty.util.Constants
 import java.util.Locale
 
 @Composable
@@ -78,6 +88,8 @@ fun ConnectHeader(
     onFriendsFilterChange: (Int) -> Unit,
     friendRequests: RequestsResponse? = null,
     onFriendRequestsClick: () -> Unit = {},
+    circleRequests: Int = 0,
+    onCircleRequestsClick: () -> Unit = {},
 ) {
     Column(
         modifier =
@@ -236,6 +248,34 @@ fun ConnectHeader(
                     }
                 }
             }
+
+            if (selectedTab == 1) {
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Row(
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 20.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Box(
+                        modifier =
+                            Modifier
+                                .clip(RoundedCornerShape(20.dp))
+                                .background(Secondary)
+                                .clickable { onCircleRequestsClick() }
+                                .padding(horizontal = 12.dp, vertical = 8.dp),
+                    ) {
+                        Text(
+                            text = "$circleRequests circle request${if (circleRequests > 1) "s" else ""}",
+                            color = Accent,
+                            fontWeight = FontWeight.Medium,
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                    }
+                }
+            }
         }
     }
 }
@@ -278,17 +318,23 @@ fun FilterChip(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterialApi::class)
 @Composable
 fun ConnectTabContent(
     tabIndex: Int,
     searchQuery: String,
     friendsFilter: Int,
     friendList: FriendResponse? = null,
+    circleList: CircleResponse? = null,
     isLoading: Boolean = false,
     isRefreshing: Boolean = false,
+    isCircleLoading: Boolean = false,
+    isCircleRefreshing: Boolean = false,
+    viewModel: ConnectViewModel,
     onFriendClick: (UserResponse) -> Unit = {},
-    onRefresh: () -> Unit = {},
+    onCircleClick: (CircleItem, FriendResponse?) -> Unit = { _: CircleItem, _: FriendResponse? -> },
+    onFriendsRefresh: () -> Unit = {},
+    onCirclesRefresh: () -> Unit = {},
 ) {
     val allFriends = friendList?.data ?: emptyList()
     val displayedFriends =
@@ -307,27 +353,29 @@ fun ConnectTabContent(
             matchesSearch && matchesFilter
         }
 
-    val sampleCircles = getSampleCircles()
+    val apiCircles = circleList?.data ?: emptyList()
     val filteredCircles =
-        sampleCircles.filter { circle ->
+        apiCircles.filter { circle ->
             val matchesSearch =
                 searchQuery.isBlank() ||
-                    circle.name.contains(searchQuery, ignoreCase = true) ||
-                    circle.description.contains(searchQuery, ignoreCase = true) ||
-                    circle.subject.contains(searchQuery, ignoreCase = true)
+                    circle.circle_name.contains(searchQuery, ignoreCase = true)
 
             matchesSearch
         }
 
     when (tabIndex) {
         0 -> {
-            val pullToRefreshState = rememberPullToRefreshState()
+            val pullToRefreshState =
+                rememberPullRefreshState(
+                    refreshing = isRefreshing,
+                    onRefresh = onFriendsRefresh,
+                )
 
-            PullToRefreshBox(
-                isRefreshing = isRefreshing,
-                onRefresh = onRefresh,
-                state = pullToRefreshState,
-                modifier = Modifier.fillMaxSize(),
+            Box(
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .pullRefresh(pullToRefreshState),
             ) {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
@@ -336,7 +384,7 @@ fun ConnectTabContent(
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     if (isLoading) {
-                        items(3) {
+                        items(4) {
                             ShimmerListItem()
                         }
                     } else if (displayedFriends.isEmpty()) {
@@ -374,28 +422,63 @@ fun ConnectTabContent(
                         }
                     }
                 }
+                PullRefreshIndicator(
+                    refreshing = isRefreshing,
+                    state = pullToRefreshState,
+                    modifier = Modifier.align(Alignment.TopCenter),
+                    backgroundColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.surface,
+                )
             }
         }
         1 -> {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                contentPadding =
-                    PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 144.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
+            val pullToRefreshState =
+                rememberPullRefreshState(
+                    refreshing = isCircleRefreshing,
+                    onRefresh = onCirclesRefresh,
+                )
+
+            Box(
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .pullRefresh(pullToRefreshState),
             ) {
-                if (filteredCircles.isEmpty()) {
-                    item {
-                        EmptyStateContent(
-                            title = "No circles found",
-                            subtitle = "Join or create study circles",
-                            icon = R.drawable.ic_group_add,
-                        )
-                    }
-                } else {
-                    items(filteredCircles) { circle ->
-                        CircleCard(circle = circle)
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding =
+                        PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 144.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    if (isCircleLoading) {
+                        items(4) {
+                            ShimmerListItem()
+                        }
+                    } else if (filteredCircles.isEmpty()) {
+                        item {
+                            EmptyStateContent(
+                                title = if (searchQuery.isNotBlank()) "No circles found" else "No circles joined",
+                                subtitle = if (searchQuery.isNotBlank()) "Try a different search term" else "Join or create study circles",
+                                icon = R.drawable.ic_group_add,
+                            )
+                        }
+                    } else {
+                        items(filteredCircles) { circle ->
+                            CircleCard(
+                                circle = circle,
+                                viewModel = viewModel,
+                                onClick = onCircleClick,
+                            )
+                        }
                     }
                 }
+                PullRefreshIndicator(
+                    refreshing = isCircleRefreshing,
+                    state = pullToRefreshState,
+                    modifier = Modifier.align(Alignment.TopCenter),
+                    backgroundColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.surface,
+                )
             }
         }
     }
@@ -441,27 +524,6 @@ fun EmptyStateContent(
         )
     }
 }
-
-data class Circle(
-    val id: String,
-    val name: String,
-    val description: String,
-    val members: Int,
-    val isActive: Boolean,
-    val subject: String,
-)
-
-@Composable
-fun getSampleCircles(): List<Circle> =
-    remember {
-        listOf(
-            Circle("1", "Data Structures Study Group", "\uD83C\uDFDB\uFE0F 2 busy \uD83C\uDF34 1 Available", 12, true, "DSA"),
-            Circle("2", "Machine Learning Research", "\uD83C\uDFDB\uFE0F 2 busy \uD83C\uDF34 1 Available", 8, true, "AI/ML"),
-            Circle("3", "Web Development Circle", "\uD83C\uDFDB\uFE0F 2 busy \uD83C\uDF34 1 Available", 15, false, "Web Dev"),
-            Circle("4", "Database Design Workshop", "\uD83C\uDFDB\uFE0F 2 busy \uD83C\uDF34 1 Available", 10, true, "DBMS"),
-            Circle("5", "Competitive Programming", "\uD83C\uDFDB\uFE0F 2 busy \uD83C\uDF34 1 Available", 20, true, "CP"),
-        )
-    }
 
 @Composable
 fun FriendCard(
@@ -558,14 +620,46 @@ fun FriendCard(
 }
 
 @Composable
-fun CircleCard(circle: Circle) {
+fun CircleCard(
+    circle: CircleItem,
+    viewModel: ConnectViewModel,
+    onClick: (CircleItem, FriendResponse?) -> Unit = { _: CircleItem, _: FriendResponse? -> },
+) {
+    val context = LocalContext.current
+    val circleMembers by viewModel.circleMembers.observeAsState()
+    val circleMembersLoading by viewModel.circleMembersLoading.observeAsState()
+
+    val circleData = circleMembers?.get(circle.circle_id)
+    val isLoadingMembers = circleMembersLoading?.contains(circle.circle_id) == true
+
+
+    LaunchedEffect(circle.circle_id, circleData, isLoadingMembers) {
+        if (circleData == null && !isLoadingMembers) {
+            val sharedPreferences = context.getSharedPreferences(Constants.USER_INFO, Context.MODE_PRIVATE)
+            val token = sharedPreferences.getString(Constants.COMMUNITY_TOKEN, "") ?: ""
+
+            if (token.isNotEmpty()) {
+                viewModel.getCircleDetails(token, circle.circle_id)
+            }
+        }
+    }
+
+    val availableCount =
+        circleData?.data?.count { member ->
+            member.current_status?.status?.lowercase(Locale.ROOT) == "free"
+        } ?: 0
+
+    val totalMembers = circleData?.data?.size ?: 0
+    val busyCount = totalMembers - availableCount
+
     Box(
         modifier =
             Modifier
                 .fillMaxWidth()
                 .background(Secondary, RoundedCornerShape(16.dp))
-                .clickable { /* Handle circle click */ }
-                .padding(horizontal = 24.dp, vertical = 28.dp),
+                .clickable(enabled = !isLoadingMembers) {
+                    onClick(circle, circleData)
+                }.padding(horizontal = 24.dp, vertical = 28.dp),
     ) {
         Column {
             Row(
@@ -582,7 +676,7 @@ fun CircleCard(circle: Circle) {
                 ) {
                     Text(
                         text =
-                            circle.name
+                            circle.circle_name
                                 .take(2)
                                 .map { it.uppercaseChar() }
                                 .joinToString(""),
@@ -596,7 +690,7 @@ fun CircleCard(circle: Circle) {
 
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = circle.name,
+                        text = circle.circle_name,
                         color = TextColor,
                         fontWeight = FontWeight.Medium,
                         fontSize = 16.sp,
@@ -604,12 +698,103 @@ fun CircleCard(circle: Circle) {
 
                     Spacer(modifier = Modifier.height(4.dp))
 
-                    Text(
-                        text = circle.description,
-                        color = Accent,
-                        fontSize = 14.sp,
-                        maxLines = 2,
-                    )
+                    if (isLoadingMembers) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        ) {
+                            Box(
+                                modifier =
+                                    Modifier
+                                        .size(12.dp)
+                                        .background(
+                                            shimmerBrush(),
+                                            CircleShape,
+                                        ),
+                            )
+                            Box(
+                                modifier =
+                                    Modifier
+                                        .width(80.dp)
+                                        .height(14.dp)
+                                        .background(
+                                            shimmerBrush(),
+                                            RoundedCornerShape(4.dp),
+                                        ),
+                            )
+                        }
+                    } else if (circleData != null && totalMembers > 0) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(16.dp),
+                        ) {
+                            if (busyCount > 0) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                ) {
+                                    Image(
+                                        painter = painterResource(id = R.drawable.ic_busy),
+                                        contentDescription = "Busy Icon",
+                                        modifier = Modifier.size(12.dp),
+                                    )
+                                    Text(
+                                        text = "$busyCount busy",
+                                        color = Accent,
+                                        fontSize = 14.sp,
+                                    )
+                                }
+                            }
+                            if (availableCount > 0) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                ) {
+                                    Image(
+                                        painter = painterResource(id = R.drawable.ic_free),
+                                        contentDescription = "Available Icon",
+                                        modifier = Modifier.size(12.dp),
+                                    )
+                                    Text(
+                                        text = "$availableCount available",
+                                        color = Accent,
+                                        fontSize = 14.sp,
+                                    )
+                                }
+                            }
+                        }
+                    } else if (circleData != null && totalMembers == 0) {
+                        Text(
+                            text = "No members in this circle",
+                            color = Accent.copy(alpha = 0.7f),
+                            fontSize = 14.sp,
+                        )
+                    } else {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        ) {
+                            Box(
+                                modifier =
+                                    Modifier
+                                        .size(12.dp)
+                                        .background(
+                                            shimmerBrush(),
+                                            CircleShape,
+                                        ),
+                            )
+                            Box(
+                                modifier =
+                                    Modifier
+                                        .width(80.dp)
+                                        .height(14.dp)
+                                        .background(
+                                            shimmerBrush(),
+                                            RoundedCornerShape(4.dp),
+                                        ),
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -617,15 +802,42 @@ fun CircleCard(circle: Circle) {
 }
 
 @Composable
+fun shimmerBrush(): Brush {
+    val infiniteTransition = rememberInfiniteTransition(label = "shimmer")
+    val shimmerTranslateAnim =
+        infiniteTransition.animateFloat(
+            initialValue = -200f,
+            targetValue = 1000f,
+            animationSpec =
+                infiniteRepeatable(
+                    animation = tween(durationMillis = 1500, easing = LinearEasing),
+                    repeatMode = RepeatMode.Restart,
+                ),
+            label = "shimmerTranslateAnim",
+        )
+
+    return Brush.linearGradient(
+        colors =
+            listOf(
+                Background.copy(alpha = 0.9f),
+                Background.copy(alpha = 0.3f),
+                Background.copy(alpha = 0.9f),
+            ),
+        start = Offset(shimmerTranslateAnim.value - 200f, 0f),
+        end = Offset(shimmerTranslateAnim.value, 0f),
+    )
+}
+
+@Composable
 fun ShimmerListItem() {
     val infiniteTransition = rememberInfiniteTransition(label = "shimmer")
     val shimmerTranslateAnim =
         infiniteTransition.animateFloat(
-            initialValue = 0f,
+            initialValue = -200f,
             targetValue = 1000f,
             animationSpec =
                 infiniteRepeatable(
-                    animation = tween(1200, easing = FastOutSlowInEasing),
+                    animation = tween(durationMillis = 1500, easing = LinearEasing),
                     repeatMode = RepeatMode.Restart,
                 ),
             label = "shimmerTranslateAnim",
@@ -635,14 +847,12 @@ fun ShimmerListItem() {
         Brush.linearGradient(
             colors =
                 listOf(
-                    Background.copy(alpha = 0.6f),
-                    Background.copy(alpha = 0.2f),
-                    Background.copy(alpha = 0.6f),
-                    Background.copy(alpha = 0.2f),
-                    Background.copy(alpha = 0.6f),
+                    Background.copy(alpha = 0.9f),
+                    Background.copy(alpha = 0.3f),
+                    Background.copy(alpha = 0.9f),
                 ),
-            start = Offset.Zero,
-            end = Offset(x = shimmerTranslateAnim.value, y = shimmerTranslateAnim.value),
+            start = Offset(shimmerTranslateAnim.value - 200f, 0f),
+            end = Offset(shimmerTranslateAnim.value, 0f),
         )
 
     Box(

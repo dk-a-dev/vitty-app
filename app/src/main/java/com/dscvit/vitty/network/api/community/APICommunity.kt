@@ -1,8 +1,12 @@
 package com.dscvit.vitty.network.api.community
 
-import com.dscvit.vitty.network.api.community.requests.AuthRequestBody
 import com.dscvit.vitty.network.api.community.requests.UsernameRequestBody
+import com.dscvit.vitty.network.api.community.responses.circle.CircleRequestsResponse
+import com.dscvit.vitty.network.api.community.responses.circle.CreateCircleResponse
+import com.dscvit.vitty.network.api.community.responses.circle.JoinCircleResponse
 import com.dscvit.vitty.network.api.community.responses.requests.RequestsResponse
+import com.dscvit.vitty.network.api.community.responses.timetable.TimetableResponse
+import com.dscvit.vitty.network.api.community.responses.user.CircleResponse
 import com.dscvit.vitty.network.api.community.responses.user.FriendResponse
 import com.dscvit.vitty.network.api.community.responses.user.PostResponse
 import com.dscvit.vitty.network.api.community.responses.user.SignInResponse
@@ -18,61 +22,144 @@ import retrofit2.http.Path
 import retrofit2.http.Query
 
 interface APICommunity {
-
     @Headers("Content-Type: application/json")
     @POST("/api/v2/auth/check-username")
-    fun checkUsername(@Body body: UsernameRequestBody): Call<PostResponse>
+    fun checkUsername(
+        @Body body: UsernameRequestBody,
+    ): Call<PostResponse>
 
     @Headers("Content-Type: application/json")
     @POST("/api/v2/auth/firebase/")
-    fun signInInfo(@Body body: AuthRequestBody): Call<SignInResponse>
+    fun signInInfo(
+        @Body body: Any,
+    ): Call<SignInResponse>
 
     @GET("/api/v2/users/{username}")
     fun getUser(
         @Header("Authorization") authToken: String,
-        @Path("username") username: String
+        @Path("username") username: String,
     ): Call<UserResponse>
+
+    @GET("/api/v2/timetable/{username}/")
+    fun getTimeTable(
+        @Header("Authorization") authToken: String,
+        @Path("username") username: String,
+    ): Call<TimetableResponse>
+
+    @GET("/api/v2/circles/{circleId}/{username}/")
+    fun getCircleTimeTable(
+        @Header("Authorization") authToken: String,
+        @Path("circleId") circleId: String,
+        @Path("username") username: String,
+    ): Call<TimetableResponse>
 
     @GET("/api/v2/friends/{username}/")
     fun getFriendList(
         @Header("Authorization") authToken: String,
-        @Path("username") username: String
+        @Path("username") username: String,
     ): Call<FriendResponse>
 
     @GET("/api/v2/users/search")
     fun searchUsers(
         @Header("Authorization") authToken: String,
-        @Query("query") query: String
+        @Query("query") query: String,
     ): Call<List<UserResponse>>
 
     @GET("/api/v2/requests/")
-    fun getFriendRequests(@Header("Authorization") authToken: String): Call<RequestsResponse>
+    fun getFriendRequests(
+        @Header("Authorization") authToken: String,
+    ): Call<RequestsResponse>
 
     @GET("/api/v2/users/suggested/")
-    fun getSuggestedFriends(@Header("Authorization") authToken: String): Call<List<UserResponse>>
+    fun getSuggestedFriends(
+        @Header("Authorization") authToken: String,
+    ): Call<List<UserResponse>>
 
     @POST("/api/v2/requests/{username}/send")
     fun sendRequest(
         @Header("Authorization") authToken: String,
-        @Path("username") username: String
+        @Path("username") username: String,
     ): Call<PostResponse>
 
     @POST("/api/v2/requests/{username}/accept/")
     fun acceptRequest(
         @Header("Authorization") authToken: String,
-        @Path("username") username: String
+        @Path("username") username: String,
     ): Call<PostResponse>
 
     @POST("/api/v2/requests/{username}/decline/")
     fun declineRequest(
         @Header("Authorization") authToken: String,
-        @Path("username") username: String
+        @Path("username") username: String,
     ): Call<PostResponse>
-
 
     @DELETE("/api/v2/friends/{username}/")
     fun deleteFriend(
         @Header("Authorization") authToken: String,
-        @Path("username") username: String
+        @Path("username") username: String,
+    ): Call<PostResponse>
+
+    @POST("/api/v2/friends/ghost/{username}")
+    fun enableGhostMode(
+        @Header("Authorization") authToken: String,
+        @Path("username") username: String,
+    ): Call<PostResponse>
+
+    @POST("/api/v2/friends/alive/{username}")
+    fun disableGhostMode(
+        @Header("Authorization") authToken: String,
+        @Path("username") username: String,
+    ): Call<PostResponse>
+
+    @GET("/api/v2/circles")
+    fun getCircles(
+        @Header("Authorization") authToken: String,
+    ): Call<CircleResponse>
+
+    @POST("/api/v2/circles/create/{circleName}")
+    fun createCircle(
+        @Header("Authorization") authToken: String,
+        @Path("circleName") circleName: String,
+    ): Call<CreateCircleResponse>
+
+    @POST("/api/v2/circles/join")
+    fun joinCircleByCode(
+        @Header("Authorization") authToken: String,
+        @Query("code") joinCode: String,
+    ): Call<JoinCircleResponse>
+
+    @GET("/api/v2/circles/{circleId}")
+    fun getCircleDetails(
+        @Header("Authorization") authToken: String,
+        @Path("circleId") circleId: String,
+    ): Call<FriendResponse>
+
+    @POST("/api/v2/circles/sendRequest/{circleId}/{username}")
+    fun sendCircleRequest(
+        @Header("Authorization") authToken: String,
+        @Path("circleId") circleId: String,
+        @Path("username") username: String,
+    ): Call<PostResponse>
+
+    @GET("/api/v2/circles/requests/received")
+    fun getReceivedCircleRequests(
+        @Header("Authorization") authToken: String,
+    ): Call<CircleRequestsResponse>
+
+    @GET("/api/v2/circles/requests/sent")
+    fun getSentCircleRequests(
+        @Header("Authorization") authToken: String,
+    ): Call<CircleRequestsResponse>
+
+    @DELETE("/api/v2/circles/{circleId}")
+    fun deleteCircle(
+        @Header("Authorization") authToken: String,
+        @Path("circleId") circleId: String,
+    ): Call<PostResponse>
+
+    @DELETE("/api/v2/circles/leave/{circleId}")
+    fun leaveCircle(
+        @Header("Authorization") authToken: String,
+        @Path("circleId") circleId: String,
     ): Call<PostResponse>
 }
