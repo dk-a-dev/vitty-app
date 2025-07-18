@@ -88,6 +88,8 @@ fun ConnectHeader(
     onFriendsFilterChange: (Int) -> Unit,
     friendRequests: RequestsResponse? = null,
     onFriendRequestsClick: () -> Unit = {},
+    circleRequests: Int = 0,
+    onCircleRequestsClick: () -> Unit = {},
 ) {
     Column(
         modifier =
@@ -243,6 +245,34 @@ fun ConnectHeader(
                         if (index < options.lastIndex) {
                             Spacer(Modifier.width(12.dp))
                         }
+                    }
+                }
+            }
+
+            if (selectedTab == 1) {
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Row(
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 20.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Box(
+                        modifier =
+                            Modifier
+                                .clip(RoundedCornerShape(20.dp))
+                                .background(Secondary)
+                                .clickable { onCircleRequestsClick() }
+                                .padding(horizontal = 12.dp, vertical = 8.dp),
+                    ) {
+                        Text(
+                            text = "$circleRequests circle request${if (circleRequests > 1) "s" else ""}",
+                            color = Accent,
+                            fontWeight = FontWeight.Medium,
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
                     }
                 }
             }
@@ -602,11 +632,9 @@ fun CircleCard(
     val circleData = circleMembers?.get(circle.circle_id)
     val isLoadingMembers = circleMembersLoading?.contains(circle.circle_id) == true
 
-    LaunchedEffect(circle.circle_id, circleData) {
-        val currentCircleData = circleMembers?.get(circle.circle_id)
-        val currentIsLoading = circleMembersLoading?.contains(circle.circle_id) == true
 
-        if (currentCircleData == null && !currentIsLoading) {
+    LaunchedEffect(circle.circle_id, circleData, isLoadingMembers) {
+        if (circleData == null && !isLoadingMembers) {
             val sharedPreferences = context.getSharedPreferences(Constants.USER_INFO, Context.MODE_PRIVATE)
             val token = sharedPreferences.getString(Constants.COMMUNITY_TOKEN, "") ?: ""
 
@@ -700,22 +728,6 @@ fun CircleCard(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(16.dp),
                         ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                            ) {
-                                Image(
-                                    painter = painterResource(id = R.drawable.ic_free),
-                                    contentDescription = "Available Icon",
-                                    modifier = Modifier.size(12.dp),
-                                )
-                                Text(
-                                    text = "$availableCount Available",
-                                    color = Accent,
-                                    fontSize = 14.sp,
-                                )
-                            }
-
                             if (busyCount > 0) {
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
@@ -727,19 +739,61 @@ fun CircleCard(
                                         modifier = Modifier.size(12.dp),
                                     )
                                     Text(
-                                        text = "$busyCount Busy",
+                                        text = "$busyCount busy",
+                                        color = Accent,
+                                        fontSize = 14.sp,
+                                    )
+                                }
+                            }
+                            if (availableCount > 0) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                ) {
+                                    Image(
+                                        painter = painterResource(id = R.drawable.ic_free),
+                                        contentDescription = "Available Icon",
+                                        modifier = Modifier.size(12.dp),
+                                    )
+                                    Text(
+                                        text = "$availableCount available",
                                         color = Accent,
                                         fontSize = 14.sp,
                                     )
                                 }
                             }
                         }
-                    } else {
+                    } else if (circleData != null && totalMembers == 0) {
                         Text(
-                            text = "No member data available",
+                            text = "No members in this circle",
                             color = Accent.copy(alpha = 0.7f),
                             fontSize = 14.sp,
                         )
+                    } else {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        ) {
+                            Box(
+                                modifier =
+                                    Modifier
+                                        .size(12.dp)
+                                        .background(
+                                            shimmerBrush(),
+                                            CircleShape,
+                                        ),
+                            )
+                            Box(
+                                modifier =
+                                    Modifier
+                                        .width(80.dp)
+                                        .height(14.dp)
+                                        .background(
+                                            shimmerBrush(),
+                                            RoundedCornerShape(4.dp),
+                                        ),
+                            )
+                        }
                     }
                 }
             }

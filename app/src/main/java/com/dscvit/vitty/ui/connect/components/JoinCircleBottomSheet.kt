@@ -2,8 +2,10 @@ package com.dscvit.vitty.ui.connect.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -75,7 +77,11 @@ fun JoinCircleBottomSheet(
             ) {
                 Row {
                     Spacer(modifier = Modifier.weight(1f))
-                    Text(text = "Join Circle", style = MaterialTheme.typography.headlineLarge, textAlign = TextAlign.Center)
+                    Text(
+                        text = "Join Circle",
+                        style = MaterialTheme.typography.headlineLarge,
+                        textAlign = TextAlign.Center,
+                    )
                     Spacer(modifier = Modifier.weight(1f))
                 }
 
@@ -178,8 +184,7 @@ fun JoinCircleBottomSheet(
                         Modifier
                             .fillMaxWidth()
                             .padding(top = 16.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = androidx.compose.foundation.layout.Arrangement.End,
+                    horizontalArrangement = Arrangement.End,
                 ) {
                     Button(
                         onClick = {
@@ -198,18 +203,21 @@ fun JoinCircleBottomSheet(
                         modifier =
                             Modifier
                                 .height(37.dp)
-                                .padding(start = 16.dp),
+                                .padding(horizontal = 0.dp),
+                        contentPadding = PaddingValues(horizontal = 20.dp, vertical = 7.dp),
                     ) {
                         Text(
                             text = "Join",
-                            color = Background,
                             fontFamily = Poppins,
                             fontSize = 17.sp,
                             fontWeight = FontWeight.SemiBold,
-                            letterSpacing = 17.sp,
+                            letterSpacing = 0.17.sp,
+                            color = Secondary,
+                            textAlign = TextAlign.Center,
                         )
                     }
                 }
+                Spacer(modifier = Modifier.height(24.dp))
             }
         }
     }

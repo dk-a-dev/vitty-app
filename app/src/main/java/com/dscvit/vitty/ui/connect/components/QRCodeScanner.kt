@@ -43,6 +43,9 @@ fun QRCodeScanner(
         )
     }
 
+    var hasScannedCode by remember { mutableStateOf(false) }
+    var scannedText by remember { mutableStateOf<String?>(null) }
+
     val permissionLauncher =
         rememberLauncherForActivityResult(
             contract = ActivityResultContracts.RequestPermission(),
@@ -57,16 +60,23 @@ fun QRCodeScanner(
     }
 
     if (hasCameraPermission) {
+        var barcodeView by remember { mutableStateOf<CompoundBarcodeView?>(null) }
+
         AndroidView(
             factory = { context ->
                 CompoundBarcodeView(context).apply {
                     val callback =
                         BarcodeCallback { result ->
-                            result?.text?.let { scannedText ->
-                                onQRCodeScanned(scannedText)
+                            result?.text?.let { newScannedText ->
+                                if (!hasScannedCode || scannedText != newScannedText) {
+                                    hasScannedCode = true
+                                    scannedText = newScannedText
+                                    onQRCodeScanned(newScannedText)
+                                }
                             }
                         }
                     this.decodeContinuous(callback)
+                    barcodeView = this
                 }
             },
             modifier =
@@ -74,13 +84,20 @@ fun QRCodeScanner(
                     .fillMaxSize()
                     .clip(RoundedCornerShape(7.dp)),
             update = { view ->
+                if (view != barcodeView) {
+                    barcodeView?.pause()
+                    barcodeView = view
+                }
                 view.resume()
             },
         )
 
         DisposableEffect(Unit) {
             onDispose {
-
+                barcodeView?.pause()
+                barcodeView = null
+                hasScannedCode = false
+                scannedText = null
             }
         }
     } else {

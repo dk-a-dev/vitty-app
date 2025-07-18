@@ -62,7 +62,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
@@ -93,8 +92,10 @@ import com.dscvit.vitty.theme.VittyTheme
 import com.dscvit.vitty.ui.academics.AcademicsScreenContent
 import com.dscvit.vitty.ui.academics.models.Course
 import com.dscvit.vitty.ui.connect.AddFriendScreenContent
+import com.dscvit.vitty.ui.connect.AddParticipantsScreenContent
 import com.dscvit.vitty.ui.connect.CircleDetailScreenContent
 import com.dscvit.vitty.ui.connect.CircleMemberDetailScreenContent
+import com.dscvit.vitty.ui.connect.CircleRequestsScreenContent
 import com.dscvit.vitty.ui.connect.ConnectScreenContent
 import com.dscvit.vitty.ui.connect.ConnectViewModel
 import com.dscvit.vitty.ui.connect.FriendDetailScreenContent
@@ -138,7 +139,10 @@ fun MainComposeApp() {
                 !route.startsWith("friend_detail") &&
                 !route.startsWith("circle_detail") &&
                 route != "add_friend" &&
-                route != "friend_requests"
+                route != "friend_requests" &&
+                route != "circle_requests" &&
+                !route.startsWith("circle_member_detail") &&
+                !route.startsWith("add_participants")
         } ?: true
     }
 
@@ -396,6 +400,65 @@ fun MainComposeApp() {
                         )
                     }
                     composable(
+                        "circle_requests",
+                        enterTransition = {
+                            slideInHorizontally(
+                                initialOffsetX = { it },
+                                animationSpec =
+                                    spring(
+                                        dampingRatio = 0.9f,
+                                        stiffness = 400f,
+                                    ),
+                            ) + fadeIn(animationSpec = tween(250))
+                        },
+                        exitTransition = {
+                            slideOutHorizontally(
+                                targetOffsetX = { it },
+                                animationSpec =
+                                    spring(
+                                        dampingRatio = 0.9f,
+                                        stiffness = 400f,
+                                    ),
+                            ) + fadeOut(animationSpec = tween(150))
+                        },
+                    ) {
+                        CircleRequestsScreenContent(
+                            onBackClick = {
+                                navController.popBackStack()
+                            },
+                            connectViewModel = connectViewModel,
+                        )
+                    }
+                    composable(
+                        "add_participants/{circleId}",
+                        enterTransition = {
+                            slideInHorizontally(
+                                initialOffsetX = { it },
+                                animationSpec =
+                                    spring(
+                                        dampingRatio = 0.9f,
+                                        stiffness = 400f,
+                                    ),
+                            ) + fadeIn(animationSpec = tween(250))
+                        },
+                        exitTransition = {
+                            slideOutHorizontally(
+                                targetOffsetX = { it },
+                                animationSpec =
+                                    spring(
+                                        dampingRatio = 0.9f,
+                                        stiffness = 400f,
+                                    ),
+                            ) + fadeOut(animationSpec = tween(150))
+                        },
+                    ) { backStackEntry ->
+                        val circleId = backStackEntry.arguments?.getString("circleId") ?: ""
+                        AddParticipantsScreenContent(
+                            navController = navController,
+                            circleId = circleId,
+                        )
+                    }
+                    composable(
                         "course_page/{courseTitle}/{courseCode}",
                         enterTransition = {
                             slideInHorizontally(
@@ -602,8 +665,12 @@ fun MainComposeApp() {
                                 onMemberClick = { member, circleId ->
                                     val memberJson = Gson().toJson(member)
                                     val encodedMemberData = URLEncoder.encode(memberJson, StandardCharsets.UTF_8.toString())
-                                    navController.navigate("circleMemberDetail/$encodedMemberData/$circleId")
+                                    navController.navigate("circle_member_detail/$encodedMemberData/$circleId")
                                 },
+                                onAddParticipantsClick = { circleId: String ->
+                                    navController.navigate("add_participants/$circleId")
+                                },
+                                connectViewModel = connectViewModel,
                             )
                         } else {
                             LaunchedEffect(Unit) {
@@ -612,7 +679,7 @@ fun MainComposeApp() {
                         }
                     }
                     composable(
-                        "circleMemberDetail/{memberData}/{circleId}",
+                        "circle_member_detail/{memberData}/{circleId}",
                         enterTransition = {
                             slideInHorizontally(
                                 initialOffsetX = { it },
@@ -821,6 +888,9 @@ fun ConnectComposeScreen(
         onFriendRequestsClick = {
             navController.navigate("friend_requests")
         },
+        onCircleRequestsClick = {
+            navController.navigate("circle_requests")
+        },
         connectViewModel = connectViewModel,
     )
 }
@@ -831,8 +901,6 @@ fun BottomNavigationBar(
     onDestinationClick: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val hapticFeedback = LocalHapticFeedback.current
-
     val cardScale by animateFloatAsState(
         targetValue = 1.0f,
         animationSpec =
@@ -866,7 +934,6 @@ fun BottomNavigationBar(
                 text = "Academics",
                 isSelected = currentRoute == "academics",
                 onClick = {
-                    hapticFeedback.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
                     onDestinationClick("academics")
                 },
             )
@@ -876,7 +943,6 @@ fun BottomNavigationBar(
                 text = "Schedule",
                 isSelected = currentRoute == "schedule",
                 onClick = {
-                    hapticFeedback.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
                     onDestinationClick("schedule")
                 },
             )
@@ -886,7 +952,6 @@ fun BottomNavigationBar(
                 text = "Connect",
                 isSelected = currentRoute == "connect",
                 onClick = {
-                    hapticFeedback.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
                     onDestinationClick("connect")
                 },
             )

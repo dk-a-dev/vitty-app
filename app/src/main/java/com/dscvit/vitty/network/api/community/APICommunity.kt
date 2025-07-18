@@ -1,6 +1,7 @@
 package com.dscvit.vitty.network.api.community
 
 import com.dscvit.vitty.network.api.community.requests.UsernameRequestBody
+import com.dscvit.vitty.network.api.community.responses.circle.CircleRequestsResponse
 import com.dscvit.vitty.network.api.community.responses.circle.CreateCircleResponse
 import com.dscvit.vitty.network.api.community.responses.circle.JoinCircleResponse
 import com.dscvit.vitty.network.api.community.responses.requests.RequestsResponse
@@ -132,4 +133,33 @@ interface APICommunity {
         @Header("Authorization") authToken: String,
         @Path("circleId") circleId: String,
     ): Call<FriendResponse>
+
+    @POST("/api/v2/circles/sendRequest/{circleId}/{username}")
+    fun sendCircleRequest(
+        @Header("Authorization") authToken: String,
+        @Path("circleId") circleId: String,
+        @Path("username") username: String,
+    ): Call<PostResponse>
+
+    @GET("/api/v2/circles/requests/received")
+    fun getReceivedCircleRequests(
+        @Header("Authorization") authToken: String,
+    ): Call<CircleRequestsResponse>
+
+    @GET("/api/v2/circles/requests/sent")
+    fun getSentCircleRequests(
+        @Header("Authorization") authToken: String,
+    ): Call<CircleRequestsResponse>
+
+    @DELETE("/api/v2/circles/{circleId}")
+    fun deleteCircle(
+        @Header("Authorization") authToken: String,
+        @Path("circleId") circleId: String,
+    ): Call<PostResponse>
+
+    @DELETE("/api/v2/circles/leave/{circleId}")
+    fun leaveCircle(
+        @Header("Authorization") authToken: String,
+        @Path("circleId") circleId: String,
+    ): Call<PostResponse>
 }

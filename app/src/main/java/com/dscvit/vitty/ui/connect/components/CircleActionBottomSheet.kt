@@ -60,40 +60,34 @@ fun CircleActionBottomSheet(
 
     val handleJoinWithCode = { code: String ->
         Timber.d("handleJoinWithCode called with code: $code")
-        
-        // Get the authentication token
+
         val sharedPreferences = context.getSharedPreferences(Constants.USER_INFO, Context.MODE_PRIVATE)
         val token = sharedPreferences.getString(Constants.COMMUNITY_TOKEN, "") ?: ""
-        
+
         Timber.d("Token retrieved for join: ${if (token.isNotEmpty()) "Token exists" else "Token is empty"}")
-        
+
         if (token.isNotEmpty() && code.isNotBlank()) {
             Timber.d("Calling connectViewModel.joinCircleByCode with token and code: $code")
-            // Call the ViewModel to join the circle
             connectViewModel.joinCircleByCode(token, code)
-            
-            // Close the sheet
+
             isJoinCircleSheetVisible = false
         } else {
             Timber.e("Cannot join circle: ${if (token.isEmpty()) "Token is empty" else "Code is blank"}")
         }
     }
 
-    val handleCreateCircle = { name: String, friends: List<String>, imageUri: Uri? ->
+    val handleCreateCircle = { name: String, _: Uri? ->
         Timber.d("handleCreateCircle called with name: $name")
-        
-        // Get the authentication token
+
         val sharedPreferences = context.getSharedPreferences(Constants.USER_INFO, Context.MODE_PRIVATE)
         val token = sharedPreferences.getString(Constants.COMMUNITY_TOKEN, "") ?: ""
-        
+
         Timber.d("Token retrieved: ${if (token.isNotEmpty()) "Token exists" else "Token is empty"}")
-        
+
         if (token.isNotEmpty() && name.isNotBlank()) {
             Timber.d("Calling connectViewModel.createCircle with token and name: $name")
-            // Call the ViewModel to create the circle
             connectViewModel.createCircle(token, name)
-            
-            // Close the sheet
+
             isCreateCircleSheetVisible = false
         } else {
             Timber.e("Cannot create circle - token empty: ${token.isEmpty()}, name blank: ${name.isBlank()}")

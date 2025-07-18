@@ -4,11 +4,13 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import com.dscvit.vitty.network.api.community.APICommunityRestClient
 import com.dscvit.vitty.network.api.community.RetrofitCircleListener
+import com.dscvit.vitty.network.api.community.RetrofitCircleRequestListener
 import com.dscvit.vitty.network.api.community.RetrofitCreateCircleListener
 import com.dscvit.vitty.network.api.community.RetrofitFriendListListener
 import com.dscvit.vitty.network.api.community.RetrofitFriendRequestListener
 import com.dscvit.vitty.network.api.community.RetrofitJoinCircleListener
 import com.dscvit.vitty.network.api.community.RetrofitUserActionListener
+import com.dscvit.vitty.network.api.community.responses.circle.CircleRequestsResponse
 import com.dscvit.vitty.network.api.community.responses.circle.CreateCircleResponse
 import com.dscvit.vitty.network.api.community.responses.circle.JoinCircleResponse
 import com.dscvit.vitty.network.api.community.responses.requests.RequestsResponse
@@ -34,6 +36,10 @@ class ConnectViewModel : ViewModel() {
     private val _isCircleRefreshing = MutableLiveData<Boolean>()
     private val _circleMembers = MutableLiveData<Map<String, FriendResponse>>()
     private val _circleMembersLoading = MutableLiveData<Set<String>>()
+    private val _receivedCircleRequests = MutableLiveData<CircleRequestsResponse?>()
+    private val _sentCircleRequests = MutableLiveData<CircleRequestsResponse?>()
+    private val _isCircleRequestsLoading = MutableLiveData<Boolean>()
+    private val _circleActionResponse = MutableLiveData<PostResponse?>()
 
     val friendList: MutableLiveData<FriendResponse?> = _friendList
     val friendRequest: MutableLiveData<RequestsResponse?> = _friendRequest
@@ -50,6 +56,10 @@ class ConnectViewModel : ViewModel() {
     val isCircleRefreshing: MutableLiveData<Boolean> = _isCircleRefreshing
     val circleMembers: MutableLiveData<Map<String, FriendResponse>> = _circleMembers
     val circleMembersLoading: MutableLiveData<Set<String>> = _circleMembersLoading
+    val receivedCircleRequests: MutableLiveData<CircleRequestsResponse?> = _receivedCircleRequests
+    val sentCircleRequests: MutableLiveData<CircleRequestsResponse?> = _sentCircleRequests
+    val isCircleRequestsLoading: MutableLiveData<Boolean> = _isCircleRequestsLoading
+    val circleActionResponse: MutableLiveData<PostResponse?> = _circleActionResponse
 
     fun getFriendList(
         token: String,
@@ -275,6 +285,9 @@ class ConnectViewModel : ViewModel() {
 
     fun refreshCircleList(token: String) {
         _isCircleRefreshing.postValue(true)
+        _circleMembers.postValue(emptyMap())
+        _circleMembersLoading.postValue(emptySet())
+
         APICommunityRestClient.instance.getCircles(
             token,
             object : RetrofitCircleListener {
@@ -285,6 +298,11 @@ class ConnectViewModel : ViewModel() {
                     Timber.d("ConnectCircleList: $response")
                     _circleList.postValue(response)
                     _isCircleRefreshing.postValue(false)
+
+                    
+                    response?.data?.forEach { circle ->
+                        getCircleDetails(token, circle.circle_id)
+                    }
                 }
 
                 override fun onError(
@@ -351,8 +369,10 @@ class ConnectViewModel : ViewModel() {
         token: String,
         circleName: String,
     ) {
-        Timber.d("ConnectViewModel.createCircle called with token: ${if (token.isNotEmpty()) "exists" else "empty"}, circleName: $circleName")
-        
+        Timber.d(
+            "ConnectViewModel.createCircle called with token: ${if (token.isNotEmpty()) "exists" else "empty"}, circleName: $circleName",
+        )
+
         APICommunityRestClient.instance.createCircle(
             token,
             circleName,
@@ -380,12 +400,14 @@ class ConnectViewModel : ViewModel() {
         token: String,
         joinCode: String,
     ) {
-        Timber.d("ConnectViewModel.joinCircleByCode called with token: ${if (token.isNotEmpty()) "exists" else "empty"}, joinCode: $joinCode")
+        Timber.d(
+            "ConnectViewModel.joinCircleByCode called with token: ${if (token.isNotEmpty()) "exists" else "empty"}, joinCode: $joinCode",
+        )
+
         
-        // Clear previous responses
         _joinCircleResponse.postValue(null)
         _joinCircleError.postValue(null)
-        
+
         APICommunityRestClient.instance.joinCircleByCode(
             token,
             joinCode,
@@ -408,5 +430,132 @@ class ConnectViewModel : ViewModel() {
                 }
             },
         )
+    }
+
+    fun clearCreateCircleResponse() {
+        _createCircleResponse.postValue(null)
+    }
+
+    fun clearJoinCircleResponse() {
+        _joinCircleResponse.postValue(null)
+    }
+
+    fun clearJoinCircleError() {
+        _joinCircleError.postValue(null)
+    }
+
+    fun getReceivedCircleRequests(token: String) {
+        _isCircleRequestsLoading.postValue(true)
+        APICommunityRestClient.instance.getReceivedCircleRequests(
+            token,
+            object : RetrofitCircleRequestListener {
+                override fun onSuccess(
+                    call: Call<CircleRequestsResponse>?,
+                    response: CircleRequestsResponse?,
+                ) {
+                    Timber.d("ReceivedCircleRequests: $response")
+                    _receivedCircleRequests.postValue(response)
+                    _isCircleRequestsLoading.postValue(false)
+                }
+
+                override fun onError(
+                    call: Call<CircleRequestsResponse>?,
+                    t: Throwable?,
+                ) {
+                    Timber.d("ReceivedCircleRequestsError: ${t?.message}")
+                    _receivedCircleRequests.postValue(null)
+                    _isCircleRequestsLoading.postValue(false)
+                }
+            },
+        )
+    }
+
+    fun getSentCircleRequests(token: String) {
+        _isCircleRequestsLoading.postValue(true)
+        APICommunityRestClient.instance.getSentCircleRequests(
+            token,
+            object : RetrofitCircleRequestListener {
+                override fun onSuccess(
+                    call: Call<CircleRequestsResponse>?,
+                    response: CircleRequestsResponse?,
+                ) {
+                    Timber.d("SentCircleRequests: $response")
+                    _sentCircleRequests.postValue(response)
+                    _isCircleRequestsLoading.postValue(false)
+                }
+
+                override fun onError(
+                    call: Call<CircleRequestsResponse>?,
+                    t: Throwable?,
+                ) {
+                    Timber.d("SentCircleRequestsError: ${t?.message}")
+                    _sentCircleRequests.postValue(null)
+                    _isCircleRequestsLoading.postValue(false)
+                }
+            },
+        )
+    }
+
+    fun refreshCircleRequests(token: String) {
+        getReceivedCircleRequests(token)
+        getSentCircleRequests(token)
+    }
+
+    fun deleteCircle(
+        token: String,
+        circleId: String,
+    ) {
+        APICommunityRestClient.instance.deleteCircle(
+            token,
+            circleId,
+            object : RetrofitUserActionListener {
+                override fun onSuccess(
+                    call: Call<PostResponse>?,
+                    response: PostResponse?,
+                ) {
+                    Timber.d("DeleteCircle: $response")
+                    _circleActionResponse.postValue(response)
+                }
+
+                override fun onError(
+                    call: Call<PostResponse>?,
+                    t: Throwable?,
+                ) {
+                    Timber.d("DeleteCircleError: ${t?.message}")
+                    _circleActionResponse.postValue(null)
+                }
+            },
+        )
+    }
+
+    fun leaveCircle(
+        token: String,
+        circleId: String,
+    ) {
+        APICommunityRestClient.instance.leaveCircle(
+            token,
+            circleId,
+            object : RetrofitUserActionListener {
+                override fun onSuccess(
+                    call: Call<PostResponse>?,
+                    response: PostResponse?,
+                ) {
+                    Timber.d("LeaveCircle: $response")
+                    _circleActionResponse.postValue(response)
+                }
+
+                override fun onError(
+                    call: Call<PostResponse>?,
+                    t: Throwable?,
+                ) {
+                    Timber.d("LeaveCircleError: ${t?.message}")
+                    _circleActionResponse.postValue(null)
+                }
+            },
+        )
+    }
+
+    fun clearCircleActionResponse() {
+        _circleActionResponse.postValue(null)
     }
 }
