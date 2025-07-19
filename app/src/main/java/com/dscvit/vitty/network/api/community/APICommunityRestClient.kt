@@ -2,7 +2,9 @@ package com.dscvit.vitty.network.api.community
 
 import com.dscvit.vitty.network.api.community.requests.AuthRequestBodyWithCampus
 import com.dscvit.vitty.network.api.community.requests.AuthRequestBodyWithoutCampus
+import com.dscvit.vitty.network.api.community.requests.CircleBatchRequestBody
 import com.dscvit.vitty.network.api.community.requests.UsernameRequestBody
+import com.dscvit.vitty.network.api.community.responses.circle.CircleBatchRequestResponse
 import com.dscvit.vitty.network.api.community.responses.circle.CircleRequestsResponse
 import com.dscvit.vitty.network.api.community.responses.circle.CreateCircleResponse
 import com.dscvit.vitty.network.api.community.responses.circle.JoinCircleResponse
@@ -574,6 +576,38 @@ class APICommunityRestClient {
                     t: Throwable,
                 ) {
                     retrofitUserActionListener.onError(call, t)
+                }
+            },
+        )
+    }
+
+    fun sendBatchCircleRequest(
+        token: String,
+        circleId: String,
+        usernames: List<String>,
+        callback: (CircleBatchRequestResponse?) -> Unit,
+    ) {
+        val bearerToken = "Bearer $token"
+
+        mApiUser = retrofit.create(APICommunity::class.java)
+        val requestBody = CircleBatchRequestBody(usernames)
+        val apiSendBatchCircleRequestCall = mApiUser!!.sendBatchCircleRequest(bearerToken, circleId, requestBody)
+        apiSendBatchCircleRequestCall.enqueue(
+            object : Callback<CircleBatchRequestResponse> {
+                override fun onResponse(
+                    call: Call<CircleBatchRequestResponse>,
+                    response: Response<CircleBatchRequestResponse>,
+                ) {
+                    Timber.d("SendBatchCircleResponse: $response")
+                    callback(response.body())
+                }
+
+                override fun onFailure(
+                    call: Call<CircleBatchRequestResponse>,
+                    t: Throwable,
+                ) {
+                    Timber.d("SendBatchCircleRequestError: ${t.message}")
+                    callback(null)
                 }
             },
         )

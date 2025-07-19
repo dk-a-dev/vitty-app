@@ -1,6 +1,8 @@
 package com.dscvit.vitty.network.api.community
 
+import com.dscvit.vitty.network.api.community.requests.CircleBatchRequestBody
 import com.dscvit.vitty.network.api.community.requests.UsernameRequestBody
+import com.dscvit.vitty.network.api.community.responses.circle.CircleBatchRequestResponse
 import com.dscvit.vitty.network.api.community.responses.circle.CircleRequestsResponse
 import com.dscvit.vitty.network.api.community.responses.circle.CreateCircleResponse
 import com.dscvit.vitty.network.api.community.responses.circle.JoinCircleResponse
@@ -140,6 +142,14 @@ interface APICommunity {
         @Path("circleId") circleId: String,
         @Path("username") username: String,
     ): Call<PostResponse>
+
+    @Headers("Content-Type: application/json")
+    @POST("/api/v3/circles/sendRequest/{circleId}")
+    fun sendBatchCircleRequest(
+        @Header("Authorization") authToken: String,
+        @Path("circleId") circleId: String,
+        @Body body: CircleBatchRequestBody,
+    ): Call<CircleBatchRequestResponse>
 
     @GET("/api/v3/circles/requests/received")
     fun getReceivedCircleRequests(
