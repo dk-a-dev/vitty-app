@@ -75,6 +75,7 @@ import com.dscvit.vitty.theme.Secondary
 import com.dscvit.vitty.theme.TextColor
 import com.dscvit.vitty.ui.connect.ConnectViewModel
 import com.dscvit.vitty.util.Constants
+import com.dscvit.vitty.util.urlDecode
 import java.util.Locale
 
 @Composable
@@ -214,7 +215,22 @@ fun ConnectHeader(
                             .fillMaxWidth()
                             .padding(horizontal = 20.dp),
                     verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
+                    Row {
+                        val options = listOf("Available", "View All")
+                        options.forEachIndexed { index, label ->
+                            FilterChip(
+                                label = label,
+                                isSelected = friendsFilter == index,
+                                onClick = { onFriendsFilterChange(index) },
+                            )
+                            if (index < options.lastIndex) {
+                                Spacer(Modifier.width(12.dp))
+                            }
+                        }
+                    }
+
                     val requestCount = friendRequests?.size ?: 0
                     if (requestCount > 0) {
                         Box(
@@ -232,32 +248,19 @@ fun ConnectHeader(
                                 style = MaterialTheme.typography.bodyMedium,
                             )
                         }
-                        Spacer(Modifier.width(12.dp))
-                    }
-
-                    val options = listOf("Available", "View All")
-                    options.forEachIndexed { index, label ->
-                        FilterChip(
-                            label = label,
-                            isSelected = friendsFilter == index,
-                            onClick = { onFriendsFilterChange(index) },
-                        )
-                        if (index < options.lastIndex) {
-                            Spacer(Modifier.width(12.dp))
-                        }
                     }
                 }
             }
 
             if (selectedTab == 1) {
                 Spacer(modifier = Modifier.height(16.dp))
-
                 Row(
                     modifier =
                         Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 20.dp),
                     verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.End,
                 ) {
                     Box(
                         modifier =
@@ -268,7 +271,7 @@ fun ConnectHeader(
                                 .padding(horizontal = 12.dp, vertical = 8.dp),
                     ) {
                         Text(
-                            text = "$circleRequests circle request${if (circleRequests > 1) "s" else ""}",
+                            text = "$circleRequests ${if (circleRequests == 0) "new" else "circle"} request${if (circleRequests > 1 || circleRequests == 0) "s" else ""}",
                             color = Accent,
                             fontWeight = FontWeight.Medium,
                             style = MaterialTheme.typography.bodyMedium,
@@ -632,7 +635,6 @@ fun CircleCard(
     val circleData = circleMembers?.get(circle.circle_id)
     val isLoadingMembers = circleMembersLoading?.contains(circle.circle_id) == true
 
-
     LaunchedEffect(circle.circle_id, circleData, isLoadingMembers) {
         if (circleData == null && !isLoadingMembers) {
             val sharedPreferences = context.getSharedPreferences(Constants.USER_INFO, Context.MODE_PRIVATE)
@@ -690,7 +692,7 @@ fun CircleCard(
 
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = circle.circle_name,
+                        text = circle.circle_name.urlDecode(),
                         color = TextColor,
                         fontWeight = FontWeight.Medium,
                         fontSize = 16.sp,

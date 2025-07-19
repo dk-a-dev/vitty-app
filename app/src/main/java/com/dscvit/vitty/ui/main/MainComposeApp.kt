@@ -257,6 +257,7 @@ fun MainComposeApp() {
                         },
                     ) {
                         ScheduleComposeScreen(
+                            navController = navController,
                             onOpenDrawer = {
                                 scope.launch {
                                     drawerState.open()
@@ -856,8 +857,19 @@ fun AcademicsComposeScreen(
 }
 
 @Composable
-fun ScheduleComposeScreen(onOpenDrawer: () -> Unit) {
-    ScheduleScreenContent(onOpenDrawer = onOpenDrawer)
+fun ScheduleComposeScreen(
+    onOpenDrawer: () -> Unit,
+    navController: NavHostController,
+) {
+    ScheduleScreenContent(
+        onOpenDrawer = onOpenDrawer,
+        onCardClick =
+            { title: String, code: String ->
+                val encodedTitle = URLEncoder.encode(title, StandardCharsets.UTF_8.toString())
+                val encodedCode = URLEncoder.encode(code, StandardCharsets.UTF_8.toString())
+                navController.navigate("course_page/$encodedTitle/$encodedCode")
+            },
+    )
 }
 
 @Composable

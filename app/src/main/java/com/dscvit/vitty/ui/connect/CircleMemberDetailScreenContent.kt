@@ -1,7 +1,11 @@
 package com.dscvit.vitty.ui.connect
 
 import android.content.Context
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -65,6 +69,8 @@ import com.dscvit.vitty.theme.TextColor
 import com.dscvit.vitty.ui.schedule.ScheduleViewModel
 import com.dscvit.vitty.util.Constants
 import com.dscvit.vitty.util.Quote
+import com.dscvit.vitty.util.VITMap
+import com.dscvit.vitty.widget.parseTimeToTimestamp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -345,6 +351,8 @@ private fun DayScheduleContent(
     dayIndex: Int,
     quote: String = "Every day is a new opportunity to learn and grow.",
 ) {
+    val context = LocalContext.current
+
     if (periods.isEmpty()) {
         Box(
             modifier =
@@ -395,6 +403,9 @@ private fun DayScheduleContent(
                 CircleMemberPeriodCard(
                     period = period,
                     dayIndex = dayIndex,
+                    onLocationClick = { roomNo ->
+                        VITMap.openClassMap(context, roomNo)
+                    },
                 )
             }
         }
@@ -405,6 +416,7 @@ private fun DayScheduleContent(
 private fun CircleMemberPeriodCard(
     period: PeriodDetails,
     dayIndex: Int,
+    onLocationClick: (String) -> Unit,
 ) {
     val timeFormat = remember { SimpleDateFormat("h:mm a", Locale.getDefault()) }
     val startTimeStr =
@@ -455,80 +467,95 @@ private fun CircleMemberPeriodCard(
                 .fillMaxWidth(),
         colors =
             CardDefaults.cardColors(
-                containerColor = if (isActive) Accent.copy(alpha = 0.1f) else Secondary,
+                containerColor = Secondary,
             ),
+        border =
+            if (isActive) {
+                BorderStroke(
+                    1.dp,
+                    Accent,
+                )
+            } else {
+                null
+            },
         shape = RoundedCornerShape(16.dp),
     ) {
         Column(
             modifier =
                 Modifier
                     .fillMaxWidth()
-                    .padding(20.dp),
+                    .padding(horizontal = 24.dp, vertical = 28.dp),
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
+                verticalAlignment = Alignment.Top,
             ) {
-                Column(modifier = Modifier.weight(1f)) {
+                Column(
+                    modifier = Modifier.weight(1f),
+                ) {
                     Text(
                         text = period.courseName,
-                        style = MaterialTheme.typography.titleMedium,
+                        style = MaterialTheme.typography.labelLarge,
                         fontWeight = FontWeight.Bold,
                         color = TextColor,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
                     )
-
-                    Spacer(modifier = Modifier.height(4.dp))
-
-                    Text(
-                        text = period.courseCode,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = Accent,
-                        fontWeight = FontWeight.Medium,
-                    )
-                }
-
-                Column(
-                    horizontalAlignment = Alignment.End,
-                ) {
-                    Text(
-                        text = "$startTimeStr - $endTimeStr",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = TextColor,
-                        fontWeight = FontWeight.Medium,
-                    )
-
-                    if (period.roomNo.isNotEmpty()) {
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = period.roomNo,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = Accent,
-                        )
-                    }
                 }
             }
 
-            if (isActive) {
-                Spacer(modifier = Modifier.height(12.dp))
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                ) {
+            Spacer(modifier = Modifier.height(4.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = "$startTimeStr - $endTimeStr | ${period.slot}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Accent,
+                    fontWeight = FontWeight.Medium,
+                )
+
+                if (period.roomNo.isNotEmpty()) {
                     Box(
                         modifier =
                             Modifier
-                                .size(8.dp)
-                                .background(Accent, CircleShape),
-                    )
-                    Text(
-                        text = "Currently in this class",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = Accent,
-                        fontWeight = FontWeight.Medium,
-                    )
+                                .clip(RoundedCornerShape(9999.dp))
+                                .clickable(
+                                    onClick = { onLocationClick(period.roomNo) },
+                                ).border(
+                                    width = 1.dp,
+                                    color = Accent,
+                                    shape = RoundedCornerShape(9999.dp),
+                                ).padding(horizontal = 8.dp, vertical = 4.dp),
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Image(
+                                painter = painterResource(id = R.drawable.ic_compass),
+                                contentDescription = "Compass icon",
+                                modifier = Modifier.size(12.dp),
+                                alignment = Alignment.Center,
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = period.roomNo,
+                                style =
+                                    MaterialTheme.typography.bodyMedium.copy(
+                                        fontSize = 12.sp,
+                                        lineHeight = 12.sp,
+                                        letterSpacing = (-0.12).sp,
+                                        textAlign = TextAlign.Center,
+                                    ),
+                                color = MaterialTheme.colorScheme.primary,
+                                fontWeight = FontWeight.Medium,
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -574,36 +601,4 @@ private suspend fun processFriendTimetableData(
         }
 
         result
-    }
-
-private fun parseTimeToTimestamp(timeString: String): com.google.firebase.Timestamp =
-    try {
-        val sanitizedTime =
-            if (timeString.contains("+05:53")) {
-                timeString.replace("+05:53", "+05:30")
-            } else {
-                timeString
-            }
-        val time = replaceYearIfZero(sanitizedTime)
-
-        val dateFormat = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX", java.util.Locale.getDefault())
-        val date = dateFormat.parse(time)
-        if (date != null) {
-            com.google.firebase.Timestamp(date)
-        } else {
-            Timber.d("Date parsing error: Unable to parse sanitized time: $time")
-            com.google.firebase.Timestamp
-                .now()
-        }
-    } catch (e: Exception) {
-        Timber.d("Date parsing error: Unparseable date: \"$timeString\"")
-        com.google.firebase.Timestamp
-            .now()
-    }
-
-private fun replaceYearIfZero(timeString: String): String =
-    if (timeString.startsWith("0000")) {
-        "2023" + timeString.substring(4)
-    } else {
-        timeString
     }

@@ -69,6 +69,7 @@ import com.dscvit.vitty.theme.Secondary
 import com.dscvit.vitty.theme.TextColor
 import com.dscvit.vitty.util.Constants
 import com.dscvit.vitty.util.QRCodeGenerator
+import com.dscvit.vitty.util.urlDecode
 import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -116,6 +117,7 @@ fun CircleDetailScreenContent(
                     val sharedPreferences = context.getSharedPreferences(Constants.USER_INFO, Context.MODE_PRIVATE)
                     val token = sharedPreferences.getString(Constants.COMMUNITY_TOKEN, "") ?: ""
                     connectViewModel.getCircleList(token)
+                    connectViewModel.refreshCircleRequests(token)
                     connectViewModel.clearCircleActionResponse()
                     onBackClick()
                 }
@@ -124,6 +126,7 @@ fun CircleDetailScreenContent(
                     val sharedPreferences = context.getSharedPreferences(Constants.USER_INFO, Context.MODE_PRIVATE)
                     val token = sharedPreferences.getString(Constants.COMMUNITY_TOKEN, "") ?: ""
                     connectViewModel.getCircleList(token)
+                    connectViewModel.refreshCircleRequests(token)
                     connectViewModel.clearCircleActionResponse()
                     onBackClick()
                 }
@@ -160,7 +163,6 @@ fun CircleDetailScreenContent(
                     )
                 }
             },
-            
             actions = {
                 Box {
                     IconButton(onClick = {
@@ -188,7 +190,6 @@ fun CircleDetailScreenContent(
                     }
 
                     if (showDropdownMenu) {
-                        
                         DropdownMenu(
                             expanded = showDropdownMenu,
                             onDismissRequest = { showDropdownMenu = false },
@@ -311,7 +312,7 @@ fun CircleDetailScreenContent(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    text = circle.circle_name,
+                    text = circle.circle_name.urlDecode(),
                     style =
                         MaterialTheme.typography.titleLarge.copy(
                             letterSpacing = (0.28).sp,
@@ -528,7 +529,6 @@ fun CircleDetailScreenContent(
         )
     }
 
-    
     if (showDeleteConfirmDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteConfirmDialog = false },
@@ -581,7 +581,6 @@ fun CircleDetailScreenContent(
         )
     }
 
-    
     if (showLeaveConfirmDialog) {
         AlertDialog(
             onDismissRequest = { showLeaveConfirmDialog = false },
@@ -632,28 +631,6 @@ fun CircleDetailScreenContent(
                 }
             },
         )
-    }
-
-    val circleActionResponse by connectViewModel.circleActionResponse.observeAsState()
-
-    
-    LaunchedEffect(circleActionResponse) {
-        circleActionResponse?.let { response ->
-            when (response.detail) {
-                "Circle deleted successfully" -> {
-                    Toast.makeText(context, "Circle deleted successfully", Toast.LENGTH_SHORT).show()
-                    onBackClick()
-                }
-                "Left circle successfully" -> {
-                    Toast.makeText(context, "Left circle successfully", Toast.LENGTH_SHORT).show()
-                    onBackClick()
-                }
-                else -> {
-                    Toast.makeText(context, response.detail ?: "Action completed", Toast.LENGTH_SHORT).show()
-                }
-            }
-            connectViewModel.clearCircleActionResponse()
-        }
     }
 }
 

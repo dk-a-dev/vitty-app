@@ -66,19 +66,73 @@ fun ConnectScreenContent(
     val isCircleRefreshing by connectViewModel.isCircleRefreshing.observeAsState(false)
     val friendRequests by connectViewModel.friendRequest.observeAsState()
     val receivedCircleRequests by connectViewModel.receivedCircleRequests.observeAsState()
-    val sentCircleRequests by connectViewModel.sentCircleRequests.observeAsState()
+    val requestActionResponse by connectViewModel.requestActionResponse.observeAsState()
+    val circleActionResponse by connectViewModel.circleActionResponse.observeAsState()
 
     val isNetworkAvailable = remember { mutableStateOf(isNetworkAvailable(context)) }
 
     var isCircleActionSheetVisible by remember { mutableStateOf(false) }
 
-    
-    val totalCircleRequests = (receivedCircleRequests?.data?.size ?: 0) + (sentCircleRequests?.data?.size ?: 0)
+    val totalCircleRequests = (receivedCircleRequests?.data?.size ?: 0)
 
     LaunchedEffect(Unit) {
         while (true) {
             isNetworkAvailable.value = isNetworkAvailable(context)
             kotlinx.coroutines.delay(5000)
+        }
+    }
+
+    LaunchedEffect(requestActionResponse) {
+        requestActionResponse?.let { response ->
+            if (response.detail == "Friend request accepted successfully!" ||
+                response.detail == "Friend request rejected successfully"
+            ) {
+                connectViewModel.clearRequestActionResponse()
+
+                val sharedPreferences = context.getSharedPreferences(Constants.USER_INFO, Context.MODE_PRIVATE)
+                val token = sharedPreferences.getString(Constants.COMMUNITY_TOKEN, "") ?: ""
+                val username = sharedPreferences.getString(Constants.COMMUNITY_USERNAME, "") ?: ""
+
+                if (token.isNotEmpty()) {
+                    connectViewModel.getFriendRequest(token)
+                    connectViewModel.getFriendList(token, username)
+                }
+            }
+        }
+    }
+
+    LaunchedEffect(circleActionResponse) {
+        circleActionResponse?.let { response ->
+            when (response.detail) {
+                "request accepted successfully" -> {
+                    connectViewModel.clearCircleActionResponse()
+
+                    val sharedPreferences = context.getSharedPreferences(Constants.USER_INFO, Context.MODE_PRIVATE)
+                    val token = sharedPreferences.getString(Constants.COMMUNITY_TOKEN, "") ?: ""
+                    if (token.isNotEmpty()) {
+                        connectViewModel.refreshCircleRequests(token)
+                        connectViewModel.getCircleList(token)
+                    }
+                }
+                "request declined successfully" -> {
+                    connectViewModel.clearCircleActionResponse()
+
+                    val sharedPreferences = context.getSharedPreferences(Constants.USER_INFO, Context.MODE_PRIVATE)
+                    val token = sharedPreferences.getString(Constants.COMMUNITY_TOKEN, "") ?: ""
+                    if (token.isNotEmpty()) {
+                        connectViewModel.refreshCircleRequests(token)
+                    }
+                }
+                "request unsent successfully" -> {
+                    connectViewModel.clearCircleActionResponse()
+
+                    val sharedPreferences = context.getSharedPreferences(Constants.USER_INFO, Context.MODE_PRIVATE)
+                    val token = sharedPreferences.getString(Constants.COMMUNITY_TOKEN, "") ?: ""
+                    if (token.isNotEmpty()) {
+                        connectViewModel.refreshCircleRequests(token)
+                    }
+                }
+            }
         }
     }
 
@@ -166,7 +220,6 @@ fun ConnectScreenContent(
         selectedTab = pagerState.currentPage
     }
 
-    
     LaunchedEffect(createCircleResponse) {
         createCircleResponse?.let { response ->
             Toast
@@ -176,19 +229,16 @@ fun ConnectScreenContent(
                     Toast.LENGTH_LONG,
                 ).show()
 
-            
             val sharedPreferences = context.getSharedPreferences(Constants.USER_INFO, Context.MODE_PRIVATE)
             val token = sharedPreferences.getString(Constants.COMMUNITY_TOKEN, "") ?: ""
             if (token.isNotEmpty()) {
                 connectViewModel.refreshCircleList(token)
             }
 
-            
             connectViewModel.clearCreateCircleResponse()
         }
     }
 
-    
     LaunchedEffect(joinCircleResponse) {
         joinCircleResponse?.let { response ->
             Toast
@@ -198,19 +248,16 @@ fun ConnectScreenContent(
                     Toast.LENGTH_LONG,
                 ).show()
 
-            
             val sharedPreferences = context.getSharedPreferences(Constants.USER_INFO, Context.MODE_PRIVATE)
             val token = sharedPreferences.getString(Constants.COMMUNITY_TOKEN, "") ?: ""
             if (token.isNotEmpty()) {
                 connectViewModel.refreshCircleList(token)
             }
 
-            
             connectViewModel.clearJoinCircleResponse()
         }
     }
 
-    
     LaunchedEffect(joinCircleError) {
         joinCircleError?.let { error ->
             Toast
@@ -220,7 +267,6 @@ fun ConnectScreenContent(
                     Toast.LENGTH_LONG,
                 ).show()
 
-            
             connectViewModel.clearJoinCircleError()
         }
     }
