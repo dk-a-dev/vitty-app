@@ -297,6 +297,7 @@ fun AddParticipantsScreenContent(
 
             Spacer(modifier = Modifier.height(16.dp))
 
+
             if (selectedUsers.isNotEmpty()) {
                 LazyColumn(
                     modifier = Modifier.height(150.dp),
@@ -323,6 +324,7 @@ fun AddParticipantsScreenContent(
                 )
                 Spacer(modifier = Modifier.height(8.dp))
             }
+
 
             val displayUsers = if (searchQuery.isBlank()) filteredSuggestedFriends else filteredSearchResults
             val selectedUsernames = selectedUsers.map { it.username }.toSet()
@@ -382,6 +384,7 @@ fun AddParticipantsScreenContent(
                     }
                 }
             }
+
 
             if (selectedUsers.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(16.dp))
@@ -472,6 +475,7 @@ private fun UserSelectionCard(
 
             Spacer(modifier = Modifier.width(12.dp))
 
+
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = user.name,
@@ -489,6 +493,7 @@ private fun UserSelectionCard(
                     overflow = TextOverflow.Ellipsis,
                 )
             }
+
 
             Box(
                 modifier =
@@ -589,6 +594,7 @@ private fun SelectedUserCard(
                     )
                 }
             }
+
 
             IconButton(
                 onClick = onRemove,
