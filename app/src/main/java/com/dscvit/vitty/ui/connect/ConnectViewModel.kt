@@ -227,6 +227,7 @@ class ConnectViewModel : ViewModel() {
                     t: Throwable?,
                 ) {
                     Timber.d("AcceptRequest: ${t?.message}")
+                    _requestActionResponse.postValue(null)
                 }
             },
         )
@@ -253,6 +254,7 @@ class ConnectViewModel : ViewModel() {
                     t: Throwable?,
                 ) {
                     Timber.d("RejectRequest: ${t?.message}")
+                    _requestActionResponse.postValue(null)
                 }
             },
         )
@@ -299,7 +301,6 @@ class ConnectViewModel : ViewModel() {
                     _circleList.postValue(response)
                     _isCircleRefreshing.postValue(false)
 
-                    
                     response?.data?.forEach { circle ->
                         getCircleDetails(token, circle.circle_id)
                     }
@@ -404,7 +405,6 @@ class ConnectViewModel : ViewModel() {
             "ConnectViewModel.joinCircleByCode called with token: ${if (token.isNotEmpty()) "exists" else "empty"}, joinCode: $joinCode",
         )
 
-        
         _joinCircleResponse.postValue(null)
         _joinCircleError.postValue(null)
 
@@ -557,5 +557,88 @@ class ConnectViewModel : ViewModel() {
 
     fun clearCircleActionResponse() {
         _circleActionResponse.postValue(null)
+    }
+
+    fun acceptCircleRequest(
+        token: String,
+        circleId: String,
+    ) {
+        APICommunityRestClient.instance.acceptCircleRequest(
+            token,
+            circleId,
+            object : RetrofitUserActionListener {
+                override fun onSuccess(
+                    call: Call<PostResponse>?,
+                    response: PostResponse?,
+                ) {
+                    Timber.d("AcceptCircleRequest: $response")
+                    _circleActionResponse.postValue(response)
+                }
+
+                override fun onError(
+                    call: Call<PostResponse>?,
+                    t: Throwable?,
+                ) {
+                    Timber.d("AcceptCircleRequestError: ${t?.message}")
+                    _circleActionResponse.postValue(null)
+                }
+            },
+        )
+    }
+
+    fun declineCircleRequest(
+        token: String,
+        circleId: String,
+    ) {
+        APICommunityRestClient.instance.declineCircleRequest(
+            token,
+            circleId,
+            object : RetrofitUserActionListener {
+                override fun onSuccess(
+                    call: Call<PostResponse>?,
+                    response: PostResponse?,
+                ) {
+                    Timber.d("DeclineCircleRequest: $response")
+                    _circleActionResponse.postValue(response)
+                }
+
+                override fun onError(
+                    call: Call<PostResponse>?,
+                    t: Throwable?,
+                ) {
+                    Timber.d("DeclineCircleRequestError: ${t?.message}")
+                    _circleActionResponse.postValue(null)
+                }
+            },
+        )
+    }
+
+    fun unsendCircleRequest(
+        token: String,
+        circleId: String,
+        username: String,
+    ) {
+        APICommunityRestClient.instance.unsendCircleRequest(
+            token,
+            circleId,
+            username,
+            object : RetrofitUserActionListener {
+                override fun onSuccess(
+                    call: Call<PostResponse>?,
+                    response: PostResponse?,
+                ) {
+                    Timber.d("UnsendCircleRequest: $response")
+                    _circleActionResponse.postValue(response)
+                }
+
+                override fun onError(
+                    call: Call<PostResponse>?,
+                    t: Throwable?,
+                ) {
+                    Timber.d("UnsendCircleRequestError: ${t?.message}")
+                    _circleActionResponse.postValue(null)
+                }
+            },
+        )
     }
 }

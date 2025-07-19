@@ -1,5 +1,8 @@
 package com.dscvit.vitty.util
 
+import java.net.URLDecoder
+import java.nio.charset.StandardCharsets
+
 object Constants {
     const val GHOST_MODE = "false"
     const val PERIODS = "periods"
@@ -56,3 +59,10 @@ object Constants {
     const val REMINDER_CHANNEL_NAME = "Reminders"
     const val REMINDER_CHANNEL_DESC = "Notifications for course reminders"
 }
+
+fun String.urlDecode(): String =
+    try {
+        URLDecoder.decode(this, StandardCharsets.UTF_8.toString())
+    } catch (e: Exception) {
+        this
+    }

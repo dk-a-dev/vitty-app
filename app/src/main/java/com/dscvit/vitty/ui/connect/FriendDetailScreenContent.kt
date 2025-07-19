@@ -74,7 +74,7 @@ import com.dscvit.vitty.theme.TextColor
 import com.dscvit.vitty.ui.schedule.ScheduleViewModel
 import com.dscvit.vitty.util.Constants
 import com.dscvit.vitty.util.Quote
-import com.google.firebase.Timestamp
+import com.dscvit.vitty.widget.parseTimeToTimestamp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -825,34 +825,4 @@ private suspend fun processFriendTimetableData(friend: TimetableResponse): Map<I
         }
 
         result
-    }
-
-private fun parseTimeToTimestamp(timeString: String): Timestamp =
-    try {
-        val sanitizedTime =
-            if (timeString.contains("+05:53")) {
-                timeString.replace("+05:53", "+05:30")
-            } else {
-                timeString
-            }
-        val time = replaceYearIfZero(sanitizedTime)
-
-        val dateFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX", Locale.getDefault())
-        val date = dateFormat.parse(time)
-        if (date != null) {
-            Timestamp(date)
-        } else {
-            Timber.d("Date parsing error: Unable to parse sanitized time: $time")
-            Timestamp.now()
-        }
-    } catch (e: Exception) {
-        Timber.d("Date parsing error: Unparseable date: \"$timeString\"")
-        Timestamp.now()
-    }
-
-private fun replaceYearIfZero(dateStr: String): String =
-    if (dateStr.startsWith("0")) {
-        "2023" + dateStr.substring(4)
-    } else {
-        dateStr
     }

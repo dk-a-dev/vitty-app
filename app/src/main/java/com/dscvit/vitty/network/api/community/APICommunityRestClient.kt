@@ -793,4 +793,125 @@ class APICommunityRestClient {
             },
         )
     }
+
+    fun acceptCircleRequest(
+        token: String,
+        circleId: String,
+        retrofitUserActionListener: RetrofitUserActionListener,
+    ) {
+        val bearerToken = "Bearer $token"
+
+        mApiUser = retrofit.create<APICommunity>(APICommunity::class.java)
+        val apiAcceptCircleRequestCall = mApiUser!!.acceptCircleRequest(bearerToken, circleId)
+        apiAcceptCircleRequestCall.enqueue(
+            object : Callback<PostResponse> {
+                override fun onResponse(
+                    call: Call<PostResponse>,
+                    response: Response<PostResponse>,
+                ) {
+                    Timber.d("AcceptCircleRequest: ${response.body()}")
+                    retrofitUserActionListener.onSuccess(call, response.body())
+                }
+
+                override fun onFailure(
+                    call: Call<PostResponse>,
+                    t: Throwable,
+                ) {
+                    Timber.d("AcceptCircleRequestError: ${t.message}")
+                    retrofitUserActionListener.onError(call, t)
+                }
+            },
+        )
+    }
+
+    fun declineCircleRequest(
+        token: String,
+        circleId: String,
+        retrofitUserActionListener: RetrofitUserActionListener,
+    ) {
+        val bearerToken = "Bearer $token"
+
+        mApiUser = retrofit.create<APICommunity>(APICommunity::class.java)
+        val apiDeclineCircleRequestCall = mApiUser!!.declineCircleRequest(bearerToken, circleId)
+        apiDeclineCircleRequestCall.enqueue(
+            object : Callback<PostResponse> {
+                override fun onResponse(
+                    call: Call<PostResponse>,
+                    response: Response<PostResponse>,
+                ) {
+                    Timber.d("DeclineCircleRequest: ${response.body()}")
+                    retrofitUserActionListener.onSuccess(call, response.body())
+                }
+
+                override fun onFailure(
+                    call: Call<PostResponse>,
+                    t: Throwable,
+                ) {
+                    Timber.d("DeclineCircleRequestError: ${t.message}")
+                    retrofitUserActionListener.onError(call, t)
+                }
+            },
+        )
+    }
+
+    fun unsendCircleRequest(
+        token: String,
+        circleId: String,
+        username: String,
+        retrofitUserActionListener: RetrofitUserActionListener,
+    ) {
+        val bearerToken = "Bearer $token"
+
+        mApiUser = retrofit.create<APICommunity>(APICommunity::class.java)
+        val apiUnsendCircleRequestCall = mApiUser!!.unsendCircleRequest(bearerToken, circleId, username)
+        apiUnsendCircleRequestCall.enqueue(
+            object : Callback<PostResponse> {
+                override fun onResponse(
+                    call: Call<PostResponse>,
+                    response: Response<PostResponse>,
+                ) {
+                    Timber.d("UnsendCircleRequest: ${response.body()}")
+                    retrofitUserActionListener.onSuccess(call, response.body())
+                }
+
+                override fun onFailure(
+                    call: Call<PostResponse>,
+                    t: Throwable,
+                ) {
+                    Timber.d("UnsendCircleRequestError: ${t.message}")
+                    retrofitUserActionListener.onError(call, t)
+                }
+            },
+        )
+    }
+
+    fun getEmptyClassrooms(
+        token: String,
+        slot: String,
+        callback: (Map<String, List<String>>?) -> Unit,
+    ) {
+        val bearerToken = "Bearer $token"
+
+        mApiUser = retrofit.create<APICommunity>(APICommunity::class.java)
+        val apiEmptyClassroomsCall = mApiUser!!.getEmptyClassrooms(bearerToken, slot)
+        apiEmptyClassroomsCall.enqueue(
+            object : Callback<Map<String, List<String>>> {
+                override fun onResponse(
+                    call: Call<Map<String, List<String>>>,
+                    response: Response<Map<String, List<String>>>,
+                ) {
+                    Timber.d("EmptyClassrooms: ${response.body()}")
+                    callback(response.body())
+                }
+
+                override fun onFailure(
+                    call: Call<Map<String, List<String>>>,
+                    t: Throwable,
+                ) {
+                    Timber.d("EmptyClassroomsError: ${t.message}")
+                    callback(null)
+                }
+            },
+        )
+    }
 }

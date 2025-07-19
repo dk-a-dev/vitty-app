@@ -85,7 +85,7 @@ fun AddParticipantsScreenContent(
     var isSearching by remember { mutableStateOf(false) }
     var selectedUsers by remember { mutableStateOf(setOf<String>()) }
     var sendingRequests by remember { mutableStateOf(false) }
-    var requestStates by remember { mutableStateOf(mapOf<String, Boolean?>()) } 
+    var requestStates by remember { mutableStateOf(mapOf<String, Boolean?>()) }
     var pendingRequestsCount by remember { mutableStateOf(0) }
 
     val sharedPreferences =
@@ -109,7 +109,6 @@ fun AddParticipantsScreenContent(
     val searchResults by communityViewModel.searchResult.observeAsState()
     val actionResponse by communityViewModel.actionResponse.observeAsState()
 
-    
     LaunchedEffect(actionResponse) {
         if (sendingRequests && actionResponse != null) {
             val currentUser = requestStates.keys.find { requestStates[it] == null }
@@ -121,11 +120,9 @@ fun AddParticipantsScreenContent(
                     }
                 pendingRequestsCount--
 
-                
-                communityViewModel.actionResponse.postValue(null)
-
-                
                 if (pendingRequestsCount == 0) {
+                    communityViewModel.actionResponse.postValue(null)
+
                     val failedUsers = requestStates.filter { it.value == false }.keys.toList()
 
                     if (failedUsers.isEmpty()) {
@@ -205,7 +202,6 @@ fun AddParticipantsScreenContent(
                 .fillMaxSize()
                 .background(Background),
     ) {
-        
         CenterAlignedTopAppBar(
             title = {
                 Text(
@@ -237,7 +233,6 @@ fun AddParticipantsScreenContent(
                     .fillMaxSize()
                     .padding(horizontal = 24.dp, vertical = 16.dp),
         ) {
-            
             Box(
                 modifier =
                     Modifier
@@ -300,9 +295,7 @@ fun AddParticipantsScreenContent(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            
             if (selectedUsers.isNotEmpty()) {
-                
                 LazyColumn(
                     modifier = Modifier.height(150.dp),
                     contentPadding = PaddingValues(vertical = 4.dp),
@@ -335,7 +328,6 @@ fun AddParticipantsScreenContent(
                 Spacer(modifier = Modifier.height(8.dp))
             }
 
-            
             val displayUsers = if (searchQuery.isBlank()) filteredSuggestedFriends else filteredSearchResults
             val filteredUsers =
                 displayUsers?.filter { user ->
@@ -395,7 +387,6 @@ fun AddParticipantsScreenContent(
                 }
             }
 
-            
             if (selectedUsers.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(16.dp))
                 Button(
@@ -453,7 +444,6 @@ private fun UserSelectionCard(
                     .padding(horizontal = 24.dp, vertical = 20.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            
             Box(
                 modifier =
                     Modifier
@@ -486,7 +476,6 @@ private fun UserSelectionCard(
 
             Spacer(modifier = Modifier.width(12.dp))
 
-            
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = user.name,
@@ -505,7 +494,6 @@ private fun UserSelectionCard(
                 )
             }
 
-            
             Box(
                 modifier =
                     Modifier
@@ -551,7 +539,6 @@ private fun SelectedUserCard(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
-            
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.weight(1f),
@@ -607,7 +594,6 @@ private fun SelectedUserCard(
                 }
             }
 
-            
             IconButton(
                 onClick = onRemove,
                 modifier = Modifier.size(24.dp),

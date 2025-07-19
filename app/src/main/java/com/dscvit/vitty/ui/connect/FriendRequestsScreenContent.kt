@@ -70,11 +70,11 @@ fun FriendRequestsScreenContent(
     var isLoading by remember { mutableStateOf(true) }
 
     val friendRequests by connectViewModel.friendRequest.observeAsState()
-
     val requestActionResponse by connectViewModel.requestActionResponse.observeAsState()
 
     LaunchedEffect(friendRequests) {
         isLoading = false
+        processedRequests = setOf()
     }
 
     LaunchedEffect(requestActionResponse?.detail) {

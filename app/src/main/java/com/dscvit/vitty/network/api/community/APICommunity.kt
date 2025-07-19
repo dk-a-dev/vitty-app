@@ -23,143 +23,168 @@ import retrofit2.http.Query
 
 interface APICommunity {
     @Headers("Content-Type: application/json")
-    @POST("/api/v2/auth/check-username")
+    @POST("/api/v3/auth/check-username")
     fun checkUsername(
         @Body body: UsernameRequestBody,
     ): Call<PostResponse>
 
     @Headers("Content-Type: application/json")
-    @POST("/api/v2/auth/firebase/")
+    @POST("/api/v3/auth/firebase/")
     fun signInInfo(
         @Body body: Any,
     ): Call<SignInResponse>
 
-    @GET("/api/v2/users/{username}")
+    @GET("/api/v3/users/{username}")
     fun getUser(
         @Header("Authorization") authToken: String,
         @Path("username") username: String,
     ): Call<UserResponse>
 
-    @GET("/api/v2/timetable/{username}/")
+    @GET("/api/v3/timetable/{username}/")
     fun getTimeTable(
         @Header("Authorization") authToken: String,
         @Path("username") username: String,
     ): Call<TimetableResponse>
 
-    @GET("/api/v2/circles/{circleId}/{username}/")
+    @GET("/api/v3/circles/{circleId}/{username}/")
     fun getCircleTimeTable(
         @Header("Authorization") authToken: String,
         @Path("circleId") circleId: String,
         @Path("username") username: String,
     ): Call<TimetableResponse>
 
-    @GET("/api/v2/friends/{username}/")
+    @GET("/api/v3/friends/{username}/")
     fun getFriendList(
         @Header("Authorization") authToken: String,
         @Path("username") username: String,
     ): Call<FriendResponse>
 
-    @GET("/api/v2/users/search")
+    @GET("/api/v3/users/search")
     fun searchUsers(
         @Header("Authorization") authToken: String,
         @Query("query") query: String,
     ): Call<List<UserResponse>>
 
-    @GET("/api/v2/requests/")
+    @GET("/api/v3/requests/")
     fun getFriendRequests(
         @Header("Authorization") authToken: String,
     ): Call<RequestsResponse>
 
-    @GET("/api/v2/users/suggested/")
+    @GET("/api/v3/users/suggested/")
     fun getSuggestedFriends(
         @Header("Authorization") authToken: String,
     ): Call<List<UserResponse>>
 
-    @POST("/api/v2/requests/{username}/send")
+    @POST("/api/v3/requests/{username}/send")
     fun sendRequest(
         @Header("Authorization") authToken: String,
         @Path("username") username: String,
     ): Call<PostResponse>
 
-    @POST("/api/v2/requests/{username}/accept/")
+    @POST("/api/v3/requests/{username}/accept/")
     fun acceptRequest(
         @Header("Authorization") authToken: String,
         @Path("username") username: String,
     ): Call<PostResponse>
 
-    @POST("/api/v2/requests/{username}/decline/")
+    @POST("/api/v3/requests/{username}/decline/")
     fun declineRequest(
         @Header("Authorization") authToken: String,
         @Path("username") username: String,
     ): Call<PostResponse>
 
-    @DELETE("/api/v2/friends/{username}/")
+    @DELETE("/api/v3/friends/{username}/")
     fun deleteFriend(
         @Header("Authorization") authToken: String,
         @Path("username") username: String,
     ): Call<PostResponse>
 
-    @POST("/api/v2/friends/ghost/{username}")
+    @POST("/api/v3/friends/ghost/{username}")
     fun enableGhostMode(
         @Header("Authorization") authToken: String,
         @Path("username") username: String,
     ): Call<PostResponse>
 
-    @POST("/api/v2/friends/alive/{username}")
+    @POST("/api/v3/friends/alive/{username}")
     fun disableGhostMode(
         @Header("Authorization") authToken: String,
         @Path("username") username: String,
     ): Call<PostResponse>
 
-    @GET("/api/v2/circles")
+    @GET("/api/v3/circles")
     fun getCircles(
         @Header("Authorization") authToken: String,
     ): Call<CircleResponse>
 
-    @POST("/api/v2/circles/create/{circleName}")
+    @POST("/api/v3/circles/create/{circleName}")
     fun createCircle(
         @Header("Authorization") authToken: String,
         @Path("circleName") circleName: String,
     ): Call<CreateCircleResponse>
 
-    @POST("/api/v2/circles/join")
+    @POST("/api/v3/circles/join")
     fun joinCircleByCode(
         @Header("Authorization") authToken: String,
         @Query("code") joinCode: String,
     ): Call<JoinCircleResponse>
 
-    @GET("/api/v2/circles/{circleId}")
+    @GET("/api/v3/circles/{circleId}")
     fun getCircleDetails(
         @Header("Authorization") authToken: String,
         @Path("circleId") circleId: String,
     ): Call<FriendResponse>
 
-    @POST("/api/v2/circles/sendRequest/{circleId}/{username}")
+    @POST("/api/v3/circles/sendRequest/{circleId}/{username}")
     fun sendCircleRequest(
         @Header("Authorization") authToken: String,
         @Path("circleId") circleId: String,
         @Path("username") username: String,
     ): Call<PostResponse>
 
-    @GET("/api/v2/circles/requests/received")
+    @GET("/api/v3/circles/requests/received")
     fun getReceivedCircleRequests(
         @Header("Authorization") authToken: String,
     ): Call<CircleRequestsResponse>
 
-    @GET("/api/v2/circles/requests/sent")
+    @GET("/api/v3/circles/requests/sent")
     fun getSentCircleRequests(
         @Header("Authorization") authToken: String,
     ): Call<CircleRequestsResponse>
 
-    @DELETE("/api/v2/circles/{circleId}")
+    @DELETE("/api/v3/circles/{circleId}")
     fun deleteCircle(
         @Header("Authorization") authToken: String,
         @Path("circleId") circleId: String,
     ): Call<PostResponse>
 
-    @DELETE("/api/v2/circles/leave/{circleId}")
+    @DELETE("/api/v3/circles/leave/{circleId}")
     fun leaveCircle(
         @Header("Authorization") authToken: String,
         @Path("circleId") circleId: String,
     ): Call<PostResponse>
+
+    @POST("/api/v3/circles/acceptRequest/{circleId}")
+    fun acceptCircleRequest(
+        @Header("Authorization") authToken: String,
+        @Path("circleId") circleId: String,
+    ): Call<PostResponse>
+
+    @POST("/api/v3/circles/declineRequest/{circleId}")
+    fun declineCircleRequest(
+        @Header("Authorization") authToken: String,
+        @Path("circleId") circleId: String,
+    ): Call<PostResponse>
+
+    @DELETE("/api/v3/circles/unsendRequest/{circleId}/{username}")
+    fun unsendCircleRequest(
+        @Header("Authorization") authToken: String,
+        @Path("circleId") circleId: String,
+        @Path("username") username: String,
+    ): Call<PostResponse>
+
+    @GET("/api/v3/timetable/emptyClassRooms")
+    fun getEmptyClassrooms(
+        @Header("Authorization") authToken: String,
+        @Query("slot") slot: String,
+    ): Call<Map<String, List<String>>>
 }

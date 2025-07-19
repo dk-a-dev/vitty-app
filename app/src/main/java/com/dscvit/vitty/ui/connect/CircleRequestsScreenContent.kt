@@ -1,5 +1,7 @@
 package com.dscvit.vitty.ui.connect
 
+import android.content.Context
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -17,6 +19,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
@@ -32,13 +37,16 @@ import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -49,8 +57,12 @@ import com.dscvit.vitty.R
 import com.dscvit.vitty.network.api.community.responses.circle.CircleRequestItem
 import com.dscvit.vitty.theme.Accent
 import com.dscvit.vitty.theme.Background
+import com.dscvit.vitty.theme.Green
+import com.dscvit.vitty.theme.Red
 import com.dscvit.vitty.theme.Secondary
 import com.dscvit.vitty.theme.TextColor
+import com.dscvit.vitty.util.Constants
+import com.dscvit.vitty.util.urlDecode
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -58,12 +70,57 @@ fun CircleRequestsScreenContent(
     onBackClick: () -> Unit = {},
     connectViewModel: ConnectViewModel,
 ) {
+    val context = LocalContext.current
     var selectedTab by remember { mutableIntStateOf(0) }
+    var processedRequests by remember { mutableStateOf(setOf<String>()) }
     val tabs = listOf("Received", "Sent")
 
     val receivedCircleRequests by connectViewModel.receivedCircleRequests.observeAsState()
     val sentCircleRequests by connectViewModel.sentCircleRequests.observeAsState()
     val isLoading by connectViewModel.isCircleRequestsLoading.observeAsState(false)
+    val circleActionResponse by connectViewModel.circleActionResponse.observeAsState()
+
+    LaunchedEffect(receivedCircleRequests, sentCircleRequests) {
+        processedRequests = setOf()
+    }
+
+    LaunchedEffect(circleActionResponse) {
+        circleActionResponse?.let { response ->
+            when (response.detail) {
+                "request accepted successfully" -> {
+                    Toast.makeText(context, "Circle request accepted", Toast.LENGTH_SHORT).show()
+                    connectViewModel.clearCircleActionResponse()
+
+                    val sharedPreferences = context.getSharedPreferences(Constants.USER_INFO, Context.MODE_PRIVATE)
+                    val token = sharedPreferences.getString(Constants.COMMUNITY_TOKEN, "") ?: ""
+                    if (token.isNotEmpty()) {
+                        connectViewModel.refreshCircleRequests(token)
+                        connectViewModel.getCircleList(token)
+                    }
+                }
+                "request declined successfully" -> {
+                    Toast.makeText(context, "Circle request declined", Toast.LENGTH_SHORT).show()
+                    connectViewModel.clearCircleActionResponse()
+
+                    val sharedPreferences = context.getSharedPreferences(Constants.USER_INFO, Context.MODE_PRIVATE)
+                    val token = sharedPreferences.getString(Constants.COMMUNITY_TOKEN, "") ?: ""
+                    if (token.isNotEmpty()) {
+                        connectViewModel.refreshCircleRequests(token)
+                    }
+                }
+                "request unsent successfully" -> {
+                    Toast.makeText(context, "Circle request unsent", Toast.LENGTH_SHORT).show()
+                    connectViewModel.clearCircleActionResponse()
+
+                    val sharedPreferences = context.getSharedPreferences(Constants.USER_INFO, Context.MODE_PRIVATE)
+                    val token = sharedPreferences.getString(Constants.COMMUNITY_TOKEN, "") ?: ""
+                    if (token.isNotEmpty()) {
+                        connectViewModel.refreshCircleRequests(token)
+                    }
+                }
+            }
+        }
+    }
 
     Column(
         modifier =
@@ -152,20 +209,32 @@ fun CircleRequestsScreenContent(
             when (selectedTab) {
                 0 -> {
                     val requests = receivedCircleRequests?.data ?: emptyList()
+                    val pendingRequests = requests.filter { !processedRequests.contains(it.circle_id) }
                     CircleRequestsList(
-                        requests = requests,
+                        requests = pendingRequests,
                         isReceived = true,
                         emptyTitle = "No circle requests",
                         emptySubtitle = "You have no pending circle invitations",
+                        connectViewModel = connectViewModel,
+                        processedRequests = processedRequests,
+                        onRequestProcessed = { circleId ->
+                            processedRequests = processedRequests + circleId
+                        },
                     )
                 }
                 1 -> {
                     val requests = sentCircleRequests?.data ?: emptyList()
+                    val pendingRequests = requests.filter { !processedRequests.contains(it.circle_id) }
                     CircleRequestsList(
-                        requests = requests,
+                        requests = pendingRequests,
                         isReceived = false,
                         emptyTitle = "No sent requests",
                         emptySubtitle = "You haven't sent any circle requests",
+                        connectViewModel = connectViewModel,
+                        processedRequests = processedRequests,
+                        onRequestProcessed = { circleId ->
+                            processedRequests = processedRequests + circleId
+                        },
                     )
                 }
             }
@@ -179,6 +248,9 @@ private fun CircleRequestsList(
     isReceived: Boolean,
     emptyTitle: String,
     emptySubtitle: String,
+    connectViewModel: ConnectViewModel,
+    processedRequests: Set<String>,
+    onRequestProcessed: (String) -> Unit,
 ) {
     if (requests.isEmpty()) {
         Box(
@@ -219,6 +291,9 @@ private fun CircleRequestsList(
                 CircleRequestCard(
                     request = request,
                     isReceived = isReceived,
+                    connectViewModel = connectViewModel,
+                    processedRequests = processedRequests,
+                    onRequestProcessed = onRequestProcessed,
                 )
             }
         }
@@ -229,7 +304,12 @@ private fun CircleRequestsList(
 private fun CircleRequestCard(
     request: CircleRequestItem,
     isReceived: Boolean,
+    connectViewModel: ConnectViewModel,
+    processedRequests: Set<String>,
+    onRequestProcessed: (String) -> Unit,
 ) {
+    val context = LocalContext.current
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = Secondary),
@@ -240,7 +320,7 @@ private fun CircleRequestCard(
             modifier =
                 Modifier
                     .fillMaxWidth()
-                    .padding(24.dp),
+                    .padding(start = 24.dp, top = 20.dp, end = 16.dp, bottom = 20.dp),
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -269,7 +349,7 @@ private fun CircleRequestCard(
 
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = request.circle_name,
+                        text = request.circle_name.urlDecode(),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Medium,
                         color = TextColor,
@@ -295,8 +375,58 @@ private fun CircleRequestCard(
                     )
                 }
 
-                // TODO: Add accept/reject buttons for received requests
-                // For now, we'll just show the request information
+                if (isReceived) {
+                    IconButton(
+                        onClick = {
+                            val sharedPreferences = context.getSharedPreferences(Constants.USER_INFO, Context.MODE_PRIVATE)
+                            val token = sharedPreferences.getString(Constants.COMMUNITY_TOKEN, "") ?: ""
+                            if (token.isNotEmpty()) {
+                                onRequestProcessed(request.circle_id)
+                                connectViewModel.declineCircleRequest(token, request.circle_id)
+                            }
+                        },
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "Decline",
+                            tint = Red,
+                        )
+                    }
+
+                    IconButton(
+                        onClick = {
+                            val sharedPreferences = context.getSharedPreferences(Constants.USER_INFO, Context.MODE_PRIVATE)
+                            val token = sharedPreferences.getString(Constants.COMMUNITY_TOKEN, "") ?: ""
+                            if (token.isNotEmpty()) {
+                                onRequestProcessed(request.circle_id)
+                                connectViewModel.acceptCircleRequest(token, request.circle_id)
+                            }
+                        },
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Check,
+                            contentDescription = "Accept",
+                            tint = Green,
+                        )
+                    }
+                } else {
+                    IconButton(
+                        onClick = {
+                            val sharedPreferences = context.getSharedPreferences(Constants.USER_INFO, Context.MODE_PRIVATE)
+                            val token = sharedPreferences.getString(Constants.COMMUNITY_TOKEN, "") ?: ""
+                            if (token.isNotEmpty()) {
+                                onRequestProcessed(request.circle_id)
+                                connectViewModel.unsendCircleRequest(token, request.circle_id, request.to_username)
+                            }
+                        },
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "Unsend",
+                            tint = Red,
+                        )
+                    }
+                }
             }
         }
     }

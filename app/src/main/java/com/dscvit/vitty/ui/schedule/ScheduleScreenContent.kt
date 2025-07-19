@@ -78,7 +78,7 @@ import com.dscvit.vitty.util.Constants
 import com.dscvit.vitty.util.Quote
 import com.dscvit.vitty.util.UtilFunctions
 import com.dscvit.vitty.util.VITMap
-import com.google.firebase.Timestamp
+import com.dscvit.vitty.widget.parseTimeToTimestamp
 import com.google.gson.Gson
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -90,7 +90,10 @@ import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ScheduleScreenContent(onOpenDrawer: () -> Unit = {}) {
+fun ScheduleScreenContent(
+    onOpenDrawer: () -> Unit = {},
+    onCardClick: (String, String) -> Unit = { _, _ -> },
+) {
     val context = LocalContext.current
     val prefs = context.getSharedPreferences(Constants.USER_INFO, Context.MODE_PRIVATE)
     val scheduleViewModel: ScheduleViewModel = viewModel()
@@ -307,6 +310,7 @@ fun ScheduleScreenContent(onOpenDrawer: () -> Unit = {}) {
                         periods = allDaysData[page] ?: emptyList(),
                         quote = quote,
                         dayIndex = page,
+                        onCardClick = onCardClick,
                     )
                 }
             }
@@ -357,6 +361,7 @@ private fun DayContent(
     periods: List<PeriodDetails>,
     quote: String,
     dayIndex: Int,
+    onCardClick: (String, String) -> Unit = { _, _ -> },
 ) {
     val context = LocalContext.current
 
@@ -413,6 +418,7 @@ private fun DayContent(
                     onLocationClick = { roomNo ->
                         VITMap.openClassMap(context, roomNo)
                     },
+                    onCardClick = onCardClick,
                 )
             }
         }
@@ -424,6 +430,7 @@ private fun PeriodCard(
     period: PeriodDetails,
     dayIndex: Int,
     onLocationClick: (String) -> Unit,
+    onCardClick: (String, String) -> Unit = { _, _ -> },
 ) {
     val timeFormat = remember { SimpleDateFormat("h:mm a", Locale.getDefault()) }
     val startTimeStr =
@@ -486,6 +493,9 @@ private fun PeriodCard(
                 null
             },
         shape = RoundedCornerShape(16.dp),
+        onClick = {
+            onCardClick(period.courseName, period.courseCode)
+        },
     ) {
         Column(
             modifier =
@@ -616,33 +626,3 @@ private fun processAllDaysData(
 
     return result
 }
-
-private fun parseTimeToTimestamp(timeString: String): Timestamp =
-    try {
-        val sanitizedTime =
-            if (timeString.contains("+05:53")) {
-                timeString.replace("+05:53", "+05:30")
-            } else {
-                timeString
-            }
-        val time = replaceYearIfZero(sanitizedTime)
-
-        val dateFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX", Locale.getDefault())
-        val date = dateFormat.parse(time)
-        if (date != null) {
-            Timestamp(date)
-        } else {
-            Timber.d("Date parsing error: Unable to parse sanitized time: $time")
-            Timestamp.now()
-        }
-    } catch (e: Exception) {
-        Timber.d("Date parsing error: Unparseable date: \"$timeString\"")
-        Timestamp.now()
-    }
-
-private fun replaceYearIfZero(dateStr: String): String =
-    if (dateStr.startsWith("0")) {
-        "2023" + dateStr.substring(4)
-    } else {
-        dateStr
-    }
