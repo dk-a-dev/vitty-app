@@ -641,4 +641,35 @@ class ConnectViewModel : ViewModel() {
             },
         )
     }
+
+    fun removeUserFromCircle(
+        token: String,
+        circleId: String,
+        username: String,
+    ) {
+        APICommunityRestClient.instance.removeUserFromCircle(
+            token,
+            circleId,
+            username,
+            object : RetrofitUserActionListener {
+                override fun onSuccess(
+                    call: Call<PostResponse>?,
+                    response: PostResponse?,
+                ) {
+                    Timber.d("RemoveUserFromCircle: $response")
+                    _circleActionResponse.postValue(response)
+                    
+                    getCircleDetails(token, circleId)
+                }
+
+                override fun onError(
+                    call: Call<PostResponse>?,
+                    t: Throwable?,
+                ) {
+                    Timber.d("RemoveUserFromCircleError: ${t?.message}")
+                    _circleActionResponse.postValue(null)
+                }
+            },
+        )
+    }
 }

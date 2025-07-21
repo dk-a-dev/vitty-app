@@ -13,6 +13,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.fragment.findNavController
 import com.dscvit.vitty.databinding.FragmentAcademicsBinding
 import com.dscvit.vitty.network.api.community.responses.user.UserResponse
@@ -91,6 +92,8 @@ class AcademicsFragment : Fragment() {
                                     )
                             findNavController().navigate(action)
                         },
+                        academicsViewModel = viewModel(),
+                        coursePageViewModel = viewModel(),
                     )
                 }
             }

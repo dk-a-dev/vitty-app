@@ -19,19 +19,24 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Tab
@@ -62,6 +67,7 @@ import com.dscvit.vitty.theme.Red
 import com.dscvit.vitty.theme.Secondary
 import com.dscvit.vitty.theme.TextColor
 import com.dscvit.vitty.ui.academics.models.Course
+import com.dscvit.vitty.ui.connect.components.FilterChip
 import com.dscvit.vitty.ui.coursepage.components.RemindersChip
 import com.dscvit.vitty.ui.coursepage.models.Reminder
 import com.dscvit.vitty.ui.coursepage.models.ReminderStatus
@@ -83,6 +89,8 @@ fun AcademicsHeader(
     onReminderStatusChange: (Int) -> Unit,
     reminderSearchQuery: String = "",
     onReminderSearchQueryChange: (String) -> Unit = {},
+    courses: List<Course> = emptyList(),
+    onCourseSelected: (Course) -> Unit = {},
 ) {
     Column(
         modifier =
@@ -113,6 +121,8 @@ fun AcademicsHeader(
                     onReminderStatusChange = onReminderStatusChange,
                     searchQuery = reminderSearchQuery,
                     onSearchQueryChange = onReminderSearchQueryChange,
+                    courses = courses,
+                    onCourseSelected = onCourseSelected,
                 )
         }
     }
@@ -181,14 +191,6 @@ fun CoursesTabFilters(
             searchQuery = searchQuery,
             onSearchQueryChange = onSearchQueryChange,
         )
-
-        Spacer(Modifier.height(16.dp))
-
-        FilterChipRow(
-            options = listOf("Current Semester", "All Semesters"),
-            selectedIndex = if (isCurrentSemester) 0 else 1,
-            onSelectionChange = { index -> onSemesterFilterChange(index == 0) },
-        )
     }
 }
 
@@ -198,7 +200,11 @@ fun RemindersTabFilters(
     onReminderStatusChange: (Int) -> Unit,
     searchQuery: String = "",
     onSearchQueryChange: (String) -> Unit = {},
+    courses: List<Course> = emptyList(),
+    onCourseSelected: (Course) -> Unit = {},
 ) {
+    var showCourseSelectionBottomSheet by remember { mutableStateOf(false) }
+
     Column {
         SearchBar(
             searchQuery = searchQuery,
@@ -208,10 +214,22 @@ fun RemindersTabFilters(
 
         Spacer(Modifier.height(16.dp))
 
-        FilterChipRow(
+        FilterChipRowWithAddButton(
             options = listOf("Pending", "Completed"),
             selectedIndex = reminderStatus,
             onSelectionChange = onReminderStatusChange,
+            onAddClick = { showCourseSelectionBottomSheet = true },
+        )
+    }
+
+    if (showCourseSelectionBottomSheet) {
+        CourseSelectionBottomSheet(
+            courses = courses,
+            onDismiss = { showCourseSelectionBottomSheet = false },
+            onCourseSelected = { course ->
+                showCourseSelectionBottomSheet = false
+                onCourseSelected(course)
+            },
         )
     }
 }
@@ -284,63 +302,57 @@ fun SearchBar(
 }
 
 @Composable
-fun FilterChipRow(
+fun FilterChipRowWithAddButton(
     options: List<String>,
     selectedIndex: Int,
     onSelectionChange: (Int) -> Unit,
+    onAddClick: () -> Unit,
 ) {
     Row(
         modifier =
             Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 20.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
     ) {
-        options.forEachIndexed { index, label ->
-            FilterChip(
-                label = label,
-                isSelected = selectedIndex == index,
-                onClick = { onSelectionChange(index) },
-            )
-            if (index < options.lastIndex) {
-                Spacer(Modifier.width(12.dp))
+        Row {
+            options.forEachIndexed { index, label ->
+                FilterChip(
+                    label = label,
+                    isSelected = selectedIndex == index,
+                    onClick = { onSelectionChange(index) },
+                )
+                if (index < options.lastIndex) {
+                    Spacer(Modifier.width(12.dp))
+                }
             }
         }
+
+        AddButton(onClick = onAddClick)
     }
 }
 
 @Composable
-fun FilterChip(
-    label: String,
-    isSelected: Boolean,
-    onClick: () -> Unit,
-) {
+fun AddButton(onClick: () -> Unit) {
     Box(
         modifier =
             Modifier
-                .clip(RoundedCornerShape(24.dp))
+                .clip(CircleShape)
                 .background(Secondary)
-                .border(
-                    1.dp,
-                    if (isSelected) Accent else Color.Transparent,
-                    RoundedCornerShape(24.dp),
-                ).clickable { onClick() }
-                .padding(horizontal = 12.dp, vertical = 8.dp),
+                .border(1.dp, Accent, CircleShape)
+                .clickable { onClick() }
+                .padding(8.dp),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            if (isSelected) {
-                Icon(
-                    imageVector = Icons.Default.Check,
-                    contentDescription = null,
-                    tint = Accent,
-                    modifier = Modifier.size(18.dp),
-                )
-                Spacer(Modifier.width(4.dp))
-            }
-            Text(
-                text = label,
-                color = if (isSelected) Accent else TextColor.copy(alpha = 0.5f),
-                fontWeight = FontWeight.Normal,
-                style = MaterialTheme.typography.bodyMedium,
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center,
+        ) {
+            Icon(
+                imageVector = Icons.Default.Add,
+                contentDescription = "Add Reminder",
+                tint = Accent,
+                modifier = Modifier.size(18.dp),
             )
         }
     }
@@ -546,7 +558,6 @@ fun RemindersContent(
     }
 }
 
-@RequiresApi(Build.VERSION_CODES.O)
 fun groupRemindersByDate(reminders: List<Reminder>): LinkedHashMap<String, List<Reminder>> =
     reminders
         .sortedBy { it.dateMillis }
@@ -688,7 +699,6 @@ fun SwipeableReminderCard(
                         }
                     }
                     else -> {
-                    
                     }
                 }
             },
@@ -791,5 +801,83 @@ fun DateHeaderWithChip(
                 reminder = firstReminder,
             )
         }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun CourseSelectionBottomSheet(
+    courses: List<Course>,
+    onDismiss: () -> Unit,
+    onCourseSelected: (Course) -> Unit,
+) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        containerColor = Background,
+        contentColor = TextColor,
+        dragHandle = {
+            Box(
+                modifier =
+                    Modifier
+                        .padding(top = 16.dp)
+                        .width(120.dp)
+                        .height(7.dp)
+                        .background(Accent.copy(alpha = .4f), shape = RoundedCornerShape(44.dp)),
+            ) {
+            }
+        },
+    ) {
+        Column(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+        ) {
+            Text(
+                text = "Select a Course",
+                style = MaterialTheme.typography.titleLarge,
+                color = TextColor,
+                modifier = Modifier.padding(bottom = 16.dp),
+            )
+
+            LazyColumn(
+                modifier = Modifier.wrapContentHeight(),
+            ) {
+                items(courses) { course ->
+                    CourseItem(
+                        course = course,
+                        onClick = {
+                            onCourseSelected(course)
+                        },
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
+                item {
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun CourseItem(
+    course: Course,
+    onClick: () -> Unit,
+) {
+    Box(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(12.dp))
+                .background(Secondary)
+                .clickable { onClick() }
+                .padding(16.dp),
+    ) {
+        Text(
+            text = course.title,
+            color = TextColor,
+            style = MaterialTheme.typography.bodyLarge,
+        )
     }
 }

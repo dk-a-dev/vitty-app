@@ -2,6 +2,10 @@ package com.dscvit.vitty.ui.connect
 
 import android.content.Context
 import android.widget.Toast
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -26,6 +30,7 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CenterAlignedTopAppBar
@@ -35,9 +40,12 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -88,6 +96,9 @@ fun CircleDetailScreenContent(
     var showDropdownMenu by remember { mutableStateOf(false) }
     var showDeleteConfirmDialog by remember { mutableStateOf(false) }
     var showLeaveConfirmDialog by remember { mutableStateOf(false) }
+    var showRemoveUserDialog by remember { mutableStateOf(false) }
+    var userToRemove by remember { mutableStateOf<UserResponse?>(null) }
+    var resetDismissCounter by remember { mutableStateOf(0) }
 
     val circleFriends = circleMembers?.data
     val actionResponse by connectViewModel.circleActionResponse.observeAsState()
@@ -129,6 +140,10 @@ fun CircleDetailScreenContent(
                     connectViewModel.refreshCircleRequests(token)
                     connectViewModel.clearCircleActionResponse()
                     onBackClick()
+                }
+                "user removed from circle" -> {
+                    Toast.makeText(context, "User removed from circle", Toast.LENGTH_SHORT).show()
+                    connectViewModel.clearCircleActionResponse()
                 }
                 else -> {
                     Toast.makeText(context, response.detail, Toast.LENGTH_SHORT).show()
@@ -195,8 +210,8 @@ fun CircleDetailScreenContent(
                             onDismissRequest = { showDropdownMenu = false },
                             modifier =
                                 Modifier
-                                    .background(Secondary)
-                                    .clip(RoundedCornerShape(8.dp)),
+                                    .background(Secondary),
+                            shape = RoundedCornerShape(8.dp),
                         ) {
                             if (circle.circle_role == "admin") {
                                 DropdownMenuItem(
@@ -447,11 +462,25 @@ fun CircleDetailScreenContent(
                 contentPadding = PaddingValues(bottom = 32.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                items(filteredFriends ?: emptyList()) { friend ->
-                    CircleFriendCard(
-                        friend = friend,
-                        onClick = { onMemberClick(friend, circle.circle_id) },
-                    )
+                items(filteredFriends ?: emptyList(), key = { friend -> "${friend.username}-$resetDismissCounter" }) { friend ->
+                    val sharedPreferences = context.getSharedPreferences(Constants.USER_INFO, Context.MODE_PRIVATE)
+                    val currentUsername = sharedPreferences.getString(Constants.COMMUNITY_USERNAME, "") ?: ""
+
+                    if (circle.circle_role == "admin" && friend.username != currentUsername) {
+                        SwipeToDismissCircleFriendCard(
+                            friend = friend,
+                            onClick = { onMemberClick(friend, circle.circle_id) },
+                            onRemove = {
+                                userToRemove = friend
+                                showRemoveUserDialog = true
+                            },
+                        )
+                    } else {
+                        CircleFriendCard(
+                            friend = friend,
+                            onClick = { onMemberClick(friend, circle.circle_id) },
+                        )
+                    }
                 }
             }
         }
@@ -632,6 +661,70 @@ fun CircleDetailScreenContent(
             },
         )
     }
+
+    if (showRemoveUserDialog) {
+        userToRemove?.let { user ->
+            AlertDialog(
+                onDismissRequest = {
+                    showRemoveUserDialog = false
+                    resetDismissCounter += 1
+                },
+                containerColor = Background,
+                titleContentColor = TextColor,
+                textContentColor = TextColor,
+                title = {
+                    Text(
+                        "Remove User",
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Medium,
+                        color = TextColor,
+                    )
+                },
+                text = {
+                    Text(
+                        text = "Are you sure you want to remove ${user.name} from the circle?",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = TextColor,
+                    )
+                },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            val sharedPreferences = context.getSharedPreferences(Constants.USER_INFO, Context.MODE_PRIVATE)
+                            val token = sharedPreferences.getString(Constants.COMMUNITY_TOKEN, "") ?: ""
+
+                            connectViewModel.removeUserFromCircle(
+                                token = token,
+                                circleId = circle.circle_id,
+                                username = user.username,
+                            )
+                            showRemoveUserDialog = false
+                        },
+                    ) {
+                        Text(
+                            "Remove",
+                            color = Accent,
+                            fontWeight = FontWeight.Medium,
+                        )
+                    }
+                },
+                dismissButton = {
+                    TextButton(
+                        onClick = {
+                            showRemoveUserDialog = false
+                            resetDismissCounter += 1
+                        },
+                    ) {
+                        Text(
+                            "Cancel",
+                            color = Accent.copy(alpha = 0.7f),
+                            fontWeight = FontWeight.Medium,
+                        )
+                    }
+                },
+            )
+        }
+    }
 }
 
 @Composable
@@ -724,6 +817,72 @@ fun CircleFriendCard(
                     )
                 }
             }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SwipeToDismissCircleFriendCard(
+    friend: UserResponse,
+    onClick: () -> Unit = {},
+    onRemove: () -> Unit = {},
+) {
+    var isDismissed by remember { mutableStateOf(false) }
+
+    val dismissState =
+        rememberSwipeToDismissBoxState(
+            confirmValueChange = { dismissValue ->
+                when (dismissValue) {
+                    SwipeToDismissBoxValue.EndToStart -> {
+                        isDismissed = true
+                        true
+                    }
+                    else -> false
+                }
+            },
+        )
+
+    LaunchedEffect(isDismissed) {
+        if (isDismissed) {
+            kotlinx.coroutines.delay(200)
+            onRemove()
+        }
+    }
+
+    AnimatedVisibility(
+        visible = !isDismissed,
+        exit = fadeOut(animationSpec = tween(200)),
+        enter = fadeIn(animationSpec = tween(200)),
+    ) {
+        SwipeToDismissBox(
+            state = dismissState,
+            backgroundContent = {
+                Box(
+                    modifier =
+                        Modifier
+                            .fillMaxSize()
+                            .background(
+                                color = Color(0xffd9534f),
+                                shape = RoundedCornerShape(16.dp),
+                            ).padding(horizontal = 16.dp),
+                    contentAlignment = Alignment.CenterEnd,
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = "Remove User",
+                        tint = Color.White,
+                        modifier = Modifier.size(24.dp),
+                    )
+                }
+            },
+            enableDismissFromEndToStart = true,
+            enableDismissFromStartToEnd = false,
+        ) {
+            CircleFriendCard(
+                friend = friend,
+                onClick = onClick,
+            )
         }
     }
 }

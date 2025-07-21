@@ -42,6 +42,12 @@ object Constants {
     const val SAT_MODE = "sat_mode"
     const val CHANGE_TIMETABLE = "change_timetable"
 
+    // Support & Feedback
+    const val SUPPORT_EMAIL = "support_email"
+    const val SUPPORT_EMAIL_ADDRESS = "dscvit.vitty@gmail.com"
+    const val GITHUB_ISSUES = "github_issues"
+    const val GITHUB_ISSUES_LINK = "https://github.com/GDGVIT/vitty-app/issues"
+
     const val COMMUNITY_TOKEN = "community_token"
     const val COMMUNITY_USERNAME = "community_username"
     const val COMMUNITY_NAME = "community_name"
@@ -58,6 +64,8 @@ object Constants {
     const val REMINDER_CHANNEL_ID = "reminder_channel"
     const val REMINDER_CHANNEL_NAME = "Reminders"
     const val REMINDER_CHANNEL_DESC = "Notifications for course reminders"
+
+    const val PREF_LAST_REVIEW_REQUEST = "last_review_request"
 }
 
 fun String.urlDecode(): String =

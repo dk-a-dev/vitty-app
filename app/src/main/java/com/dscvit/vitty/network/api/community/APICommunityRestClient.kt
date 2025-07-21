@@ -2,6 +2,7 @@ package com.dscvit.vitty.network.api.community
 
 import com.dscvit.vitty.network.api.community.requests.AuthRequestBodyWithCampus
 import com.dscvit.vitty.network.api.community.requests.AuthRequestBodyWithoutCampus
+import com.dscvit.vitty.network.api.community.requests.CampusUpdateRequestBody
 import com.dscvit.vitty.network.api.community.requests.CircleBatchRequestBody
 import com.dscvit.vitty.network.api.community.requests.UsernameRequestBody
 import com.dscvit.vitty.network.api.community.responses.circle.CircleBatchRequestResponse
@@ -944,6 +945,68 @@ class APICommunityRestClient {
                 ) {
                     Timber.d("EmptyClassroomsError: ${t.message}")
                     callback(null)
+                }
+            },
+        )
+    }
+
+    fun removeUserFromCircle(
+        token: String,
+        circleId: String,
+        username: String,
+        retrofitUserActionListener: RetrofitUserActionListener,
+    ) {
+        val bearerToken = "Bearer $token"
+
+        mApiUser = retrofit.create<APICommunity>(APICommunity::class.java)
+        val apiRemoveUserCall = mApiUser!!.removeUserFromCircle(bearerToken, circleId, username)
+        apiRemoveUserCall.enqueue(
+            object : Callback<PostResponse> {
+                override fun onResponse(
+                    call: Call<PostResponse>,
+                    response: Response<PostResponse>,
+                ) {
+                    Timber.d("RemoveUserFromCircle: ${response.body()}")
+                    retrofitUserActionListener.onSuccess(call, response.body())
+                }
+
+                override fun onFailure(
+                    call: Call<PostResponse>,
+                    t: Throwable,
+                ) {
+                    Timber.d("RemoveUserFromCircleError: ${t.message}")
+                    retrofitUserActionListener.onError(call, t)
+                }
+            },
+        )
+    }
+
+    fun updateCampus(
+        token: String,
+        campus: String,
+        retrofitUserActionListener: RetrofitUserActionListener,
+    ) {
+        val bearerToken = "Bearer $token"
+
+        mApiUser = retrofit.create<APICommunity>(APICommunity::class.java)
+        val requestBody = CampusUpdateRequestBody(campus)
+        val apiUpdateCampusCall = mApiUser!!.updateCampus(bearerToken, requestBody)
+        apiUpdateCampusCall.enqueue(
+            object : Callback<PostResponse> {
+                override fun onResponse(
+                    call: Call<PostResponse>,
+                    response: Response<PostResponse>,
+                ) {
+                    Timber.d("UpdateCampus: ${response.body()}")
+                    retrofitUserActionListener.onSuccess(call, response.body())
+                }
+
+                override fun onFailure(
+                    call: Call<PostResponse>,
+                    t: Throwable,
+                ) {
+                    Timber.d("UpdateCampusError: ${t.message}")
+                    retrofitUserActionListener.onError(call, t)
                 }
             },
         )

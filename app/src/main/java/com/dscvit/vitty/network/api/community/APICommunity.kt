@@ -1,5 +1,6 @@
 package com.dscvit.vitty.network.api.community
 
+import com.dscvit.vitty.network.api.community.requests.CampusUpdateRequestBody
 import com.dscvit.vitty.network.api.community.requests.CircleBatchRequestBody
 import com.dscvit.vitty.network.api.community.requests.UsernameRequestBody
 import com.dscvit.vitty.network.api.community.responses.circle.CircleBatchRequestResponse
@@ -19,6 +20,7 @@ import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.Header
 import retrofit2.http.Headers
+import retrofit2.http.PATCH
 import retrofit2.http.POST
 import retrofit2.http.Path
 import retrofit2.http.Query
@@ -99,6 +101,13 @@ interface APICommunity {
     fun deleteFriend(
         @Header("Authorization") authToken: String,
         @Path("username") username: String,
+    ): Call<PostResponse>
+
+    @Headers("Content-Type: application/json")
+    @PATCH("/api/v3/users/campus")
+    fun updateCampus(
+        @Header("Authorization") authToken: String,
+        @Body campusRequestBody: CampusUpdateRequestBody,
     ): Call<PostResponse>
 
     @POST("/api/v3/friends/ghost/{username}")
@@ -187,6 +196,13 @@ interface APICommunity {
 
     @DELETE("/api/v3/circles/unsendRequest/{circleId}/{username}")
     fun unsendCircleRequest(
+        @Header("Authorization") authToken: String,
+        @Path("circleId") circleId: String,
+        @Path("username") username: String,
+    ): Call<PostResponse>
+
+    @DELETE("/api/v3/circles/remove/{circleId}/{username}")
+    fun removeUserFromCircle(
         @Header("Authorization") authToken: String,
         @Path("circleId") circleId: String,
         @Path("username") username: String,
