@@ -7,6 +7,7 @@ import com.dscvit.vitty.network.api.community.RetrofitFriendListListener
 import com.dscvit.vitty.network.api.community.RetrofitFriendRequestListener
 import com.dscvit.vitty.network.api.community.RetrofitSearchResultListener
 import com.dscvit.vitty.network.api.community.RetrofitUserActionListener
+import com.dscvit.vitty.network.api.community.responses.circle.CircleBatchRequestResponse
 import com.dscvit.vitty.network.api.community.responses.requests.RequestsResponse
 import com.dscvit.vitty.network.api.community.responses.user.FriendResponse
 import com.dscvit.vitty.network.api.community.responses.user.PostResponse
@@ -20,12 +21,14 @@ class CommunityViewModel : ViewModel() {
     private val _suggestedFriends = MutableLiveData<List<UserResponse>?>()
     private val _searchResult = MutableLiveData<List<UserResponse>?>()
     private val _actionResponse = MutableLiveData<PostResponse?>()
+    private val _batchCircleRequestResponse = MutableLiveData<CircleBatchRequestResponse?>()
 
     val friendList: MutableLiveData<FriendResponse?> = _friendList
     val friendRequest: MutableLiveData<RequestsResponse?> = _friendRequest
     val suggestedFriends: MutableLiveData<List<UserResponse>?> = _suggestedFriends
     val searchResult: MutableLiveData<List<UserResponse>?> = _searchResult
     val actionResponse: MutableLiveData<PostResponse?> = _actionResponse
+    val batchCircleRequestResponse: MutableLiveData<CircleBatchRequestResponse?> = _batchCircleRequestResponse
 
     fun getFriendList(
         token: String,
@@ -230,6 +233,24 @@ class CommunityViewModel : ViewModel() {
                 }
             },
         )
+    }
+
+    fun sendBatchCircleRequest(
+        token: String,
+        circleId: String,
+        usernames: List<String>,
+    ) {
+        APICommunityRestClient.instance.sendBatchCircleRequest(
+            token,
+            circleId,
+            usernames,
+        ) { response ->
+            _batchCircleRequestResponse.postValue(response)
+        }
+    }
+
+    fun clearBatchCircleRequestResponse() {
+        _batchCircleRequestResponse.postValue(null)
     }
 
     fun unfriend(

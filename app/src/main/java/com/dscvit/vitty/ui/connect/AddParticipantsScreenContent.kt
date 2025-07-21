@@ -83,10 +83,8 @@ fun AddParticipantsScreenContent(
 
     var searchQuery by remember { mutableStateOf("") }
     var isSearching by remember { mutableStateOf(false) }
-    var selectedUsers by remember { mutableStateOf(setOf<String>()) }
+    var selectedUsers by remember { mutableStateOf(listOf<UserResponse>()) }
     var sendingRequests by remember { mutableStateOf(false) }
-    var requestStates by remember { mutableStateOf(mapOf<String, Boolean?>()) }
-    var pendingRequestsCount by remember { mutableStateOf(0) }
 
     val sharedPreferences =
         remember {
@@ -107,50 +105,48 @@ fun AddParticipantsScreenContent(
 
     val suggestedFriends by communityViewModel.suggestedFriends.observeAsState()
     val searchResults by communityViewModel.searchResult.observeAsState()
-    val actionResponse by communityViewModel.actionResponse.observeAsState()
+    val batchResponse by communityViewModel.batchCircleRequestResponse.observeAsState()
 
-    LaunchedEffect(actionResponse) {
-        if (sendingRequests && actionResponse != null) {
-            val currentUser = requestStates.keys.find { requestStates[it] == null }
-            if (currentUser != null) {
-                val isSuccess = actionResponse?.detail == "request sent successfully"
-                requestStates =
-                    requestStates.toMutableMap().apply {
-                        this[currentUser] = isSuccess
-                    }
-                pendingRequestsCount--
+    LaunchedEffect(batchResponse) {
+        batchResponse?.let { response ->
+            val successCount = response.data.count { it.request_status == "pending" || it.request_status == "added" }
+            val failedCount = response.data.size - successCount
 
-                if (pendingRequestsCount == 0) {
-                    communityViewModel.actionResponse.postValue(null)
+            if (failedCount == 0) {
+                Toast.makeText(
+                    context,
+                    "All requests sent successfully!",
+                    Toast.LENGTH_SHORT,
+                ).show()
+            } else {
+                val failedUsers =
+                    response.data
+                        .filter {
+                            it.request_status != "pending" && it.request_status != "added"
+                        }.map { it.username }
 
-                    val failedUsers = requestStates.filter { it.value == false }.keys.toList()
+                if (successCount > 0) {
+                    Toast.makeText(
+                        context,
+                        "Sent $successCount requests successfully. Failed: ${failedUsers.joinToString(", ")}",
+                        Toast.LENGTH_LONG,
+                    ).show()
+                } else {
+                    Toast.makeText(
+                        context,
+                        "Failed to send requests to: ${failedUsers.joinToString(", ")}",
+                        Toast.LENGTH_LONG,
+                    ).show()
+                }
+            }
 
-                    if (failedUsers.isEmpty()) {
-                        Toast
-                            .makeText(
-                                context,
-                                "All requests sent successfully!",
-                                Toast.LENGTH_SHORT,
-                            ).show()
-                    } else {
-                        val failedUsersText = failedUsers.joinToString(", ")
-                        Toast
-                            .makeText(
-                                context,
-                                "Failed to send requests to: $failedUsersText",
-                                Toast.LENGTH_LONG,
-                            ).show()
-                    }
+            sendingRequests = false
+            selectedUsers = listOf()
+            communityViewModel.clearBatchCircleRequestResponse()
 
-                    sendingRequests = false
-                    selectedUsers = setOf()
-                    requestStates = mapOf()
-
-                    if (failedUsers.isEmpty()) {
-                        scope.launch {
-                            navController.popBackStack()
-                        }
-                    }
+            if (failedCount == 0) {
+                scope.launch {
+                    navController.popBackStack()
                 }
             }
         }
@@ -187,13 +183,19 @@ fun AddParticipantsScreenContent(
     fun sendAllRequests() {
         if (selectedUsers.isNotEmpty() && !sendingRequests && token.isNotEmpty()) {
             sendingRequests = true
-            pendingRequestsCount = selectedUsers.size
-            requestStates = selectedUsers.associateWith { null }
-
-            selectedUsers.forEach { username ->
-                communityViewModel.sendCircleRequest(token, circleId, username)
-            }
+            val usernames = selectedUsers.map { it.username }
+            communityViewModel.sendBatchCircleRequest(token, circleId, usernames)
         }
+    }
+
+    fun addUserToSelection(user: UserResponse) {
+        if (!selectedUsers.any { it.username == user.username }) {
+            selectedUsers = selectedUsers + user
+        }
+    }
+
+    fun removeUserFromSelection(user: UserResponse) {
+        selectedUsers = selectedUsers.filter { it.username != user.username }
     }
 
     Column(
@@ -295,23 +297,18 @@ fun AddParticipantsScreenContent(
 
             Spacer(modifier = Modifier.height(16.dp))
 
+
             if (selectedUsers.isNotEmpty()) {
                 LazyColumn(
                     modifier = Modifier.height(150.dp),
                     contentPadding = PaddingValues(vertical = 4.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    val allUsers = (filteredSuggestedFriends ?: emptyList()) + (filteredSearchResults ?: emptyList())
-                    val selectedUsersList =
-                        allUsers.distinctBy { it.username }.filter { user ->
-                            selectedUsers.contains(user.username)
-                        }
-
-                    items(selectedUsersList) { user ->
+                    items(selectedUsers) { user ->
                         SelectedUserCard(
                             user = user,
                             onRemove = {
-                                selectedUsers = selectedUsers - user.username
+                                removeUserFromSelection(user)
                             },
                         )
                     }
@@ -328,10 +325,12 @@ fun AddParticipantsScreenContent(
                 Spacer(modifier = Modifier.height(8.dp))
             }
 
+
             val displayUsers = if (searchQuery.isBlank()) filteredSuggestedFriends else filteredSearchResults
+            val selectedUsernames = selectedUsers.map { it.username }.toSet()
             val filteredUsers =
                 displayUsers?.filter { user ->
-                    !selectedUsers.contains(user.username) &&
+                    !selectedUsernames.contains(user.username) &&
                         (
                             searchQuery.isBlank() ||
                                 user.name.contains(searchQuery, ignoreCase = true) ||
@@ -373,19 +372,19 @@ fun AddParticipantsScreenContent(
                     items(filteredUsers) { user ->
                         UserSelectionCard(
                             user = user,
-                            isSelected = selectedUsers.contains(user.username),
+                            isSelected = selectedUsernames.contains(user.username),
                             onSelectionChanged = { isSelected ->
-                                selectedUsers =
-                                    if (isSelected) {
-                                        selectedUsers + user.username
-                                    } else {
-                                        selectedUsers - user.username
-                                    }
+                                if (isSelected) {
+                                    addUserToSelection(user)
+                                } else {
+                                    removeUserFromSelection(user)
+                                }
                             },
                         )
                     }
                 }
             }
+
 
             if (selectedUsers.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(16.dp))
@@ -476,6 +475,7 @@ private fun UserSelectionCard(
 
             Spacer(modifier = Modifier.width(12.dp))
 
+
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = user.name,
@@ -493,6 +493,7 @@ private fun UserSelectionCard(
                     overflow = TextOverflow.Ellipsis,
                 )
             }
+
 
             Box(
                 modifier =
@@ -593,6 +594,7 @@ private fun SelectedUserCard(
                     )
                 }
             }
+
 
             IconButton(
                 onClick = onRemove,

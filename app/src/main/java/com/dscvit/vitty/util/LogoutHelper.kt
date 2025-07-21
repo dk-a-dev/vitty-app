@@ -8,6 +8,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.widget.Button
 import androidx.appcompat.content.res.AppCompatResources
+import androidx.core.content.edit
 import com.dscvit.vitty.R
 import com.dscvit.vitty.activity.AuthActivity
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
@@ -54,13 +55,13 @@ object LogoutHelper {
                 putString(Constants.COMMUNITY_NAME, null)
                 putString(Constants.COMMUNITY_PICTURE, null)
                 putString(Constants.COMMUNITY_REGNO, null)
+                putString(Constants.COMMUNITY_CAMPUS, null)
                 putBoolean(Constants.COMMUNITY_TIMETABLE_AVAILABLE, false)
                 putString(Constants.CACHE_COMMUNITY_TIMETABLE, null)
-                putString(Constants.COMMUNITY_CAMPUS, null)
 
                 apply()
             }
-            prefs.edit().clear().apply()
+            prefs.edit { clear() }
             FirebaseAuth.getInstance().signOut()
             val intent = Intent(context, AuthActivity::class.java)
             intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK

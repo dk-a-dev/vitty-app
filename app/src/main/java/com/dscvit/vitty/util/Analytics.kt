@@ -8,6 +8,7 @@ import java.util.Calendar
 
 object Analytics {
     private val firebaseAnalytics: FirebaseAnalytics = Firebase.analytics
+
     fun share(packageName: String) {
         firebaseAnalytics.logEvent(FirebaseAnalytics.Event.SHARE) {
             param(FirebaseAnalytics.Param.CONTENT_TYPE, "text")
@@ -29,6 +30,14 @@ object Analytics {
             param(FirebaseAnalytics.Param.CONTENT_TYPE, "text")
             param(FirebaseAnalytics.Param.ITEM_ID, Calendar.getInstance().timeInMillis)
             param("block", block)
+        }
+    }
+
+    fun appNavigation(screen: String) {
+        firebaseAnalytics.logEvent("app_navigation") {
+            param(FirebaseAnalytics.Param.CONTENT_TYPE, "text")
+            param(FirebaseAnalytics.Param.ITEM_ID, Calendar.getInstance().timeInMillis)
+            param("screen", screen)
         }
     }
 }
