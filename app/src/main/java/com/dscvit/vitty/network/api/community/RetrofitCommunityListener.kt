@@ -5,8 +5,10 @@ import com.dscvit.vitty.network.api.community.responses.circle.CreateCircleRespo
 import com.dscvit.vitty.network.api.community.responses.circle.JoinCircleResponse
 import com.dscvit.vitty.network.api.community.responses.requests.RequestsResponse
 import com.dscvit.vitty.network.api.community.responses.timetable.TimetableResponse
+import com.dscvit.vitty.network.api.community.responses.user.ActiveFriendResponse
 import com.dscvit.vitty.network.api.community.responses.user.CircleResponse
 import com.dscvit.vitty.network.api.community.responses.user.FriendResponse
+import com.dscvit.vitty.network.api.community.responses.user.GhostPostResponse
 import com.dscvit.vitty.network.api.community.responses.user.PostResponse
 import com.dscvit.vitty.network.api.community.responses.user.SignInResponse
 import com.dscvit.vitty.network.api.community.responses.user.UserResponse
@@ -108,6 +110,18 @@ interface RetrofitUserActionListener {
     )
 }
 
+interface RetrofitGhostActionListener {
+    fun onSuccess(
+        call: Call<GhostPostResponse>?,
+        response: GhostPostResponse?,
+    )
+
+    fun onError(
+        call: Call<GhostPostResponse>?,
+        t: Throwable?,
+    )
+}
+
 interface RetrofitCircleListener {
     fun onSuccess(
         call: Call<CircleResponse>?,
@@ -141,5 +155,17 @@ interface RetrofitJoinCircleListener {
     fun onError(
         call: Call<JoinCircleResponse>?,
         t: Throwable?,
+    )
+}
+
+interface RetrofitActiveFriendsListener {
+    fun onSuccess(
+        call: Call<ActiveFriendResponse>,
+        response: ActiveFriendResponse?,
+    )
+
+    fun onError(
+        call: Call<ActiveFriendResponse>,
+        t: Throwable,
     )
 }

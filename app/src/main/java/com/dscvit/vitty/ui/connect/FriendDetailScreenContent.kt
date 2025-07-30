@@ -1,6 +1,7 @@
 package com.dscvit.vitty.ui.connect
 
 import android.content.Context
+import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -35,6 +36,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ScrollableTabRow
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRowDefaults
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
@@ -59,6 +62,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.edit
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.dscvit.vitty.R
@@ -75,26 +79,29 @@ import com.dscvit.vitty.ui.schedule.ScheduleViewModel
 import com.dscvit.vitty.util.Constants
 import com.dscvit.vitty.util.Quote
 import com.dscvit.vitty.widget.parseTimeToTimestamp
+import com.google.gson.Gson
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Locale
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import timber.log.Timber
-import java.text.SimpleDateFormat
-import java.util.Calendar
-import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FriendDetailScreenContent(
-    friend: UserResponse,
-    onBackClick: () -> Unit = {},
-    connectViewModel: ConnectViewModel,
+        friend: UserResponse,
+        onBackClick: () -> Unit = {},
+        connectViewModel: ConnectViewModel,
 ) {
     val context = LocalContext.current
     val scheduleViewModel: ScheduleViewModel = viewModel()
     val scope = rememberCoroutineScope()
     var quote by remember { mutableStateOf("") }
-    var friendTimetableData by remember { mutableStateOf<Map<Int, List<PeriodDetails>>>(emptyMap()) }
+    var friendTimetableData by remember {
+        mutableStateOf<Map<Int, List<PeriodDetails>>>(emptyMap())
+    }
     var isLoadingTimetable by remember { mutableStateOf(false) }
     var hasLoadedData by remember { mutableStateOf(false) }
     var hasUnfriended by remember { mutableStateOf(false) }
@@ -102,8 +109,62 @@ fun FriendDetailScreenContent(
     var hasRequestSent by remember { mutableStateOf(false) }
     var showUnfriendDialog by remember { mutableStateOf(false) }
 
+    var isFriendGhosted by remember { mutableStateOf(false) }
+    var isTogglingGhostMode by remember { mutableStateOf(false) }
+
     val unfriendSuccess by connectViewModel.unfriendSuccess.observeAsState()
     val sendRequestResponse by connectViewModel.sendRequestResponse.observeAsState()
+    val activeFriends by connectViewModel.activeFriends.observeAsState()
+    val ghostModeResponse by connectViewModel.ghostModeResponse.observeAsState()
+
+    LaunchedEffect(activeFriends) {
+        Timber.d("Active friends: $activeFriends")
+        activeFriends?.let { activeList -> isFriendGhosted = !activeList.contains(friend.username) }
+    }
+
+    LaunchedEffect(ghostModeResponse) {
+        if (ghostModeResponse != null && isTogglingGhostMode) {
+            isTogglingGhostMode = false
+
+            val sharedPreferences =
+                    context.getSharedPreferences(Constants.USER_INFO, Context.MODE_PRIVATE)
+
+            if (ghostModeResponse!!.success) {
+
+                val currentActiveFriends = activeFriends?.toMutableList() ?: mutableListOf()
+                val gson = Gson()
+
+                if (isFriendGhosted) {
+
+                    currentActiveFriends.removeAll { it == friend.username }
+                } else {
+
+                    if (!currentActiveFriends.contains(friend.username)) {
+                        currentActiveFriends.add(friend.username)
+                    }
+                }
+
+                val activeFriendsJson = gson.toJson(currentActiveFriends)
+                sharedPreferences.edit {
+                    putString(Constants.ACTIVE_FRIENDS_LIST, activeFriendsJson)
+                }
+
+                Toast.makeText(
+                                context,
+                                if (isFriendGhosted) "${friend.name} is now ghosted"
+                                else "${friend.name} is now visible",
+                                Toast.LENGTH_SHORT,
+                        )
+                        .show()
+                connectViewModel.updateActiveFriendsList(currentActiveFriends)
+            } else {
+
+                isFriendGhosted = !isFriendGhosted
+            }
+
+            connectViewModel.clearGhostModeResponse()
+        }
+    }
 
     LaunchedEffect(unfriendSuccess) {
         if (unfriendSuccess == friend.username) {
@@ -119,7 +180,8 @@ fun FriendDetailScreenContent(
                 hasRequestSent = true
                 connectViewModel.clearSendRequestResponse()
 
-                val sharedPreferences = context.getSharedPreferences(Constants.USER_INFO, Context.MODE_PRIVATE)
+                val sharedPreferences =
+                        context.getSharedPreferences(Constants.USER_INFO, Context.MODE_PRIVATE)
                 val token = sharedPreferences.getString(Constants.COMMUNITY_TOKEN, "") ?: ""
                 val username = sharedPreferences.getString(Constants.COMMUNITY_USERNAME, "") ?: ""
                 if (token.isNotEmpty() && username.isNotEmpty()) {
@@ -132,31 +194,32 @@ fun FriendDetailScreenContent(
     }
 
     val days = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
-    val currentDay =
-        remember {
-            when (Calendar.getInstance().get(Calendar.DAY_OF_WEEK)) {
-                Calendar.MONDAY -> 0
-                Calendar.TUESDAY -> 1
-                Calendar.WEDNESDAY -> 2
-                Calendar.THURSDAY -> 3
-                Calendar.FRIDAY -> 4
-                Calendar.SATURDAY -> 5
-                Calendar.SUNDAY -> 6
-                else -> 0
-            }
+    val currentDay = remember {
+        when (Calendar.getInstance().get(Calendar.DAY_OF_WEEK)) {
+            Calendar.MONDAY -> 0
+            Calendar.TUESDAY -> 1
+            Calendar.WEDNESDAY -> 2
+            Calendar.THURSDAY -> 3
+            Calendar.FRIDAY -> 4
+            Calendar.SATURDAY -> 5
+            Calendar.SUNDAY -> 6
+            else -> 0
         }
+    }
 
     val pagerState =
-        rememberPagerState(
-            initialPage = currentDay,
-            pageCount = { 7 },
-        )
+            rememberPagerState(
+                    initialPage = currentDay,
+                    pageCount = { 7 },
+            )
+
     LaunchedEffect(friend.username) {
         if (hasLoadedData) return@LaunchedEffect
 
         quote = Quote.getLine(context)
 
-        val sharedPreferences = context.getSharedPreferences(Constants.USER_INFO, Context.MODE_PRIVATE)
+        val sharedPreferences =
+                context.getSharedPreferences(Constants.USER_INFO, Context.MODE_PRIVATE)
         val token = sharedPreferences.getString(Constants.COMMUNITY_TOKEN, "") ?: ""
 
         if (token.isNotEmpty()) {
@@ -193,100 +256,117 @@ fun FriendDetailScreenContent(
     }
 
     Column(
-        modifier =
-            Modifier
-                .fillMaxSize()
-                .background(Background),
+            modifier = Modifier.fillMaxSize().background(Background),
     ) {
         CenterAlignedTopAppBar(
-            title = {
-                Text(
-                    text = "Friend Profile",
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold,
-                )
-            },
-            navigationIcon = {
-                IconButton(onClick = onBackClick) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.ic_round_chevron_left),
-                        contentDescription = "Back",
-                        tint = TextColor,
+                title = {
+                    Text(
+                            text = "Friend Profile",
+                            style = MaterialTheme.typography.headlineSmall,
+                            fontWeight = FontWeight.Bold,
                     )
-                }
-            },
-            colors =
-                TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background,
-                    titleContentColor = MaterialTheme.colorScheme.onBackground,
-                ),
+                },
+                navigationIcon = {
+                    IconButton(onClick = onBackClick) {
+                        Icon(
+                                painter = painterResource(id = R.drawable.ic_round_chevron_left),
+                                contentDescription = "Back",
+                                tint = TextColor,
+                        )
+                    }
+                },
+                colors =
+                        TopAppBarDefaults.topAppBarColors(
+                                containerColor = MaterialTheme.colorScheme.background,
+                                titleContentColor = MaterialTheme.colorScheme.onBackground,
+                        ),
         )
 
         FriendProfileCard(
-            friend = friend,
-            hasUnfriended = hasUnfriended,
-            isSendingRequest = isSendingRequest,
-            hasRequestSent = hasRequestSent,
-            onUnfriendClick = {
-                showUnfriendDialog = true
-            },
-            onSendRequestClick = {
-                val sharedPreferences = context.getSharedPreferences(Constants.USER_INFO, Context.MODE_PRIVATE)
-                val token = sharedPreferences.getString(Constants.COMMUNITY_TOKEN, "") ?: ""
-                if (token.isNotEmpty()) {
-                    isSendingRequest = true
-                    connectViewModel.sendRequest(token, friend.username)
-                }
-            },
+                friend = friend,
+                hasUnfriended = hasUnfriended,
+                isSendingRequest = isSendingRequest,
+                hasRequestSent = hasRequestSent,
+                isFriendGhosted = isFriendGhosted,
+                isTogglingGhostMode = isTogglingGhostMode,
+                onUnfriendClick = { showUnfriendDialog = true },
+                onSendRequestClick = {
+                    val sharedPreferences =
+                            context.getSharedPreferences(Constants.USER_INFO, Context.MODE_PRIVATE)
+                    val token = sharedPreferences.getString(Constants.COMMUNITY_TOKEN, "") ?: ""
+                    if (token.isNotEmpty()) {
+                        isSendingRequest = true
+                        connectViewModel.sendRequest(token, friend.username)
+                    }
+                },
+                onToggleGhostMode = { newValue ->
+                    if (!isTogglingGhostMode) {
+                        isTogglingGhostMode = true
+                        isFriendGhosted = newValue
+
+                        val sharedPreferences =
+                                context.getSharedPreferences(
+                                        Constants.USER_INFO,
+                                        Context.MODE_PRIVATE
+                                )
+                        val token = sharedPreferences.getString(Constants.COMMUNITY_TOKEN, "") ?: ""
+
+                        connectViewModel.toggleGhostMode(token, friend.username, newValue)
+                    }
+                },
         )
 
         Spacer(modifier = Modifier.height(16.dp))
 
         if (!hasUnfriended) {
             Text(
-                text = "Schedule",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                color = TextColor,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                    text = "Schedule",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = TextColor,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
             )
 
             ScrollableTabRow(
-                selectedTabIndex = pagerState.currentPage,
-                containerColor = MaterialTheme.colorScheme.surface,
-                contentColor = MaterialTheme.colorScheme.onSurface,
-                divider = {},
-                edgePadding = 0.dp,
-                indicator = { tabPositions ->
-                    if (pagerState.currentPage < tabPositions.size) {
-                        TabRowDefaults.SecondaryIndicator(
-                            modifier = Modifier.tabIndicatorOffset(tabPositions[pagerState.currentPage]),
-                            color = TextColor,
-                        )
-                    }
-                },
+                    selectedTabIndex = pagerState.currentPage,
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    contentColor = MaterialTheme.colorScheme.onSurface,
+                    divider = {},
+                    edgePadding = 0.dp,
+                    indicator = { tabPositions ->
+                        if (pagerState.currentPage < tabPositions.size) {
+                            TabRowDefaults.SecondaryIndicator(
+                                    modifier =
+                                            Modifier.tabIndicatorOffset(
+                                                    tabPositions[pagerState.currentPage]
+                                            ),
+                                    color = TextColor,
+                            )
+                        }
+                    },
             ) {
                 days.forEachIndexed { index, day ->
                     Tab(
-                        selected = pagerState.currentPage == index,
-                        onClick = {
-                            scope.launch {
-                                pagerState.animateScrollToPage(index)
-                            }
-                        },
-                        text = {
-                            Text(
-                                text = day,
-                                fontFamily = Poppins,
-                                fontWeight = if (pagerState.currentPage == index) FontWeight.Medium else FontWeight.Normal,
-                                fontSize = 20.sp,
-                                lineHeight = (20 * 1.4).sp,
-                                color = if (pagerState.currentPage == index) TextColor else Accent,
-                                textAlign = TextAlign.Center,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                        },
+                            selected = pagerState.currentPage == index,
+                            onClick = { scope.launch { pagerState.animateScrollToPage(index) } },
+                            text = {
+                                Text(
+                                        text = day,
+                                        fontFamily = Poppins,
+                                        fontWeight =
+                                                if (pagerState.currentPage == index)
+                                                        FontWeight.Medium
+                                                else FontWeight.Normal,
+                                        fontSize = 20.sp,
+                                        lineHeight = (20 * 1.4).sp,
+                                        color =
+                                                if (pagerState.currentPage == index) TextColor
+                                                else Accent,
+                                        textAlign = TextAlign.Center,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                )
+                            },
                     )
                 }
             }
@@ -296,56 +376,51 @@ fun FriendDetailScreenContent(
             Box(modifier = Modifier.weight(1f)) {
                 if (isLoadingTimetable) {
                     Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        CircularProgressIndicator()
-                    }
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center,
+                    ) { CircularProgressIndicator() }
                 } else {
                     HorizontalPager(
-                        state = pagerState,
-                        modifier = Modifier.fillMaxSize(),
+                            state = pagerState,
+                            modifier = Modifier.fillMaxSize(),
                     ) { page ->
                         DayScheduleContent(
-                            periods = friendTimetableData[page] ?: emptyList(),
-                            dayIndex = page,
-                            quote = quote,
+                                periods = friendTimetableData[page] ?: emptyList(),
+                                dayIndex = page,
+                                quote = quote,
                         )
                     }
                 }
             }
         } else {
             Box(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .weight(1f)
-                        .padding(32.dp),
-                contentAlignment = Alignment.Center,
+                    modifier = Modifier.fillMaxWidth().weight(1f).padding(32.dp),
+                    contentAlignment = Alignment.Center,
             ) {
                 Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(16.dp),
                 ) {
                     Icon(
-                        painter = painterResource(R.drawable.ic_community_outline),
-                        contentDescription = "No Access",
-                        modifier = Modifier.size(64.dp),
-                        tint = Accent.copy(alpha = 0.5f),
+                            painter = painterResource(R.drawable.ic_community_outline),
+                            contentDescription = "No Access",
+                            modifier = Modifier.size(64.dp),
+                            tint = Accent.copy(alpha = 0.5f),
                     )
                     Text(
-                        text = "Schedule Not Available",
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = TextColor,
-                        textAlign = TextAlign.Center,
+                            text = "Schedule Not Available",
+                            style = MaterialTheme.typography.headlineSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = TextColor,
+                            textAlign = TextAlign.Center,
                     )
                     Text(
-                        text = "You can no longer view ${friend.name}'s schedule as they are not in your friends list.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = Accent,
-                        textAlign = TextAlign.Center,
-                        lineHeight = 20.sp,
+                            text =
+                                    "You can no longer view ${friend.name}'s schedule as they are not in your friends list.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Accent,
+                            textAlign = TextAlign.Center,
+                            lineHeight = 20.sp,
                     )
                 }
             }
@@ -354,115 +429,121 @@ fun FriendDetailScreenContent(
 
     if (showUnfriendDialog) {
         AlertDialog(
-            onDismissRequest = { showUnfriendDialog = false },
-            title = {
-                Text(
-                    text = "Unfriend ${friend.name}?",
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold,
-                )
-            },
-            text = {
-                Text(
-                    text = "Are you sure you want to remove ${friend.name} from your friends list? You won't be able to see their schedule anymore.",
-                    style =
-                        MaterialTheme.typography.bodyMedium.copy(
-                            color = Accent,
-                        ),
-                )
-            },
-            containerColor = Secondary,
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        showUnfriendDialog = false
-                        val sharedPreferences = context.getSharedPreferences(Constants.USER_INFO, Context.MODE_PRIVATE)
-                        val token = sharedPreferences.getString(Constants.COMMUNITY_TOKEN, "") ?: ""
-                        val username = sharedPreferences.getString(Constants.COMMUNITY_USERNAME, "") ?: ""
-                        if (token.isNotEmpty()) {
-                            connectViewModel.unfriend(token, friend.username)
-                            connectViewModel.getFriendList(token, username)
-                        }
-                    },
-                ) {
+                onDismissRequest = { showUnfriendDialog = false },
+                title = {
                     Text(
-                        text = "Unfriend",
-                        color = Red,
-                        fontWeight = FontWeight.Medium,
+                            text = "Unfriend ${friend.name}?",
+                            style = MaterialTheme.typography.headlineSmall,
+                            fontWeight = FontWeight.Bold,
                     )
-                }
-            },
-            dismissButton = {
-                TextButton(
-                    onClick = { showUnfriendDialog = false },
-                ) {
+                },
+                text = {
                     Text(
-                        text = "Cancel",
-                        color = TextColor,
-                        fontWeight = FontWeight.Medium,
+                            text =
+                                    "Are you sure you want to remove ${friend.name} from your friends list? " +
+                                            "You won't be able to see their schedule anymore.",
+                            style =
+                                    MaterialTheme.typography.bodyMedium.copy(
+                                            color = Accent,
+                                    ),
                     )
-                }
-            },
+                },
+                containerColor = Secondary,
+                confirmButton = {
+                    TextButton(
+                            onClick = {
+                                showUnfriendDialog = false
+                                val sharedPreferences =
+                                        context.getSharedPreferences(
+                                                Constants.USER_INFO,
+                                                Context.MODE_PRIVATE
+                                        )
+                                val token =
+                                        sharedPreferences.getString(Constants.COMMUNITY_TOKEN, "")
+                                                ?: ""
+                                val username =
+                                        sharedPreferences.getString(
+                                                Constants.COMMUNITY_USERNAME,
+                                                ""
+                                        )
+                                                ?: ""
+                                if (token.isNotEmpty()) {
+                                    connectViewModel.unfriend(token, friend.username)
+                                    connectViewModel.getFriendList(token, username)
+                                }
+                            },
+                    ) {
+                        Text(
+                                text = "Unfriend",
+                                color = Red,
+                                fontWeight = FontWeight.Medium,
+                        )
+                    }
+                },
+                dismissButton = {
+                    TextButton(
+                            onClick = { showUnfriendDialog = false },
+                    ) {
+                        Text(
+                                text = "Cancel",
+                                color = TextColor,
+                                fontWeight = FontWeight.Medium,
+                        )
+                    }
+                },
         )
     }
 }
 
 @Composable
 fun FriendProfileCard(
-    friend: UserResponse,
-    hasUnfriended: Boolean,
-    isSendingRequest: Boolean,
-    hasRequestSent: Boolean,
-    onUnfriendClick: () -> Unit,
-    onSendRequestClick: () -> Unit,
+        friend: UserResponse,
+        hasUnfriended: Boolean,
+        isSendingRequest: Boolean,
+        hasRequestSent: Boolean,
+        isFriendGhosted: Boolean,
+        isTogglingGhostMode: Boolean,
+        onUnfriendClick: () -> Unit,
+        onSendRequestClick: () -> Unit,
+        onToggleGhostMode: (Boolean) -> Unit,
 ) {
     Card(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp),
-        colors = CardDefaults.cardColors(containerColor = Secondary),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-        shape = RoundedCornerShape(16.dp),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+            colors = CardDefaults.cardColors(containerColor = Secondary),
+            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+            shape = RoundedCornerShape(16.dp),
     ) {
         Column(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(20.dp),
+                modifier = Modifier.fillMaxWidth().padding(20.dp),
         ) {
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
             ) {
                 if (friend.picture.isNotEmpty()) {
                     AsyncImage(
-                        model = friend.picture,
-                        contentDescription = null,
-                        modifier =
-                            Modifier
-                                .size(64.dp)
-                                .clip(CircleShape),
-                        placeholder = painterResource(R.drawable.ic_gdscvit),
-                        error = painterResource(R.drawable.ic_gdscvit),
+                            model = friend.picture,
+                            contentDescription = null,
+                            modifier = Modifier.size(64.dp).clip(CircleShape),
+                            placeholder = painterResource(R.drawable.ic_gdscvit),
+                            error = painterResource(R.drawable.ic_gdscvit),
                     )
                 } else {
                     Box(
-                        modifier =
-                            Modifier
-                                .size(64.dp)
-                                .background(Accent.copy(alpha = 0.2f), CircleShape),
-                        contentAlignment = Alignment.Center,
+                            modifier =
+                                    Modifier.size(64.dp)
+                                            .background(Accent.copy(alpha = 0.2f), CircleShape),
+                            contentAlignment = Alignment.Center,
                     ) {
                         Text(
-                            text =
-                                friend.name
-                                    .take(2)
-                                    .map { it.uppercaseChar() }
-                                    .joinToString(""),
-                            color = TextColor,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 22.sp,
+                                text =
+                                        friend.name
+                                                .take(2)
+                                                .map { it.uppercaseChar() }
+                                                .joinToString(""),
+                                color = TextColor,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 22.sp,
                         )
                     }
                 }
@@ -471,114 +552,156 @@ fun FriendProfileCard(
 
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = friend.name,
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = TextColor,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                        lineHeight = 24.sp,
+                            text = friend.name,
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = TextColor,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                            lineHeight = 24.sp,
                     )
 
                     Spacer(modifier = Modifier.height(4.dp))
 
                     Text(
-                        text = "@${friend.username}",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = Accent,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
+                            text = "@${friend.username}",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Accent,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
                     )
                 }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
+            if (!hasUnfriended) {
+                Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    Column {
+                        Text(
+                                text =
+                                        if (isFriendGhosted) "Friend is ghosted"
+                                        else "Friend is visible",
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Medium,
+                                color =
+                                        if (isFriendGhosted) Accent.copy(alpha = 0.6f)
+                                        else TextColor,
+                        )
+                        Text(
+                                text =
+                                        if (isFriendGhosted) "They won't see your activity"
+                                        else "They can see your activity",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = Accent.copy(alpha = 0.7f),
+                        )
+                    }
+
+                    Switch(
+                            checked = isFriendGhosted,
+                            onCheckedChange = onToggleGhostMode,
+                            enabled = !isTogglingGhostMode,
+                            colors =
+                                    SwitchDefaults.colors(
+                                            checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
+                                            checkedTrackColor = Accent,
+                                            uncheckedThumbColor = Accent,
+                                            uncheckedTrackColor = Secondary,
+                                            checkedBorderColor = Accent,
+                                            uncheckedBorderColor = Accent,
+                                    ),
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+            }
+
             if (hasUnfriended) {
                 if (hasRequestSent) {
                     Button(
-                        onClick = {},
-                        enabled = false,
-                        colors =
-                            ButtonDefaults.buttonColors(
-                                containerColor = Accent.copy(alpha = 0.1f),
-                                contentColor = Accent.copy(alpha = 0.6f),
-                            ),
-                        modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .height(48.dp),
-                        shape = RoundedCornerShape(12.dp),
+                            onClick = {},
+                            enabled = false,
+                            colors =
+                                    ButtonDefaults.buttonColors(
+                                            containerColor = Accent.copy(alpha = 0.1f),
+                                            contentColor = Accent.copy(alpha = 0.6f),
+                                    ),
+                            modifier = Modifier.fillMaxWidth().height(48.dp),
+                            shape = RoundedCornerShape(12.dp),
                     ) {
                         Text(
-                            text = "Request Sent",
-                            style = MaterialTheme.typography.labelLarge,
-                            fontWeight = FontWeight.Medium,
+                                text = "Request Sent",
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = FontWeight.Medium,
                         )
                     }
                 } else {
                     Button(
-                        onClick = onSendRequestClick,
-                        enabled = !isSendingRequest,
-                        colors =
-                            ButtonDefaults.buttonColors(
-                                containerColor = if (isSendingRequest) Accent.copy(alpha = 0.1f) else Accent,
-                                contentColor = if (isSendingRequest) Accent.copy(alpha = 0.6f) else MaterialTheme.colorScheme.onPrimary,
-                            ),
-                        modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .height(48.dp),
-                        shape = RoundedCornerShape(12.dp),
+                            onClick = onSendRequestClick,
+                            enabled = !isSendingRequest,
+                            colors =
+                                    ButtonDefaults.buttonColors(
+                                            containerColor =
+                                                    if (isSendingRequest) Accent.copy(alpha = 0.1f)
+                                                    else Accent,
+                                            contentColor =
+                                                    if (isSendingRequest) Accent.copy(alpha = 0.6f)
+                                                    else MaterialTheme.colorScheme.onPrimary,
+                                    ),
+                            modifier = Modifier.fillMaxWidth().height(48.dp),
+                            shape = RoundedCornerShape(12.dp),
                     ) {
                         if (isSendingRequest) {
                             Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                             ) {
                                 CircularProgressIndicator(
-                                    modifier = Modifier.size(18.dp),
-                                    strokeWidth = 2.dp,
-                                    color = Accent.copy(alpha = 0.7f),
+                                        modifier = Modifier.size(18.dp),
+                                        strokeWidth = 2.dp,
+                                        color = Accent.copy(alpha = 0.7f),
                                 )
                                 Text(
-                                    text = "Sending Request...",
-                                    style = MaterialTheme.typography.labelLarge,
-                                    fontWeight = FontWeight.Medium,
+                                        text = "Sending Request...",
+                                        style = MaterialTheme.typography.labelLarge,
+                                        fontWeight = FontWeight.Medium,
                                 )
                             }
                         } else {
                             Text(
-                                text = "Send Friend Request",
-                                style = MaterialTheme.typography.labelLarge,
-                                fontWeight = FontWeight.Medium,
+                                    text = "Send Friend Request",
+                                    style = MaterialTheme.typography.labelLarge,
+                                    fontWeight = FontWeight.Medium,
                             )
                         }
                     }
                 }
             } else {
                 Button(
-                    onClick = onUnfriendClick,
-                    colors =
-                        ButtonDefaults.buttonColors(
-                            containerColor = Red.copy(alpha = 0.1f),
-                            contentColor = Red,
-                        ),
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .height(48.dp)
-                            .border(
-                                width = 1.dp,
-                                color = Red,
-                                shape = RoundedCornerShape(12.dp),
-                            ),
-                    shape = RoundedCornerShape(12.dp),
+                        onClick = onUnfriendClick,
+                        colors =
+                                ButtonDefaults.buttonColors(
+                                        containerColor = Red.copy(alpha = 0.1f),
+                                        contentColor = Red,
+                                ),
+                        modifier =
+                                Modifier.fillMaxWidth()
+                                        .height(48.dp)
+                                        .border(
+                                                width = 1.dp,
+                                                color = Red,
+                                                shape = RoundedCornerShape(12.dp),
+                                        ),
+                        shape = RoundedCornerShape(12.dp),
                 ) {
                     Text(
-                        text = "Unfriend",
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.Medium,
+                            text = "Unfriend",
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.Medium,
                     )
                 }
             }
@@ -588,60 +711,54 @@ fun FriendProfileCard(
 
 @Composable
 private fun DayScheduleContent(
-    periods: List<PeriodDetails>,
-    dayIndex: Int,
-    quote: String = "Every day is a new opportunity to learn and grow.",
+        periods: List<PeriodDetails>,
+        dayIndex: Int,
+        quote: String = "Every day is a new opportunity to learn and grow.",
 ) {
     if (periods.isEmpty()) {
         Box(
-            modifier =
-                Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 18.dp, vertical = 32.dp),
-            contentAlignment = Alignment.Center,
+                modifier = Modifier.fillMaxSize().padding(horizontal = 18.dp, vertical = 32.dp),
+                contentAlignment = Alignment.Center,
         ) {
             Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 Icon(
-                    painter = painterResource(R.drawable.ic_timetable_outline),
-                    contentDescription = "No Classes",
-                    modifier = Modifier.size(64.dp),
-                    tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
+                        painter = painterResource(R.drawable.ic_timetable_outline),
+                        contentDescription = "No Classes",
+                        modifier = Modifier.size(64.dp),
+                        tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "No classes today!",
-                    style = MaterialTheme.typography.headlineMedium,
-                    color = MaterialTheme.colorScheme.onBackground,
-                    fontWeight = FontWeight.Bold,
+                        text = "No classes today!",
+                        style = MaterialTheme.typography.headlineMedium,
+                        color = MaterialTheme.colorScheme.onBackground,
+                        fontWeight = FontWeight.Bold,
                 )
                 Text(
-                    text = quote,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
-                    textAlign = TextAlign.Center,
-                    lineHeight = 20.sp,
+                        text = quote,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
+                        textAlign = TextAlign.Center,
+                        lineHeight = 20.sp,
                 )
             }
         }
     } else {
         LazyColumn(
-            modifier =
-                Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 18.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-            contentPadding = PaddingValues(top = 16.dp, bottom = 64.dp),
+                modifier = Modifier.fillMaxSize().padding(horizontal = 18.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                contentPadding = PaddingValues(top = 16.dp, bottom = 64.dp),
         ) {
             items(
-                items = periods,
-                key = { period -> "${period.courseCode}_${period.slot}" },
+                    items = periods,
+                    key = { period -> "${period.courseCode}_${period.slot}" },
             ) { period ->
                 FriendPeriodCard(
-                    period = period,
-                    dayIndex = dayIndex,
+                        period = period,
+                        dayIndex = dayIndex,
                 )
             }
         }
@@ -650,87 +767,82 @@ private fun DayScheduleContent(
 
 @Composable
 private fun FriendPeriodCard(
-    period: PeriodDetails,
-    dayIndex: Int,
+        period: PeriodDetails,
+        dayIndex: Int,
 ) {
     val timeFormat = remember { SimpleDateFormat("h:mm a", Locale.getDefault()) }
     val startTimeStr =
-        remember(period.startTime) {
-            timeFormat.format(period.startTime.toDate()).uppercase()
-        }
+            remember(period.startTime) { timeFormat.format(period.startTime.toDate()).uppercase() }
     val endTimeStr =
-        remember(period.endTime) {
-            timeFormat.format(period.endTime.toDate()).uppercase()
-        }
+            remember(period.endTime) { timeFormat.format(period.endTime.toDate()).uppercase() }
 
     val now = Calendar.getInstance()
 
     val isToday =
-        remember(dayIndex) {
-            val todayIndex =
-                when (now.get(Calendar.DAY_OF_WEEK)) {
-                    Calendar.MONDAY -> 0
-                    Calendar.TUESDAY -> 1
-                    Calendar.WEDNESDAY -> 2
-                    Calendar.THURSDAY -> 3
-                    Calendar.FRIDAY -> 4
-                    Calendar.SATURDAY -> 5
-                    Calendar.SUNDAY -> 6
-                    else -> -1
-                }
-            dayIndex == todayIndex
-        }
+            remember(dayIndex) {
+                val todayIndex =
+                        when (now.get(Calendar.DAY_OF_WEEK)) {
+                            Calendar.MONDAY -> 0
+                            Calendar.TUESDAY -> 1
+                            Calendar.WEDNESDAY -> 2
+                            Calendar.THURSDAY -> 3
+                            Calendar.FRIDAY -> 4
+                            Calendar.SATURDAY -> 5
+                            Calendar.SUNDAY -> 6
+                            else -> -1
+                        }
+                dayIndex == todayIndex
+            }
 
     val isActive =
-        if (!isToday) {
-            false
-        } else {
-            val startTime = Calendar.getInstance().apply { time = period.startTime.toDate() }
-            val endTime = Calendar.getInstance().apply { time = period.endTime.toDate() }
-            val currentTime = Calendar.getInstance()
+            if (!isToday) {
+                false
+            } else {
+                val startTime = Calendar.getInstance().apply { time = period.startTime.toDate() }
+                val endTime = Calendar.getInstance().apply { time = period.endTime.toDate() }
+                val currentTime = Calendar.getInstance()
 
-            val currentHourMinute = currentTime.get(Calendar.HOUR_OF_DAY) * 60 + currentTime.get(Calendar.MINUTE)
-            val startHourMinute = startTime.get(Calendar.HOUR_OF_DAY) * 60 + startTime.get(Calendar.MINUTE)
-            val endHourMinute = endTime.get(Calendar.HOUR_OF_DAY) * 60 + endTime.get(Calendar.MINUTE)
+                val currentHourMinute =
+                        currentTime.get(Calendar.HOUR_OF_DAY) * 60 +
+                                currentTime.get(Calendar.MINUTE)
+                val startHourMinute =
+                        startTime.get(Calendar.HOUR_OF_DAY) * 60 + startTime.get(Calendar.MINUTE)
+                val endHourMinute =
+                        endTime.get(Calendar.HOUR_OF_DAY) * 60 + endTime.get(Calendar.MINUTE)
 
-            currentHourMinute in startHourMinute..endHourMinute
-        }
+                currentHourMinute in startHourMinute..endHourMinute
+            }
 
     Card(
-        modifier =
-            Modifier
-                .fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = Secondary),
-        border =
-            if (isActive) {
-                BorderStroke(
-                    1.dp,
-                    Accent,
-                )
-            } else {
-                null
-            },
-        shape = RoundedCornerShape(16.dp),
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = Secondary),
+            border =
+                    if (isActive) {
+                        BorderStroke(
+                                1.dp,
+                                Accent,
+                        )
+                    } else {
+                        null
+                    },
+            shape = RoundedCornerShape(16.dp),
     ) {
         Column(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 24.dp, vertical = 28.dp),
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 28.dp),
         ) {
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Top,
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.Top,
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = period.courseName,
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = TextColor,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
+                            text = period.courseName,
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = TextColor,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
                     )
                 }
             }
@@ -738,47 +850,47 @@ private fun FriendPeriodCard(
             Spacer(modifier = Modifier.height(4.dp))
 
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    text = "$startTimeStr - $endTimeStr | ${period.slot}",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = Accent,
-                    fontWeight = FontWeight.Medium,
+                        text = "$startTimeStr - $endTimeStr | ${period.slot}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Accent,
+                        fontWeight = FontWeight.Medium,
                 )
 
                 if (period.roomNo.isNotEmpty()) {
                     Box(
-                        modifier =
-                            Modifier
-                                .clip(RoundedCornerShape(9999.dp))
-                                .border(
-                                    width = 1.dp,
-                                    color = Accent,
-                                    shape = RoundedCornerShape(9999.dp),
-                                ).padding(horizontal = 8.dp, vertical = 4.dp),
+                            modifier =
+                                    Modifier.clip(RoundedCornerShape(9999.dp))
+                                            .border(
+                                                    width = 1.dp,
+                                                    color = Accent,
+                                                    shape = RoundedCornerShape(9999.dp),
+                                            )
+                                            .padding(horizontal = 8.dp, vertical = 4.dp),
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Image(
-                                painter = painterResource(id = R.drawable.ic_compass),
-                                contentDescription = "Compass icon",
-                                modifier = Modifier.size(12.dp),
-                                alignment = Alignment.Center,
+                                    painter = painterResource(id = R.drawable.ic_compass),
+                                    contentDescription = "Compass icon",
+                                    modifier = Modifier.size(12.dp),
+                                    alignment = Alignment.Center,
                             )
                             Spacer(modifier = Modifier.width(4.dp))
                             Text(
-                                text = period.roomNo,
-                                style =
-                                    MaterialTheme.typography.bodyMedium.copy(
-                                        fontSize = 12.sp,
-                                        lineHeight = 12.sp,
-                                        letterSpacing = (-0.12).sp,
-                                        textAlign = TextAlign.Center,
-                                    ),
-                                color = MaterialTheme.colorScheme.primary,
-                                fontWeight = FontWeight.Medium,
+                                    text = period.roomNo,
+                                    style =
+                                            MaterialTheme.typography.bodyMedium.copy(
+                                                    fontSize = 12.sp,
+                                                    lineHeight = 12.sp,
+                                                    letterSpacing = (-0.12).sp,
+                                                    textAlign = TextAlign.Center,
+                                            ),
+                                    color = MaterialTheme.colorScheme.primary,
+                                    fontWeight = FontWeight.Medium,
                             )
                         }
                     }
@@ -788,41 +900,54 @@ private fun FriendPeriodCard(
     }
 }
 
-private suspend fun processFriendTimetableData(friend: TimetableResponse): Map<Int, List<PeriodDetails>> =
-    withContext(Dispatchers.Default) {
-        val timetableData = friend.data
-        val dayNames = listOf("monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday")
+private suspend fun processFriendTimetableData(
+        friend: TimetableResponse
+): Map<Int, List<PeriodDetails>> =
+        withContext(Dispatchers.Default) {
+            val timetableData = friend.data
+            val dayNames =
+                    listOf(
+                            "monday",
+                            "tuesday",
+                            "wednesday",
+                            "thursday",
+                            "friday",
+                            "saturday",
+                            "sunday"
+                    )
 
-        val result = mutableMapOf<Int, List<PeriodDetails>>()
+            val result = mutableMapOf<Int, List<PeriodDetails>>()
 
-        dayNames.forEachIndexed { index, dayName ->
-            val courses =
-                when (dayName) {
-                    "monday" -> timetableData.Monday
-                    "tuesday" -> timetableData.Tuesday
-                    "wednesday" -> timetableData.Wednesday
-                    "thursday" -> timetableData.Thursday
-                    "friday" -> timetableData.Friday
-                    "saturday" -> timetableData.Saturday
-                    "sunday" -> timetableData.Sunday
-                    else -> emptyList()
-                }
+            dayNames.forEachIndexed { index, dayName ->
+                val courses =
+                        when (dayName) {
+                            "monday" -> timetableData.Monday
+                            "tuesday" -> timetableData.Tuesday
+                            "wednesday" -> timetableData.Wednesday
+                            "thursday" -> timetableData.Thursday
+                            "friday" -> timetableData.Friday
+                            "saturday" -> timetableData.Saturday
+                            "sunday" -> timetableData.Sunday
+                            else -> emptyList()
+                        }
 
-            val periods =
-                courses
-                    ?.map { course ->
-                        PeriodDetails(
-                            courseCode = course.code,
-                            courseName = course.name,
-                            startTime = parseTimeToTimestamp(course.start_time),
-                            endTime = parseTimeToTimestamp(course.end_time),
-                            slot = course.slot,
-                            roomNo = course.venue,
-                        )
-                    }?.sortedBy { it.startTime.toDate() } ?: emptyList()
+                val periods =
+                        courses
+                                ?.map { course ->
+                                    PeriodDetails(
+                                            courseCode = course.code,
+                                            courseName = course.name,
+                                            startTime = parseTimeToTimestamp(course.start_time),
+                                            endTime = parseTimeToTimestamp(course.end_time),
+                                            slot = course.slot,
+                                            roomNo = course.venue,
+                                    )
+                                }
+                                ?.sortedBy { it.startTime.toDate() }
+                                ?: emptyList()
 
-            result[index] = periods
+                result[index] = periods
+            }
+
+            result
         }
-
-        result
-    }

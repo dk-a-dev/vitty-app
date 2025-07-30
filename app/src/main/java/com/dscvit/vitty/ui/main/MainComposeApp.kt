@@ -3,7 +3,6 @@ package com.dscvit.vitty.ui.main
 import android.app.Activity
 import android.content.Intent
 import android.content.SharedPreferences
-import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
@@ -25,12 +24,12 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
@@ -43,8 +42,6 @@ import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.NavigationDrawerItem
 import androidx.compose.material3.NavigationDrawerItemDefaults
-import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
@@ -63,14 +60,11 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.content.edit
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -80,9 +74,6 @@ import androidx.navigation.compose.rememberNavController
 import coil.compose.AsyncImage
 import com.dscvit.vitty.R
 import com.dscvit.vitty.activity.SettingsActivity
-import com.dscvit.vitty.network.api.community.APICommunityRestClient
-import com.dscvit.vitty.network.api.community.RetrofitUserActionListener
-import com.dscvit.vitty.network.api.community.responses.user.PostResponse
 import com.dscvit.vitty.network.api.community.responses.user.UserResponse
 import com.dscvit.vitty.theme.Accent
 import com.dscvit.vitty.theme.Background
@@ -115,13 +106,13 @@ import com.dscvit.vitty.util.LogoutHelper
 import com.dscvit.vitty.util.SemesterUtils
 import com.dscvit.vitty.util.UtilFunctions
 import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
 import java.net.URLDecoder
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import retrofit2.Call
 
 @Composable
 fun MainComposeApp() {
@@ -191,6 +182,29 @@ fun MainComposeApp() {
                         else -> route
                     }
             Analytics.appNavigation(screenName)
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        val activeFriendsFetched = prefs.getBoolean(Constants.ACTIVE_FRIENDS_FETCHED, false)
+        val activeFriendsList = prefs.getString(Constants.ACTIVE_FRIENDS_LIST, "")
+        val listType = object : TypeToken<List<String>>() {}.type
+        val cachedList: List<String> =
+                try {
+                    Gson().fromJson(activeFriendsList, listType) ?: emptyList()
+                } catch (e: Exception) {
+                    emptyList()
+                }
+
+        if (!activeFriendsFetched) {
+            val token = prefs.getString(Constants.COMMUNITY_TOKEN, null)
+            if (!token.isNullOrEmpty()) {
+                connectViewModel.fetchActiveFriends(token, prefs)
+            }
+        }
+
+        if (activeFriendsFetched) {
+            connectViewModel.updateActiveFriendsList(cachedList)
         }
     }
 
@@ -353,7 +367,7 @@ fun MainComposeApp() {
                         val friendData =
                                 URLDecoder.decode(
                                         encodedFriendData,
-                                        StandardCharsets.UTF_8.toString()
+                                        StandardCharsets.UTF_8.toString(),
                                 )
 
                         val friend =
@@ -515,12 +529,12 @@ fun MainComposeApp() {
                         val courseTitle =
                                 URLDecoder.decode(
                                         encodedCourseTitle,
-                                        StandardCharsets.UTF_8.toString()
+                                        StandardCharsets.UTF_8.toString(),
                                 )
                         val courseCode =
                                 URLDecoder.decode(
                                         encodedCourseCode,
-                                        StandardCharsets.UTF_8.toString()
+                                        StandardCharsets.UTF_8.toString(),
                                 )
                         CoursePageContent(
                                 courseTitle = courseTitle,
@@ -541,7 +555,7 @@ fun MainComposeApp() {
                                             }
                                                     ?: "new"
                                     navController.navigate(
-                                            "note_screen/$encodedCourseCodeParam/$encodedNoteId"
+                                            "note_screen/$encodedCourseCodeParam/$encodedNoteId",
                                     )
                                 },
                         )
@@ -575,7 +589,7 @@ fun MainComposeApp() {
                         val courseCode =
                                 URLDecoder.decode(
                                         encodedCourseCode,
-                                        StandardCharsets.UTF_8.toString()
+                                        StandardCharsets.UTF_8.toString(),
                                 )
                         val noteId =
                                 if (encodedNoteId == "new") {
@@ -672,12 +686,12 @@ fun MainComposeApp() {
                         val circleData =
                                 URLDecoder.decode(
                                         encodedCircleData,
-                                        StandardCharsets.UTF_8.toString()
+                                        StandardCharsets.UTF_8.toString(),
                                 )
                         val circleMembersData =
                                 URLDecoder.decode(
                                         encodedCircleMembersData,
-                                        StandardCharsets.UTF_8.toString()
+                                        StandardCharsets.UTF_8.toString(),
                                 )
 
                         val circle =
@@ -686,7 +700,7 @@ fun MainComposeApp() {
                                                     circleData,
                                                     com.dscvit.vitty.network.api.community.responses
                                                                     .user.CircleItem::class
-                                                            .java
+                                                            .java,
                                             )
                                 } catch (e: Exception) {
                                     null
@@ -714,10 +728,10 @@ fun MainComposeApp() {
                                         val encodedMemberData =
                                                 URLEncoder.encode(
                                                         memberJson,
-                                                        StandardCharsets.UTF_8.toString()
+                                                        StandardCharsets.UTF_8.toString(),
                                                 )
                                         navController.navigate(
-                                                "circle_member_detail/$encodedMemberData/$circleId"
+                                                "circle_member_detail/$encodedMemberData/$circleId",
                                         )
                                     },
                                     onAddParticipantsClick = { circleId: String ->
@@ -758,7 +772,7 @@ fun MainComposeApp() {
                         val memberData =
                                 URLDecoder.decode(
                                         encodedMemberData,
-                                        StandardCharsets.UTF_8.toString()
+                                        StandardCharsets.UTF_8.toString(),
                                 )
 
                         val member =
@@ -1086,17 +1100,11 @@ fun DrawerContent(
     val name = remember { prefs.getString(Constants.COMMUNITY_NAME, "") ?: "Name" }
 
     var campus by remember { mutableStateOf(prefs.getString(Constants.COMMUNITY_CAMPUS, "") ?: "") }
-    var isGhostModeEnabled by remember {
-        mutableStateOf(prefs.getBoolean(Constants.GHOST_MODE, false))
-    }
 
     DisposableEffect(Unit) {
         val listener =
                 SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
                     when (key) {
-                        Constants.GHOST_MODE -> {
-                            isGhostModeEnabled = prefs.getBoolean(Constants.GHOST_MODE, false)
-                        }
                         Constants.COMMUNITY_CAMPUS -> {
                             campus = prefs.getString(Constants.COMMUNITY_CAMPUS, "") ?: ""
                         }
@@ -1113,7 +1121,10 @@ fun DrawerContent(
             modifier = Modifier.fillMaxWidth(0.8f),
     ) {
         Column(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 26.dp, vertical = 28.dp),
+                modifier =
+                        Modifier.fillMaxWidth()
+                                .fillMaxHeight()
+                                .padding(horizontal = 26.dp, vertical = 28.dp),
         ) {
             Row(
                     modifier = Modifier.fillMaxWidth().padding(top = 20.dp),
@@ -1136,7 +1147,7 @@ fun DrawerContent(
                     overflow = TextOverflow.Ellipsis,
                     style =
                             MaterialTheme.typography.labelLarge.copy(
-                                    fontWeight = FontWeight.Normal,
+                                    fontWeight = FontWeight.Normal
                             ),
             )
 
@@ -1158,10 +1169,7 @@ fun DrawerContent(
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            HorizontalDivider(
-                    color = Accent,
-                    thickness = 1.dp,
-            )
+            HorizontalDivider(color = Accent, thickness = 1.dp)
 
             Spacer(modifier = Modifier.height(24.dp))
 
@@ -1181,7 +1189,7 @@ fun DrawerContent(
                                     color = TextColor,
                                     style =
                                             MaterialTheme.typography.labelLarge.copy(
-                                                    fontWeight = FontWeight.Normal,
+                                                    fontWeight = FontWeight.Normal
                                             ),
                             )
                         },
@@ -1209,12 +1217,12 @@ fun DrawerContent(
                     label = {
                         Text(
                                 modifier = Modifier.padding(start = 24.dp),
-                                style =
-                                        MaterialTheme.typography.labelLarge.copy(
-                                                fontWeight = FontWeight.Normal,
-                                        ),
                                 text = "Settings",
                                 color = TextColor,
+                                style =
+                                        MaterialTheme.typography.labelLarge.copy(
+                                                fontWeight = FontWeight.Normal
+                                        ),
                         )
                     },
                     selected = false,
@@ -1231,10 +1239,7 @@ fun DrawerContent(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            HorizontalDivider(
-                    color = Accent,
-                    thickness = 1.dp,
-            )
+            HorizontalDivider(color = Accent, thickness = 1.dp)
 
             Spacer(modifier = Modifier.height(24.dp))
 
@@ -1249,12 +1254,12 @@ fun DrawerContent(
                     label = {
                         Text(
                                 modifier = Modifier.padding(start = 24.dp),
-                                style =
-                                        MaterialTheme.typography.labelLarge.copy(
-                                                fontWeight = FontWeight.Normal,
-                                        ),
                                 text = "Share",
                                 color = TextColor,
+                                style =
+                                        MaterialTheme.typography.labelLarge.copy(
+                                                fontWeight = FontWeight.Normal
+                                        ),
                         )
                     },
                     selected = false,
@@ -1289,12 +1294,12 @@ fun DrawerContent(
                     label = {
                         Text(
                                 modifier = Modifier.padding(start = 24.dp),
-                                style =
-                                        MaterialTheme.typography.labelLarge.copy(
-                                                fontWeight = FontWeight.Normal,
-                                        ),
                                 text = "Support",
                                 color = TextColor,
+                                style =
+                                        MaterialTheme.typography.labelLarge.copy(
+                                                fontWeight = FontWeight.Normal
+                                        ),
                         )
                     },
                     selected = false,
@@ -1311,164 +1316,7 @@ fun DrawerContent(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            HorizontalDivider(
-                    color = Accent,
-                    thickness = 1.dp,
-            )
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Column(
-                        modifier = Modifier.weight(1f),
-                ) {
-                    Text(
-                            text =
-                                    buildAnnotatedString {
-                                        append("Ghost Mode ")
-                                        addStyle(
-                                                style =
-                                                        SpanStyle(
-                                                                fontWeight = FontWeight.Bold,
-                                                                fontSize = 12.sp,
-                                                                letterSpacing = (-0.12).sp,
-                                                                color = Accent,
-                                                        ),
-                                                start = 0,
-                                                end = "Ghost Mode".length,
-                                        )
-
-                                        append("(your timetable will be visible only to you)")
-                                        addStyle(
-                                                style =
-                                                        SpanStyle(
-                                                                fontWeight = FontWeight.Medium,
-                                                                fontSize = 12.sp,
-                                                                letterSpacing = (-0.12).sp,
-                                                                color = Accent,
-                                                        ),
-                                                start = "Ghost Mode ".length,
-                                                end =
-                                                        "Ghost Mode (your timetable will be visible only to you)".length,
-                                        )
-                                    },
-                    )
-                }
-
-                Spacer(modifier = Modifier.width(16.dp))
-
-                Switch(
-                        checked = isGhostModeEnabled,
-                        onCheckedChange = { isChecked ->
-                            val token = prefs.getString(Constants.COMMUNITY_TOKEN, "") ?: ""
-                            val currentUsername =
-                                    prefs.getString(Constants.COMMUNITY_USERNAME, "") ?: ""
-
-                            if (token.isNotEmpty() && currentUsername.isNotEmpty()) {
-                                if (isChecked) {
-                                    APICommunityRestClient.instance.enableGhostMode(
-                                            token = token,
-                                            username = currentUsername,
-                                            retrofitUserActionListener =
-                                                    object : RetrofitUserActionListener {
-                                                        override fun onSuccess(
-                                                                call: Call<PostResponse>?,
-                                                                response: PostResponse?,
-                                                        ) {
-                                                            isGhostModeEnabled = true
-                                                            prefs.edit {
-                                                                putBoolean(
-                                                                        Constants.GHOST_MODE,
-                                                                        true
-                                                                )
-                                                            }
-                                                            Toast.makeText(
-                                                                            context,
-                                                                            "Ghost mode enabled",
-                                                                            Toast.LENGTH_SHORT
-                                                                    )
-                                                                    .show()
-                                                        }
-
-                                                        override fun onError(
-                                                                call: Call<PostResponse>?,
-                                                                t: Throwable?,
-                                                        ) {
-                                                            isGhostModeEnabled = false
-                                                            Toast.makeText(
-                                                                            context,
-                                                                            "Failed to enable ghost mode",
-                                                                            Toast.LENGTH_SHORT
-                                                                    )
-                                                                    .show()
-                                                        }
-                                                    },
-                                    )
-                                } else {
-                                    APICommunityRestClient.instance.disableGhostMode(
-                                            token = token,
-                                            username = currentUsername,
-                                            retrofitUserActionListener =
-                                                    object : RetrofitUserActionListener {
-                                                        override fun onSuccess(
-                                                                call: Call<PostResponse>?,
-                                                                response: PostResponse?,
-                                                        ) {
-                                                            isGhostModeEnabled = false
-                                                            prefs.edit {
-                                                                putBoolean(
-                                                                        Constants.GHOST_MODE,
-                                                                        false
-                                                                )
-                                                            }
-                                                            Toast.makeText(
-                                                                            context,
-                                                                            "Ghost mode disabled",
-                                                                            Toast.LENGTH_SHORT
-                                                                    )
-                                                                    .show()
-                                                        }
-
-                                                        override fun onError(
-                                                                call: Call<PostResponse>?,
-                                                                t: Throwable?,
-                                                        ) {
-                                                            isGhostModeEnabled = true
-                                                            Toast.makeText(
-                                                                            context,
-                                                                            "Failed to disable ghost mode",
-                                                                            Toast.LENGTH_SHORT
-                                                                    )
-                                                                    .show()
-                                                        }
-                                                    },
-                                    )
-                                }
-                            } else {
-                                isGhostModeEnabled = isChecked
-                                prefs.edit { putBoolean(Constants.GHOST_MODE, isChecked) }
-                                Toast.makeText(
-                                                context,
-                                                "Ghost mode updated locally",
-                                                Toast.LENGTH_SHORT
-                                        )
-                                        .show()
-                            }
-                        },
-                        colors =
-                                SwitchDefaults.colors(
-                                        checkedThumbColor = Background,
-                                        checkedTrackColor = Accent,
-                                        uncheckedThumbColor = Color(0xff768EA4),
-                                        uncheckedTrackColor = Color(0x33475985),
-                                        uncheckedBorderColor = Color.Transparent,
-                                ),
-                )
-            }
+            HorizontalDivider(color = Accent, thickness = 1.dp)
 
             Spacer(modifier = Modifier.weight(1f))
 
@@ -1476,24 +1324,23 @@ fun DrawerContent(
                     icon = {
                         Icon(
                                 painter = painterResource(R.drawable.ic_logout_2),
-                                contentDescription = "log out",
-                                tint = Color(0xffFF0000),
+                                contentDescription = "Log out",
+                                tint = Color(0xFFFF0000),
                         )
                     },
                     label = {
                         Text(
+                                text = "Log out",
+                                color = Color(0xFFFF0000),
                                 style =
                                         MaterialTheme.typography.labelLarge.copy(
-                                                fontWeight = FontWeight.Normal,
+                                                fontWeight = FontWeight.Normal
                                         ),
-                                text = "log out",
-                                color = Color(0xffFF0000),
                         )
                     },
                     selected = false,
                     onClick = {
                         onCloseDrawer()
-
                         val activity = context as? Activity
                         if (activity != null) {
                             LogoutHelper.logout(context, activity, prefs)
