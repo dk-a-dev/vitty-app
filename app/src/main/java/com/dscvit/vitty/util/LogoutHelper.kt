@@ -58,6 +58,8 @@ object LogoutHelper {
                 putString(Constants.COMMUNITY_CAMPUS, null)
                 putBoolean(Constants.COMMUNITY_TIMETABLE_AVAILABLE, false)
                 putString(Constants.CACHE_COMMUNITY_TIMETABLE, null)
+                putBoolean(Constants.ACTIVE_FRIENDS_FETCHED, false)
+                putString(Constants.ACTIVE_FRIENDS_FETCHED, null)
 
                 apply()
             }

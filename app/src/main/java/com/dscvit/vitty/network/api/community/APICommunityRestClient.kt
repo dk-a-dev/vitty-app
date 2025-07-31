@@ -11,8 +11,10 @@ import com.dscvit.vitty.network.api.community.responses.circle.CreateCircleRespo
 import com.dscvit.vitty.network.api.community.responses.circle.JoinCircleResponse
 import com.dscvit.vitty.network.api.community.responses.requests.RequestsResponse
 import com.dscvit.vitty.network.api.community.responses.timetable.TimetableResponse
+import com.dscvit.vitty.network.api.community.responses.user.ActiveFriendResponse
 import com.dscvit.vitty.network.api.community.responses.user.CircleResponse
 import com.dscvit.vitty.network.api.community.responses.user.FriendResponse
+import com.dscvit.vitty.network.api.community.responses.user.GhostPostResponse
 import com.dscvit.vitty.network.api.community.responses.user.PostResponse
 import com.dscvit.vitty.network.api.community.responses.user.SignInResponse
 import com.dscvit.vitty.network.api.community.responses.user.UserResponse
@@ -184,6 +186,7 @@ class APICommunityRestClient {
                     call: Call<FriendResponse>,
                     response: Response<FriendResponse>,
                 ) {
+                    Timber.d("FriendListResponse: ${response.body()}")
                     retrofitFriendListListener.onSuccess(call, response.body())
                 }
 
@@ -658,23 +661,23 @@ class APICommunityRestClient {
     fun enableGhostMode(
         token: String,
         username: String,
-        retrofitUserActionListener: RetrofitUserActionListener,
+        retrofitUserActionListener: RetrofitGhostActionListener,
     ) {
         val bearerToken = "Bearer $token"
 
         mApiUser = retrofit.create<APICommunity>(APICommunity::class.java)
         val apiGhostModeCall = mApiUser!!.enableGhostMode(bearerToken, username)
         apiGhostModeCall.enqueue(
-            object : Callback<PostResponse> {
+            object : Callback<GhostPostResponse> {
                 override fun onResponse(
-                    call: Call<PostResponse>,
-                    response: Response<PostResponse>,
+                    call: Call<GhostPostResponse>,
+                    response: Response<GhostPostResponse>,
                 ) {
                     retrofitUserActionListener.onSuccess(call, response.body())
                 }
 
                 override fun onFailure(
-                    call: Call<PostResponse>,
+                    call: Call<GhostPostResponse>,
                     t: Throwable,
                 ) {
                     retrofitUserActionListener.onError(call, t)
@@ -686,23 +689,23 @@ class APICommunityRestClient {
     fun disableGhostMode(
         token: String,
         username: String,
-        retrofitUserActionListener: RetrofitUserActionListener,
+        retrofitUserActionListener: RetrofitGhostActionListener,
     ) {
         val bearerToken = "Bearer $token"
 
         mApiUser = retrofit.create<APICommunity>(APICommunity::class.java)
         val apiGhostModeCall = mApiUser!!.disableGhostMode(bearerToken, username)
         apiGhostModeCall.enqueue(
-            object : Callback<PostResponse> {
+            object : Callback<GhostPostResponse> {
                 override fun onResponse(
-                    call: Call<PostResponse>,
-                    response: Response<PostResponse>,
+                    call: Call<GhostPostResponse>,
+                    response: Response<GhostPostResponse>,
                 ) {
                     retrofitUserActionListener.onSuccess(call, response.body())
                 }
 
                 override fun onFailure(
-                    call: Call<PostResponse>,
+                    call: Call<GhostPostResponse>,
                     t: Throwable,
                 ) {
                     retrofitUserActionListener.onError(call, t)
@@ -1007,6 +1010,34 @@ class APICommunityRestClient {
                 ) {
                     Timber.d("UpdateCampusError: ${t.message}")
                     retrofitUserActionListener.onError(call, t)
+                }
+            },
+        )
+    }
+
+    fun getActiveFriends(
+        token: String,
+        retrofitActiveFriendsListener: RetrofitActiveFriendsListener,
+    ) {
+        val bearerToken = "Bearer $token"
+        mApiUser = retrofit.create(APICommunity::class.java)
+        val apiActiveFriendsCall = mApiUser!!.getActiveFriends(bearerToken)
+        apiActiveFriendsCall.enqueue(
+            object : Callback<ActiveFriendResponse> {
+                override fun onResponse(
+                    call: Call<ActiveFriendResponse>,
+                    response: Response<ActiveFriendResponse>,
+                ) {
+                    Timber.d("ActiveFriends: ${response.body()}")
+                    retrofitActiveFriendsListener.onSuccess(call, response.body())
+                }
+
+                override fun onFailure(
+                    call: Call<ActiveFriendResponse>,
+                    t: Throwable,
+                ) {
+                    Timber.d("ActiveFriendsError: ${t.message}")
+                    retrofitActiveFriendsListener.onError(call, t)
                 }
             },
         )

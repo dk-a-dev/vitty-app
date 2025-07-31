@@ -9,8 +9,10 @@ import com.dscvit.vitty.network.api.community.responses.circle.CreateCircleRespo
 import com.dscvit.vitty.network.api.community.responses.circle.JoinCircleResponse
 import com.dscvit.vitty.network.api.community.responses.requests.RequestsResponse
 import com.dscvit.vitty.network.api.community.responses.timetable.TimetableResponse
+import com.dscvit.vitty.network.api.community.responses.user.ActiveFriendResponse
 import com.dscvit.vitty.network.api.community.responses.user.CircleResponse
 import com.dscvit.vitty.network.api.community.responses.user.FriendResponse
+import com.dscvit.vitty.network.api.community.responses.user.GhostPostResponse
 import com.dscvit.vitty.network.api.community.responses.user.PostResponse
 import com.dscvit.vitty.network.api.community.responses.user.SignInResponse
 import com.dscvit.vitty.network.api.community.responses.user.UserResponse
@@ -114,13 +116,13 @@ interface APICommunity {
     fun enableGhostMode(
         @Header("Authorization") authToken: String,
         @Path("username") username: String,
-    ): Call<PostResponse>
+    ): Call<GhostPostResponse>
 
     @POST("/api/v3/friends/alive/{username}")
     fun disableGhostMode(
         @Header("Authorization") authToken: String,
         @Path("username") username: String,
-    ): Call<PostResponse>
+    ): Call<GhostPostResponse>
 
     @GET("/api/v3/circles")
     fun getCircles(
@@ -213,4 +215,9 @@ interface APICommunity {
         @Header("Authorization") authToken: String,
         @Query("slot") slot: String,
     ): Call<Map<String, List<String>>>
+
+    @GET(value = "/api/v3/friends/active")
+    fun getActiveFriends(
+        @Header("Authorization") authToken: String,
+    ): Call<ActiveFriendResponse>
 }
