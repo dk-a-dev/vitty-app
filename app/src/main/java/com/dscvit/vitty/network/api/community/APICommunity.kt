@@ -5,6 +5,7 @@ import com.dscvit.vitty.network.api.community.requests.CircleBatchRequestBody
 import com.dscvit.vitty.network.api.community.requests.UsernameRequestBody
 import com.dscvit.vitty.network.api.community.responses.circle.CircleBatchRequestResponse
 import com.dscvit.vitty.network.api.community.responses.circle.CircleRequestsResponse
+import com.dscvit.vitty.network.api.community.responses.circle.CreateCircleRequest
 import com.dscvit.vitty.network.api.community.responses.circle.CreateCircleResponse
 import com.dscvit.vitty.network.api.community.responses.circle.JoinCircleResponse
 import com.dscvit.vitty.network.api.community.responses.requests.RequestsResponse
@@ -129,10 +130,10 @@ interface APICommunity {
         @Header("Authorization") authToken: String,
     ): Call<CircleResponse>
 
-    @POST("/api/v3/circles/create/{circleName}")
+    @POST("/api/v3/circles/create")
     fun createCircle(
         @Header("Authorization") authToken: String,
-        @Path("circleName") circleName: String,
+        @Body requestBody: CreateCircleRequest //
     ): Call<CreateCircleResponse>
 
     @POST("/api/v3/circles/join")

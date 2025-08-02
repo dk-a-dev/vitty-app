@@ -7,6 +7,7 @@ import com.dscvit.vitty.network.api.community.requests.CircleBatchRequestBody
 import com.dscvit.vitty.network.api.community.requests.UsernameRequestBody
 import com.dscvit.vitty.network.api.community.responses.circle.CircleBatchRequestResponse
 import com.dscvit.vitty.network.api.community.responses.circle.CircleRequestsResponse
+import com.dscvit.vitty.network.api.community.responses.circle.CreateCircleRequest
 import com.dscvit.vitty.network.api.community.responses.circle.CreateCircleResponse
 import com.dscvit.vitty.network.api.community.responses.circle.JoinCircleResponse
 import com.dscvit.vitty.network.api.community.responses.requests.RequestsResponse
@@ -235,11 +236,12 @@ class APICommunityRestClient {
         val bearerToken = "Bearer $token"
 
         Timber.d("APICommunityRestClient.createCircle called with circleName: $circleName")
+        val requestBody = CreateCircleRequest(circleName = circleName)
 
         mApiUser = retrofit.create<APICommunity>(APICommunity::class.java)
-        val apiCreateCircleCall = mApiUser!!.createCircle(bearerToken, circleName)
+        val apiCreateCircleCall = mApiUser!!.createCircle(bearerToken, requestBody)
+        Timber.d("API call created with request body, enqueueing request...")
 
-        Timber.d("API call created, enqueueing request...")
 
         apiCreateCircleCall.enqueue(
             object : Callback<CreateCircleResponse> {
@@ -248,7 +250,13 @@ class APICommunityRestClient {
                     response: Response<CreateCircleResponse>,
                 ) {
                     Timber.d("API Response received: ${response.code()}, body: ${response.body()}")
-                    retrofitCreateCircleListener.onSuccess(call, response.body())
+                    if (response.isSuccessful) {
+                        retrofitCreateCircleListener.onSuccess(call, response.body())
+                    } else {
+                        val errorBody = response.errorBody()?.string()
+                        Timber.e("API Error: ${response.code()} - $errorBody")
+                        retrofitCreateCircleListener.onError(call, Throwable("API Error: ${response.code()} - ${errorBody ?: "Unknown error"}"))
+                    }
                 }
 
                 override fun onFailure(
