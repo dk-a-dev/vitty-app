@@ -8,3 +8,8 @@ data class CircleBatchResponseItem(
 data class CircleBatchRequestResponse(
     val data: List<CircleBatchResponseItem>,
 )
+
+
+data class CreateCircleRequest(
+    val circleName: String
+)
