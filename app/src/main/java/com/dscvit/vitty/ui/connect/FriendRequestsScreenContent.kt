@@ -180,7 +180,7 @@ fun FriendRequestsScreenContent(
                             val token = sharedPreferences.getString(Constants.COMMUNITY_TOKEN, "") ?: ""
                             if (token.isNotEmpty()) {
                                 processedRequests = processedRequests + user.username
-                                connectViewModel.acceptRequest(token, user.username)
+                                connectViewModel.acceptRequest(token, user.username, sharedPreferences)
                             }
                         },
                         onReject = { user ->

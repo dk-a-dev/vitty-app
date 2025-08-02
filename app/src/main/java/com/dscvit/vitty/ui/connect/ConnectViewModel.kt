@@ -182,6 +182,7 @@ class ConnectViewModel : ViewModel() {
     fun unfriend(
         token: String,
         username: String,
+        prefs: SharedPreferences,
     ) {
         APICommunityRestClient.instance.unfriend(
             token,
@@ -192,6 +193,7 @@ class ConnectViewModel : ViewModel() {
                     response: PostResponse?,
                 ) {
                     Timber.d("ConnectUnfriend: $response")
+                    fetchActiveFriends(token, prefs)
                     _unfriendSuccess.postValue(username)
                 }
 
@@ -221,6 +223,7 @@ class ConnectViewModel : ViewModel() {
     fun acceptRequest(
         token: String,
         username: String,
+        prefs: SharedPreferences,
     ) {
         APICommunityRestClient.instance.acceptRequest(
             token,
@@ -231,6 +234,7 @@ class ConnectViewModel : ViewModel() {
                     response: PostResponse?,
                 ) {
                     Timber.d("AcceptRequest: $response")
+                    fetchActiveFriends(token, prefs)
                     _requestActionResponse.postValue(response)
                 }
 
