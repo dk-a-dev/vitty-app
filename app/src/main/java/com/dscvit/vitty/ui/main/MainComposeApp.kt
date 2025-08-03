@@ -103,8 +103,10 @@ import com.dscvit.vitty.ui.schedule.ScheduleViewModel
 import com.dscvit.vitty.util.Analytics
 import com.dscvit.vitty.util.Constants
 import com.dscvit.vitty.util.LogoutHelper
+import com.dscvit.vitty.util.MaintenanceChecker
 import com.dscvit.vitty.util.SemesterUtils
 import com.dscvit.vitty.util.UtilFunctions
+import com.dscvit.vitty.ui.maintenance.MaintenanceBannerDialog
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import java.net.URLDecoder
@@ -129,6 +131,10 @@ fun MainComposeApp() {
 
     var campus by remember { mutableStateOf(prefs.getString(Constants.COMMUNITY_CAMPUS, "") ?: "") }
     var showCampusDialog by remember { mutableStateOf(campus.isEmpty()) }
+    
+    // Maintenance banner state
+    var showMaintenanceBanner by remember { mutableStateOf(false) }
+    var lastMaintenanceCheck by remember { mutableStateOf(0L) }
 
     DisposableEffect(Unit) {
         val listener =
@@ -208,13 +214,25 @@ fun MainComposeApp() {
         }
     }
 
+    LaunchedEffect(Unit) {
+        if (MaintenanceChecker.isNetworkAvailable(context)) {
+            MaintenanceChecker.checkMaintenanceStatusAsync(context) { isUnderMaintenance ->
+                android.util.Log.d("MaintenanceCheck", "Dialog check result: isUnderMaintenance=$isUnderMaintenance")
+                showMaintenanceBanner = isUnderMaintenance
+                lastMaintenanceCheck = System.currentTimeMillis()
+            }
+        } else {
+            android.util.Log.d("MaintenanceCheck", "No network available")
+        }
+    }
+
     VittyTheme {
         ModalNavigationDrawer(
                 drawerState = drawerState,
                 drawerContent = {
                     DrawerContent(
                             navController = navController,
-                            onCloseDrawer = { scope.launch { drawerState.close() } },
+                            onCloseDrawer = { scope.launch { drawerState.close() } }
                     )
                 },
         ) {
@@ -866,6 +884,20 @@ fun MainComposeApp() {
                             onDismiss = { showCampusDialog = false },
                     )
                 }
+                
+                // Maintenance Banner Dialog
+                MaintenanceBannerDialog(
+                    isVisible = showMaintenanceBanner,
+                    onDismiss = { 
+                        showMaintenanceBanner = false 
+                    },
+                    onRetryClick = {
+                        MaintenanceChecker.checkMaintenanceStatusAsync(context) { isUnderMaintenance ->
+                            showMaintenanceBanner = isUnderMaintenance
+                            lastMaintenanceCheck = System.currentTimeMillis()
+                        }
+                    }
+                )
             }
         }
     }
@@ -1091,7 +1123,7 @@ fun NavigationItem(
 @Composable
 fun DrawerContent(
         navController: NavHostController,
-        onCloseDrawer: () -> Unit,
+        onCloseDrawer: () -> Unit
 ) {
     val context = LocalContext.current
     val prefs = remember { context.getSharedPreferences(Constants.USER_INFO, 0) }

@@ -10,6 +10,7 @@ import android.view.View
 import android.widget.Toast
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.edit
 import androidx.databinding.DataBindingUtil
@@ -24,6 +25,7 @@ import com.dscvit.vitty.util.Constants.TOKEN
 import com.dscvit.vitty.util.Constants.UID
 import com.dscvit.vitty.util.Constants.USER_INFO
 import com.dscvit.vitty.util.NotificationPermissionHelper
+import com.dscvit.vitty.util.MaintenanceChecker
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
@@ -62,6 +64,22 @@ class AuthActivity : AppCompatActivity() {
 
         configureGoogleSignIn()
         setupUI()
+        setupBackPressedHandler()
+    }
+
+    private fun setupBackPressedHandler() {
+        val callback = object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                binding.apply {
+                    if (introPager.currentItem == 0 || loginClick) {
+                        finish()
+                    } else {
+                        introPager.currentItem--
+                    }
+                }
+            }
+        }
+        onBackPressedDispatcher.addCallback(this, callback)
     }
 
     private fun setupNotificationPermissionLauncher() {
@@ -266,8 +284,9 @@ class AuthActivity : AppCompatActivity() {
                     val email = firebaseAuth.currentUser?.email
                     Timber.d("Firebase authentication successful - uid: $uid, email: $email")
                     saveInfo(acct.idToken, uid)
-                    authViewModel.signInAndGetTimeTable("", "", uid ?: "", "")
-                    leadToNextPage()
+                    
+                    // Quick maintenance check for new login
+                    checkMaintenanceBeforeProceed()
                 } else {
                     Timber.e("Firebase authentication failed: ${authResult.exception?.message}")
                     logoutFailed()
@@ -276,6 +295,20 @@ class AuthActivity : AppCompatActivity() {
                 Timber.e("Firebase authentication failed with exception: ${exception.message}")
                 logoutFailed()
             }
+    }
+
+    private fun checkMaintenanceBeforeProceed() {
+        MaintenanceChecker.checkMaintenanceStatusAsync(this) { isUnderMaintenance ->
+            if (isUnderMaintenance) {
+                binding.loadingView.visibility = View.GONE
+                val intent = Intent(this, MaintenanceActivity::class.java)
+                startActivity(intent)
+                finish()
+            } else {
+                authViewModel.signInAndGetTimeTable("", "", firebaseAuth.currentUser?.uid ?: "", "")
+                leadToNextPage()
+            }
+        }
     }
 
     private fun leadToNextPage() {
@@ -320,16 +353,6 @@ class AuthActivity : AppCompatActivity() {
                     finish()
                     binding.loadingView.visibility = View.GONE
                 }
-            }
-        }
-    }
-
-    override fun onBackPressed() {
-        binding.apply {
-            if (introPager.currentItem == 0 || loginClick) {
-                super.onBackPressed()
-            } else {
-                introPager.currentItem--
             }
         }
     }
