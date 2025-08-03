@@ -88,8 +88,8 @@
     <string name="default_notification_channel_id">con.dscvit.vitty-Updates</string>
     <string name="directions">Directions</string>
     <string name="facing_issues_title">Facing any issues? Contact us!</string>
-    <string name="facing_issues_description">We are available on Telegram throughout the day ready to fix your problems!</string>
-    <string name="telegram_link"><u>https://dscv.it/telegram</u></string>
+    <string name="facing_issues_description">Reach out support in case of any issues!</string>
+    <string name="telegram_link"><u>https://vitty.dscvit.com</u></string>
     <string name="support">Support</string>
     <string name="sample_room">SJT101</string>
     <string name="title_academics">Academics</string>
