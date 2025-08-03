@@ -18,12 +18,14 @@ import com.google.android.play.core.appupdate.AppUpdateInfo
 import com.google.android.play.core.appupdate.AppUpdateManager
 import com.google.android.play.core.appupdate.AppUpdateManagerFactory
 import com.google.android.play.core.appupdate.AppUpdateOptions
+import com.google.android.play.core.install.InstallStateUpdatedListener
 import com.google.android.play.core.install.model.AppUpdateType
 import com.google.android.play.core.install.model.InstallStatus
 import com.google.android.play.core.install.model.UpdateAvailability
 import com.google.android.play.core.review.ReviewInfo
 import com.google.android.play.core.review.ReviewManager
 import com.google.android.play.core.review.ReviewManagerFactory
+import timber.log.Timber
 import java.util.concurrent.TimeUnit
 
 class HomeComposeActivity : FragmentActivity() {
@@ -36,12 +38,40 @@ class HomeComposeActivity : FragmentActivity() {
 
     companion object {
         private val REVIEW_INTERVAL_MILLIS = TimeUnit.DAYS.toMillis(30)
+        private const val TAG = "HomeComposeActivity"
     }
 
     private val updateResultLauncher =
-            registerForActivityResult(
-                    ActivityResultContracts.StartIntentSenderForResult(),
-            ) { result: ActivityResult -> if (result.resultCode != RESULT_OK) {} }
+        registerForActivityResult(
+            ActivityResultContracts.StartIntentSenderForResult(),
+        ) { result: ActivityResult ->
+            when (result.resultCode) {
+                RESULT_OK -> {
+                    Timber.d("$TAG:Update flow completed successfully")
+                }
+                RESULT_CANCELED -> {
+                    Timber.d("$TAG:Update flow was cancelled by user")
+                }
+                else -> {
+                    Timber.d("$TAG:Update flow failed with result code: ${result.resultCode}")
+                }
+            }
+        }
+
+    private val installStateUpdatedListener: InstallStateUpdatedListener =
+        InstallStateUpdatedListener { state ->
+            when (state.installStatus()) {
+                InstallStatus.DOWNLOADED -> {
+                    showUpdateDownloadedSnackbar()
+                }
+                InstallStatus.INSTALLED -> {
+                    appUpdateManager.unregisterListener(installStateUpdatedListener)
+                }
+                else -> {
+                    Timber.d("$TAG:Install status: ${state.installStatus()}")
+                }
+            }
+        }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -53,10 +83,12 @@ class HomeComposeActivity : FragmentActivity() {
 
         binding.composeView.apply {
             setViewCompositionStrategy(
-                    ViewCompositionStrategy.DisposeOnLifecycleDestroyed(this@HomeComposeActivity),
+                ViewCompositionStrategy.DisposeOnLifecycleDestroyed(this@HomeComposeActivity),
             )
             setContent { MainComposeApp() }
         }
+
+        appUpdateManager.registerListener(installStateUpdatedListener)
 
         checkForAppUpdate()
         checkForReviewRequest()
@@ -65,67 +97,121 @@ class HomeComposeActivity : FragmentActivity() {
     override fun onResume() {
         super.onResume()
 
-        appUpdateManager.appUpdateInfo.addOnSuccessListener { appUpdateInfo ->
-            if (appUpdateInfo.updateAvailability() ==
-                            UpdateAvailability.DEVELOPER_TRIGGERED_UPDATE_IN_PROGRESS
-            ) {
+        appUpdateManager.appUpdateInfo
+            .addOnSuccessListener { appUpdateInfo ->
+                Timber.d(
+                    "$TAG:onResume - Update availability: ${appUpdateInfo.updateAvailability()}",
+                )
+                Timber.d("$TAG:onResume - Install status: ${appUpdateInfo.installStatus()}")
 
-                appUpdateManager.startUpdateFlowForResult(
+                if (appUpdateInfo.updateAvailability() ==
+                    UpdateAvailability.DEVELOPER_TRIGGERED_UPDATE_IN_PROGRESS
+                ) {
+                    Timber.d("$TAG:Resuming in-progress update")
+                    appUpdateManager.startUpdateFlowForResult(
                         appUpdateInfo,
                         updateResultLauncher,
                         AppUpdateOptions.newBuilder(AppUpdateType.IMMEDIATE).build(),
-                )
-            }
+                    )
+                }
 
-            if (appUpdateInfo.installStatus() == InstallStatus.DOWNLOADED) {
-                showUpdateDownloadedSnackbar()
+                if (appUpdateInfo.installStatus() == InstallStatus.DOWNLOADED) {
+                    showUpdateDownloadedSnackbar()
+                }
+            }.addOnFailureListener { exception ->
+                Timber.e("$TAG:Failed to get app update info in onResume$exception")
             }
-        }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+
+        appUpdateManager.unregisterListener(installStateUpdatedListener)
     }
 
     private fun checkForAppUpdate() {
-        appUpdateManager.appUpdateInfo.addOnSuccessListener { appUpdateInfo ->
-            when {
-                appUpdateInfo.updateAvailability() == UpdateAvailability.UPDATE_AVAILABLE &&
+        Timber.d("$TAG:Checking for app updates...")
+
+        appUpdateManager.appUpdateInfo
+            .addOnSuccessListener { appUpdateInfo ->
+                Timber.d("$TAG:Update availability: ${appUpdateInfo.updateAvailability()}")
+                Timber.d("$TAG:Update priority: ${appUpdateInfo.updatePriority()}")
+                Timber.d(
+                    "$TAG:Client version staleness days: ${appUpdateInfo.clientVersionStalenessDays()}",
+                )
+                Timber.d("$TAG:Available version code: ${appUpdateInfo.availableVersionCode()}")
+                Timber.d("$TAG:Install status: ${appUpdateInfo.installStatus()}")
+
+                when {
+                    appUpdateInfo.updateAvailability() == UpdateAvailability.UPDATE_AVAILABLE &&
                         appUpdateInfo.updatePriority() >= 4 &&
                         appUpdateInfo.isUpdateTypeAllowed(AppUpdateType.IMMEDIATE) -> {
-                    startImmediateUpdate(appUpdateInfo)
-                }
-                appUpdateInfo.updateAvailability() == UpdateAvailability.UPDATE_AVAILABLE &&
-                        (appUpdateInfo.clientVersionStalenessDays() ?: -1) >= 3 &&
+                        Timber.d("$TAG:Starting immediate update (high priority)")
+                        startImmediateUpdate(appUpdateInfo)
+                    }
+                    appUpdateInfo.updateAvailability() == UpdateAvailability.UPDATE_AVAILABLE &&
                         appUpdateInfo.isUpdateTypeAllowed(AppUpdateType.FLEXIBLE) -> {
-                    startFlexibleUpdate(appUpdateInfo)
+                        val stalenessDays = appUpdateInfo.clientVersionStalenessDays() ?: 0
+                        Timber.d("$TAG:Update staleness: $stalenessDays days")
+
+                        if (stalenessDays >= 1) {
+                            Timber.d("$TAG:Starting flexible update (staleness criteria met)")
+                            startFlexibleUpdate(appUpdateInfo)
+                        } else {
+                            Timber.d("$TAG:Update available but staleness criteria not met")
+                        }
+                    }
+                    appUpdateInfo.updateAvailability() ==
+                        UpdateAvailability.UPDATE_AVAILABLE -> {
+                        Timber.d("$TAG:Update available but no update type allowed")
+                        Timber.d(
+                            "$TAG:Immediate allowed: ${appUpdateInfo.isUpdateTypeAllowed(AppUpdateType.IMMEDIATE)}",
+                        )
+                        Timber.d(
+                            "$TAG:Flexible allowed: ${appUpdateInfo.isUpdateTypeAllowed(AppUpdateType.FLEXIBLE)}",
+                        )
+                    }
+                    else -> {
+                        Timber.d("$TAG:No update available or update not applicable")
+                    }
                 }
+            }.addOnFailureListener { exception ->
+                Timber.e("$TAG:Failed to check for app updates:$exception")
             }
-        }
     }
 
     private fun startImmediateUpdate(appUpdateInfo: AppUpdateInfo) {
+        Timber.d("Launching immediate update flow")
         appUpdateManager.startUpdateFlowForResult(
-                appUpdateInfo,
-                updateResultLauncher,
-                AppUpdateOptions.newBuilder(AppUpdateType.IMMEDIATE).build(),
+            appUpdateInfo,
+            updateResultLauncher,
+            AppUpdateOptions.newBuilder(AppUpdateType.IMMEDIATE).build(),
         )
     }
 
     private fun startFlexibleUpdate(appUpdateInfo: AppUpdateInfo) {
+        Timber.d("Launching flexible update flow")
         appUpdateManager.startUpdateFlowForResult(
-                appUpdateInfo,
-                updateResultLauncher,
-                AppUpdateOptions.newBuilder(AppUpdateType.FLEXIBLE).build(),
+            appUpdateInfo,
+            updateResultLauncher,
+            AppUpdateOptions.newBuilder(AppUpdateType.FLEXIBLE).build(),
         )
     }
 
     private fun showUpdateDownloadedSnackbar() {
-        Snackbar.make(
-                        binding.root,
-                        "An update has been downloaded.",
-                        Snackbar.LENGTH_INDEFINITE,
-                )
-                .apply {
-                    setAction("RESTART") { appUpdateManager.completeUpdate() }
-                    show()
+        Timber.d("Showing update downloaded snackbar")
+        Snackbar
+            .make(
+                binding.root,
+                "An update has been downloaded.",
+                Snackbar.LENGTH_INDEFINITE,
+            ).apply {
+                setAction("RESTART") {
+                    Timber.d("User clicked restart - completing update")
+                    appUpdateManager.completeUpdate()
                 }
+                show()
+            }
     }
 
     private fun checkForReviewRequest() {
@@ -142,9 +228,10 @@ class HomeComposeActivity : FragmentActivity() {
         request.addOnCompleteListener { task ->
             if (task.isSuccessful) {
                 reviewInfo = task.result
-
                 launchReviewFlow()
-            } else {}
+            } else {
+                Timber.e("$TAG:Failed to request review info:${task.exception}")
+            }
         }
     }
 
