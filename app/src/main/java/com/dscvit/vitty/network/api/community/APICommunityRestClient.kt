@@ -1050,4 +1050,30 @@ class APICommunityRestClient {
             },
         )
     }
+    
+    fun checkServerStatus(
+        retrofitServerStatusListener: RetrofitServerStatusListener,
+    ) {
+        mApiUser = retrofit.create<APICommunity>(APICommunity::class.java)
+        val apiServerStatusCall = mApiUser!!.checkServerStatus()
+        apiServerStatusCall.enqueue(
+            object : Callback<String> {
+                override fun onResponse(
+                    call: Call<String>,
+                    response: Response<String>,
+                ) {
+                    Timber.d("ServerStatus: ${response.body()}")
+                    retrofitServerStatusListener.onSuccess(call, response.body(), response.isSuccessful)
+                }
+
+                override fun onFailure(
+                    call: Call<String>,
+                    t: Throwable,
+                ) {
+                    Timber.d("ServerStatusError: ${t.message}")
+                    retrofitServerStatusListener.onError(call, t)
+                }
+            },
+        )
+    }
 }

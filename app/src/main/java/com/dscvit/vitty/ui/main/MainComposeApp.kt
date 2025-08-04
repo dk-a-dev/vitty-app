@@ -115,6 +115,7 @@ import java.nio.charset.StandardCharsets
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import timber.log.Timber
 
 @Composable
 fun MainComposeApp() {
@@ -134,7 +135,6 @@ fun MainComposeApp() {
     
     // Maintenance banner state
     var showMaintenanceBanner by remember { mutableStateOf(false) }
-    var lastMaintenanceCheck by remember { mutableStateOf(0L) }
 
     DisposableEffect(Unit) {
         val listener =
@@ -215,14 +215,13 @@ fun MainComposeApp() {
     }
 
     LaunchedEffect(Unit) {
-        if (MaintenanceChecker.isNetworkAvailable(context)) {
+        if (UtilFunctions.isNetworkAvailable(context)) {
             MaintenanceChecker.checkMaintenanceStatusAsync(context) { isUnderMaintenance ->
-                android.util.Log.d("MaintenanceCheck", "Dialog check result: isUnderMaintenance=$isUnderMaintenance")
+                Timber.d("Dialog check result: isUnderMaintenance=%s", isUnderMaintenance)
                 showMaintenanceBanner = isUnderMaintenance
-                lastMaintenanceCheck = System.currentTimeMillis()
             }
         } else {
-            android.util.Log.d("MaintenanceCheck", "No network available")
+            Timber.d("No network available")
         }
     }
 
@@ -894,7 +893,6 @@ fun MainComposeApp() {
                     onRetryClick = {
                         MaintenanceChecker.checkMaintenanceStatusAsync(context) { isUnderMaintenance ->
                             showMaintenanceBanner = isUnderMaintenance
-                            lastMaintenanceCheck = System.currentTimeMillis()
                         }
                     }
                 )

@@ -29,6 +29,9 @@ import retrofit2.http.Path
 import retrofit2.http.Query
 
 interface APICommunity {
+    @GET("/")
+    fun checkServerStatus(): Call<String>
+
     @Headers("Content-Type: application/json")
     @POST("/api/v3/auth/check-username")
     fun checkUsername(
