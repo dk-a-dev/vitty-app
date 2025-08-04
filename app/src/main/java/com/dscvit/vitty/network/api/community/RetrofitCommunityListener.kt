@@ -169,3 +169,15 @@ interface RetrofitActiveFriendsListener {
         t: Throwable,
     )
 }
+
+interface RetrofitServerStatusListener {
+    fun onSuccess(
+        call: Call<String>,
+        response: String?,
+        isSuccessful: Boolean
+    )
+    fun onError(
+        call: Call<String>,
+        t: Throwable
+    )
+}

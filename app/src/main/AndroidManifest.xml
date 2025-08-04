@@ -39,6 +39,9 @@
             android:name=".activity.VITEventsActivity"
             android:exported="false" />
         <activity
+            android:name=".activity.MaintenanceActivity"
+            android:exported="false" />
+        <activity
             android:name=".activity.NavigationActivity"
             android:exported="false" />
         <activity
