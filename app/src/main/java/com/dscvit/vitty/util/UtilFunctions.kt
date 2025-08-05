@@ -23,6 +23,7 @@ import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
+import java.util.TimeZone
 
 object UtilFunctions {
     fun openLink(
@@ -143,5 +144,33 @@ object UtilFunctions {
         intent.type = "image/png"
         intent.putExtra(Intent.EXTRA_STREAM, bitmapUri)
         context.startActivity(Intent.createChooser(intent, "Share"))
+    }
+
+    fun parseBackendTimeString(timeString: String): Date? {
+        try {
+            val timeRegex = """T(\d{2}):(\d{2}):(\d{2})""".toRegex()
+            val match = timeRegex.find(timeString)
+
+            if (match != null) {
+                val hours = match.groupValues[1].toInt()
+                val minutes = match.groupValues[2].toInt()
+                val seconds = match.groupValues[3].toInt()
+
+                val calendar = Calendar.getInstance()
+                calendar.set(Calendar.HOUR_OF_DAY, hours)
+                calendar.set(Calendar.MINUTE, minutes)
+                calendar.set(Calendar.SECOND, seconds)
+                calendar.set(Calendar.MILLISECOND, 0)
+
+                return calendar.time
+            } else {
+                val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.Builder().setLanguage("en").setRegion("IN").build())
+                sdf.timeZone = TimeZone.getTimeZone("Asia/Kolkata")
+                return sdf.parse(timeString)
+            }
+        } catch (e: Exception) {
+            val calendar = Calendar.getInstance(TimeZone.getTimeZone("Asia/Kolkata"))
+            return calendar.time
+        }
     }
 }

@@ -306,7 +306,7 @@ suspend fun fetchTodayData(
                         var endTime = parseTimeToTimestamp(period.end_time).toDate()
 
                         val simpleDateFormat =
-                            SimpleDateFormat("h:mm a", Locale.getDefault())
+                            SimpleDateFormat("h:mm a", Locale("en", "IN"))
                         val sTime: String =
                             simpleDateFormat.format(startTime).uppercase(Locale.ROOT)
                         val eTime: String =
@@ -347,20 +347,11 @@ suspend fun fetchTodayData(
 
 fun parseTimeToTimestamp(timeString: String): Timestamp =
     try {
-        val sanitizedTime =
-            if (timeString.contains("+05:53")) {
-                timeString.replace("+05:53", "+05:30")
-            } else {
-                timeString
-            }
-        val time = replaceYearIfZero(sanitizedTime)
-
-        val dateFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX", Locale.getDefault())
-        val date = dateFormat.parse(time)
+        val date = UtilFunctions.parseBackendTimeString(timeString)
         if (date != null) {
             Timestamp(date)
         } else {
-            Timber.d("Date parsing error: Unable to parse sanitized time: $time")
+            Timber.d("Date parsing error: Unable to parse time: $timeString")
             Timestamp.now()
         }
     } catch (e: Exception) {
@@ -368,9 +359,4 @@ fun parseTimeToTimestamp(timeString: String): Timestamp =
         Timestamp.now()
     }
 
-fun replaceYearIfZero(dateStr: String): String =
-    if (dateStr.startsWith("0")) {
-        "2023" + dateStr.substring(4)
-    } else {
-        dateStr
-    }
+
