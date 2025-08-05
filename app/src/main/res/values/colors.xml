@@ -8,7 +8,7 @@
     <color name="tab_selected_2">#1A126AFC</color>
     <color name="fab_color">#082F63</color>
     <color name="background">#041727</color>
-    <color name="translucent">#688FBC</color>
+    <color name="translucent">#BBE7FF</color>
     <color name="translucent_ripple">#25688FBC</color>
     <color name="translucent_imp">#9DBADC</color>
     <color name="translucent_head">#C3D4E8</color>
@@ -18,5 +18,9 @@
     <color name="next_class">#99126AFC</color>
     <color name="next_class_2">#1A126AFC</color>
     <color name="transparent">#00000000</color>
-    <color name="mtrl_textinput_default_box_stroke_color" tools:override="true">@color/translucent</color>
+    <color name="red">#F61F1F</color>
+    <color name="text">#F4F4FC</color>
+    <color name="mtrl_textinput_default_box_stroke_color" tools:override="true">@color/translucent
+    </color>
+    <color name="mtrl_textinput_bg_color" tools:override="true">#0E2336</color>
 </resources>

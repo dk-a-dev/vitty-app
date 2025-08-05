@@ -8,27 +8,32 @@ import android.view.LayoutInflater
 import android.view.View
 import android.widget.Button
 import androidx.appcompat.content.res.AppCompatResources
+import androidx.core.content.edit
 import com.dscvit.vitty.R
 import com.dscvit.vitty.activity.AuthActivity
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.firebase.auth.FirebaseAuth
 
 object LogoutHelper {
+    fun logout(
+        context: Context,
+        activity: Activity,
+        prefs: SharedPreferences,
+    ) {
+        val v: View =
+            LayoutInflater
+                .from(context)
+                .inflate(R.layout.dialog_logout, null)
 
-    fun logout(context: Context, activity: Activity, prefs: SharedPreferences) {
-        val v: View = LayoutInflater
-            .from(context)
-            .inflate(R.layout.dialog_logout, null)
-
-        val dialog = MaterialAlertDialogBuilder(context)
-            .setView(v)
-            .setBackground(
-                AppCompatResources.getDrawable(
-                    context,
-                    R.color.transparent
-                )
-            )
-            .create()
+        val dialog =
+            MaterialAlertDialogBuilder(context)
+                .setView(v)
+                .setBackground(
+                    AppCompatResources.getDrawable(
+                        context,
+                        R.color.transparent,
+                    ),
+                ).create()
 
         dialog.show()
 
@@ -45,8 +50,20 @@ object LogoutHelper {
                 putInt(Constants.UPDATE, 0)
                 putString(Constants.UID, "")
                 putBoolean(Constants.FIRST_TIME_SETUP, false)
+                putString(Constants.COMMUNITY_USERNAME, null)
+                putString(Constants.COMMUNITY_TOKEN, null)
+                putString(Constants.COMMUNITY_NAME, null)
+                putString(Constants.COMMUNITY_PICTURE, null)
+                putString(Constants.COMMUNITY_REGNO, null)
+                putString(Constants.COMMUNITY_CAMPUS, null)
+                putBoolean(Constants.COMMUNITY_TIMETABLE_AVAILABLE, false)
+                putString(Constants.CACHE_COMMUNITY_TIMETABLE, null)
+                putBoolean(Constants.ACTIVE_FRIENDS_FETCHED, false)
+                putString(Constants.ACTIVE_FRIENDS_FETCHED, null)
+
                 apply()
             }
+            prefs.edit { clear() }
             FirebaseAuth.getInstance().signOut()
             val intent = Intent(context, AuthActivity::class.java)
             intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK

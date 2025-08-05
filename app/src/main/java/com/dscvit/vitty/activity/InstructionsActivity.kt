@@ -15,12 +15,15 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.edit
 import androidx.databinding.DataBindingUtil
+import androidx.lifecycle.ViewModelProvider
 import com.dscvit.vitty.BuildConfig
 import com.dscvit.vitty.R
 import com.dscvit.vitty.databinding.ActivityInstructionsBinding
 import com.dscvit.vitty.receiver.AlarmReceiver
+import com.dscvit.vitty.ui.auth.AuthViewModel
 import com.dscvit.vitty.util.ArraySaverLoader.loadArray
 import com.dscvit.vitty.util.ArraySaverLoader.saveArray
+import com.dscvit.vitty.util.Constants
 import com.dscvit.vitty.util.Constants.ALARM_INTENT
 import com.dscvit.vitty.util.Constants.EXAM_MODE
 import com.dscvit.vitty.util.Constants.GROUP_ID
@@ -41,8 +44,8 @@ import timber.log.Timber
 import java.util.Date
 
 class InstructionsActivity : AppCompatActivity() {
-
     private lateinit var binding: ActivityInstructionsBinding
+    private lateinit var authViewModel: AuthViewModel
     private val days =
         listOf("monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday")
     private lateinit var prefs: SharedPreferences
@@ -54,12 +57,14 @@ class InstructionsActivity : AppCompatActivity() {
         binding = DataBindingUtil.setContentView(this, R.layout.activity_instructions)
         prefs = getSharedPreferences(USER_INFO, 0)
         uid = prefs.getString(UID, "").toString()
-
+        authViewModel = ViewModelProvider(this)[AuthViewModel::class.java]
         setupToolbar()
         setGDSCVITChannel()
 
         binding.doneButton.setOnClickListener {
-            setupDoneButton()
+            val token = prefs.getString(Constants.COMMUNITY_TOKEN, null)
+            val username = prefs.getString(Constants.COMMUNITY_USERNAME, null)
+            setupDoneButton(token, username)
         }
     }
 
@@ -67,20 +72,62 @@ class InstructionsActivity : AppCompatActivity() {
         super.onStart()
         if (prefs.getInt(UPDATE, 0) == 1) {
             createNotificationChannels()
-            Toast.makeText(this, getString(R.string.updated), Toast.LENGTH_SHORT)
+            Toast
+                .makeText(this, getString(R.string.updated), Toast.LENGTH_SHORT)
                 .show()
         }
         if (prefs.getInt(TIMETABLE_AVAILABLE, 0) == 1) {
             setAlarm()
-            val intent = Intent(this, HomeActivity::class.java)
+            val intent = Intent(this, HomeComposeActivity::class.java)
             startActivity(intent)
             finish()
         }
     }
 
-    private fun setupDoneButton() {
+    private fun setupDoneButton(
+        token: String?,
+        username: String?,
+    ) {
         binding.loadingView.visibility = View.VISIBLE
-        db.collection("users")
+
+        Timber.d("done button clicked")
+
+        if (token != null && username != null) {
+            authViewModel.getUserWithTimeTable(token, username)
+        } else {
+            Toast
+                .makeText(this, "Please login again", Toast.LENGTH_LONG)
+                .show()
+        }
+
+        authViewModel.user.observe(this) {
+            Timber.d("user: $it")
+            if (it != null) {
+                val timetableDays = it.timetable?.data
+                if (!timetableDays?.Monday.isNullOrEmpty() ||
+                    !timetableDays?.Tuesday.isNullOrEmpty() ||
+                    !timetableDays?.Wednesday.isNullOrEmpty() ||
+                    !timetableDays?.Thursday.isNullOrEmpty() ||
+                    !timetableDays?.Friday.isNullOrEmpty() ||
+                    !timetableDays?.Saturday.isNullOrEmpty() ||
+                    !timetableDays?.Sunday.isNullOrEmpty()
+                ) {
+                    binding.loadingView.visibility = View.GONE
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        createNotificationChannels()
+                    } else {
+                        tellUpdated()
+                    }
+                } else {
+                    binding.loadingView.visibility = View.GONE
+                    Toast
+                        .makeText(this, getString(R.string.follow_instructions), Toast.LENGTH_LONG)
+                        .show()
+                }
+            }
+        }
+
+        /*db.collection("users")
             .document(uid)
             .get()
             .addOnSuccessListener { document ->
@@ -95,7 +142,7 @@ class InstructionsActivity : AppCompatActivity() {
                     Toast.makeText(this, getString(R.string.follow_instructions), Toast.LENGTH_LONG)
                         .show()
                 }
-            }
+            }*/
     }
 
     private fun createNotificationChannels() {
@@ -109,7 +156,8 @@ class InstructionsActivity : AppCompatActivity() {
         }
         val newNotifChannels: ArrayList<String> = ArrayList()
         for (day in days) {
-            db.collection("users")
+            db
+                .collection("users")
                 .document(uid)
                 .collection("timetable")
                 .document(day)
@@ -124,17 +172,17 @@ class InstructionsActivity : AppCompatActivity() {
                             this,
                             cn,
                             "Course Code: $cc",
-                            GROUP_ID
+                            GROUP_ID,
                         )
                         newNotifChannels.add(cn)
                         Timber.d(cn)
                     }
                     saveArray(newNotifChannels, NOTIFICATION_CHANNELS, this)
 
-                    if (day == "sunday")
+                    if (day == "sunday") {
                         tellUpdated()
-                }
-                .addOnFailureListener { e ->
+                    }
+                }.addOnFailureListener { e ->
                     Timber.d("Error: $e")
                 }
         }
@@ -143,11 +191,13 @@ class InstructionsActivity : AppCompatActivity() {
     private fun tellUpdated() {
         prefs.edit().putInt(TIMETABLE_AVAILABLE, 1).apply()
         prefs.edit().putInt(UPDATE, 0).apply()
-        val updated = hashMapOf(
-            "isTimetableAvailable" to true,
-            "isUpdated" to false
-        )
-        db.collection("users")
+        val updated =
+            hashMapOf(
+                "isTimetableAvailable" to true,
+                "isUpdated" to false,
+            )
+        db
+            .collection("users")
             .document(uid)
             .set(updated)
             .addOnSuccessListener {
@@ -155,21 +205,21 @@ class InstructionsActivity : AppCompatActivity() {
                 UtilFunctions.reloadWidgets(this)
                 val pm: PowerManager = getSystemService(Context.POWER_SERVICE) as PowerManager
                 if (!pm.isIgnoringBatteryOptimizations(packageName)) {
-                    Toast.makeText(
-                        this,
-                        "Please turn off the Battery Optimization Settings for VITTY to receive notifications on time.",
-                        Toast.LENGTH_LONG
-                    ).show()
+                    Toast
+                        .makeText(
+                            this,
+                            "Please turn off the Battery Optimization Settings for VITTY to receive notifications on time.",
+                            Toast.LENGTH_LONG,
+                        ).show()
                     val pmIntent = Intent()
                     pmIntent.action = Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS
                     startActivity(pmIntent)
                 } else {
-                    val intent = Intent(this, HomeActivity::class.java)
+                    val intent = Intent(this, HomeComposeActivity::class.java)
                     startActivity(intent)
                     finish()
                 }
-            }
-            .addOnFailureListener { e ->
+            }.addOnFailureListener { e ->
                 Timber.d("Error: $e")
             }
     }
@@ -179,13 +229,13 @@ class InstructionsActivity : AppCompatActivity() {
             NotificationHelper.createNotificationGroup(
                 this,
                 getString(R.string.gdscvit),
-                GROUP_ID_2
+                GROUP_ID_2,
             )
             NotificationHelper.createNotificationChannel(
                 this,
                 getString(R.string.default_notification_channel_name),
                 "Notifications from GDSC VIT",
-                GROUP_ID_2
+                GROUP_ID_2,
             )
             prefs.edit {
                 putBoolean("gdscvitChannelCreated", true)
@@ -199,7 +249,7 @@ class InstructionsActivity : AppCompatActivity() {
             NotificationHelper.createNotificationGroup(
                 this,
                 getString(R.string.notif_group),
-                GROUP_ID
+                GROUP_ID,
             )
             prefs.edit {
                 putBoolean("groupCreated", true)
@@ -215,8 +265,10 @@ class InstructionsActivity : AppCompatActivity() {
 
                 val pendingIntent =
                     PendingIntent.getBroadcast(
-                        this, ALARM_INTENT, intent,
-                        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                        this,
+                        ALARM_INTENT,
+                        intent,
+                        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
                     )
                 val alarmManager = getSystemService(ALARM_SERVICE) as AlarmManager
 
@@ -226,7 +278,7 @@ class InstructionsActivity : AppCompatActivity() {
                     AlarmManager.RTC_WAKEUP,
                     date,
                     (1000 * 60 * NOTIF_DELAY).toLong(),
-                    pendingIntent
+                    pendingIntent,
                 )
 
                 prefs.edit {
@@ -244,6 +296,7 @@ class InstructionsActivity : AppCompatActivity() {
                     LogoutHelper.logout(this, this as Activity, prefs)
                     true
                 }
+
                 else -> false
             }
         }
