@@ -168,6 +168,7 @@ fun ConnectScreenContent(
                 val username = sharedPreferences.getString(Constants.COMMUNITY_USERNAME, "") ?: ""
 
                 if (token.isNotEmpty()) {
+                    connectViewModel.fetchActiveFriends(token, prefs = sharedPreferences)
                     connectViewModel.refreshFriendList(token, username)
                     connectViewModel.getFriendRequest(token)
                 }

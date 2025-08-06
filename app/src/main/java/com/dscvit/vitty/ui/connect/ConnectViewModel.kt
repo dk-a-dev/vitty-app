@@ -18,6 +18,7 @@ import com.dscvit.vitty.network.api.community.responses.circle.CircleRequestsRes
 import com.dscvit.vitty.network.api.community.responses.circle.CreateCircleResponse
 import com.dscvit.vitty.network.api.community.responses.circle.JoinCircleResponse
 import com.dscvit.vitty.network.api.community.responses.requests.RequestsResponse
+import com.dscvit.vitty.network.api.community.responses.user.ActiveFriendItem
 import com.dscvit.vitty.network.api.community.responses.user.ActiveFriendResponse
 import com.dscvit.vitty.network.api.community.responses.user.CircleResponse
 import com.dscvit.vitty.network.api.community.responses.user.FriendResponse
@@ -48,7 +49,7 @@ class ConnectViewModel : ViewModel() {
     private val _sentCircleRequests = MutableLiveData<CircleRequestsResponse?>()
     private val _isCircleRequestsLoading = MutableLiveData<Boolean>()
     private val _circleActionResponse = MutableLiveData<PostResponse?>()
-    private val _activeFriends = MutableLiveData<List<String>??>()
+    private val _activeFriends = MutableLiveData<List<ActiveFriendItem>??>()
     private val _ghostModeResponse = MutableLiveData<GhostModeResponse?>()
 
     val ghostModeResponse: MutableLiveData<GhostModeResponse?> = _ghostModeResponse
@@ -71,7 +72,7 @@ class ConnectViewModel : ViewModel() {
     val sentCircleRequests: MutableLiveData<CircleRequestsResponse?> = _sentCircleRequests
     val isCircleRequestsLoading: MutableLiveData<Boolean> = _isCircleRequestsLoading
     val circleActionResponse: MutableLiveData<PostResponse?> = _circleActionResponse
-    val activeFriends: MutableLiveData<List<String>??> = _activeFriends
+    val activeFriends: MutableLiveData<List<ActiveFriendItem>??> = _activeFriends
 
     fun getFriendList(
         token: String,
@@ -774,7 +775,7 @@ class ConnectViewModel : ViewModel() {
         _ghostModeResponse.postValue(null)
     }
 
-    fun updateActiveFriendsList(data: List<String>?) {
+    fun updateActiveFriendsList(data: List<ActiveFriendItem>?) {
         _activeFriends.postValue(data)
     }
 
