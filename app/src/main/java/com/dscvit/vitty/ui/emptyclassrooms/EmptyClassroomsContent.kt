@@ -1,5 +1,8 @@
 package com.dscvit.vitty.ui.emptyclassrooms
 
+import android.content.Context
+import android.content.Intent
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -7,12 +10,15 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
@@ -25,6 +31,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
@@ -33,8 +42,10 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -73,6 +84,8 @@ fun EmptyClassroomsContent(
     var isLoading by remember { mutableStateOf(true) }
     var selectedSlot by remember { mutableStateOf("A1") }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+    var showReportDialog by remember { mutableStateOf(false) }
+    var selectedClassroomForReport by remember { mutableStateOf<String?>(null) }
 
     val regularSlots =
         listOf(
@@ -153,6 +166,17 @@ fun EmptyClassroomsContent(
                     }
                 },
                 actions = {
+                    Box {
+                        IconButton(onClick = { 
+                            showReportDialog = true 
+                        }) {
+                            Icon(
+                                imageVector = Icons.Default.Warning,
+                                contentDescription = "Report Incorrect Data",
+                                tint = TextColor,
+                            )
+                        }
+                    }
                     IconButton(onClick = { fetchEmptyClassrooms(selectedSlot) }) {
                         Icon(
                             imageVector = Icons.Default.Refresh,
@@ -296,6 +320,20 @@ fun EmptyClassroomsContent(
             }
         }
     }
+
+    // Report Dialog
+    if (showReportDialog) {
+        ReportIncorrectDataDialog(
+            availableClassrooms = emptyClassrooms,
+            selectedSlot = selectedSlot,
+            context = context,
+            prefs = prefs,
+            onDismiss = {
+                showReportDialog = false
+                selectedClassroomForReport = null
+            }
+        )
+    }
 }
 
 @Composable
@@ -373,6 +411,220 @@ private fun ClassroomCard(classroom: String) {
                 style = MaterialTheme.typography.bodySmall,
                 color = Accent,
                 textAlign = TextAlign.Center,
+            )
+        }
+    }
+}
+
+@Composable
+private fun ReportIncorrectDataDialog(
+    availableClassrooms: List<String>,
+    selectedSlot: String,
+    context: Context,
+    prefs: android.content.SharedPreferences,
+    onDismiss: () -> Unit
+) {
+    val username = prefs.getString(Constants.COMMUNITY_USERNAME, "") ?: ""
+    val name = prefs.getString(Constants.COMMUNITY_NAME, "") ?: ""
+    val campus = prefs.getString(Constants.COMMUNITY_CAMPUS, "") ?: "Unknown"
+    
+    var selectedClassroom by remember { mutableStateOf<String?>(null) }
+    
+    val currentDate = remember { 
+        java.text.SimpleDateFormat("MMM dd, yyyy 'at' hh:mm a", java.util.Locale.getDefault())
+            .format(java.util.Date()) 
+    }
+    
+    fun openEmailClient(classroom: String) {
+        val emailBody = """
+Dear VITTY Support Team,
+        
+I would like to report incorrect classroom data:
+        
+REPORT DETAILS:
+- Reported Classroom: $classroom
+- Time Slot: $selectedSlot
+- Date & Time: $currentDate
+- Campus: ${campus.capitalize()}
+        
+USER INFORMATION:
+- Username: $username
+- Name: $name
+        
+ISSUE DESCRIPTION:
+The classroom "$classroom" is listed as empty for slot $selectedSlot, but it appears to be occupied or incorrectly marked.
+        
+Please verify and update the classroom availability data.
+        
+Thank you for your attention to this matter.
+        
+Best regards,
+$name
+VITTY Android App
+        """.trimIndent()
+
+        val emailIntent = Intent(Intent.ACTION_SEND).apply {
+            type = "text/plain"
+            putExtra(Intent.EXTRA_EMAIL, arrayOf("dscvit.vitty@gmail.com"))
+            putExtra(Intent.EXTRA_SUBJECT, "Report Incorrect Classroom Data - $classroom ($selectedSlot)")
+            putExtra(Intent.EXTRA_TEXT, emailBody)
+        }
+        
+        try {
+            context.startActivity(Intent.createChooser(emailIntent, "Send Email"))
+            onDismiss()
+        } catch (e: Exception) {
+            // Fallback if no email client available
+            val fallbackIntent = Intent(Intent.ACTION_SEND).apply {
+                type = "text/plain"
+                putExtra(Intent.EXTRA_TEXT, emailBody)
+            }
+            context.startActivity(Intent.createChooser(fallbackIntent, "Share Report"))
+            onDismiss()
+        }
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        icon = {
+            Icon(
+                imageVector = Icons.Default.Warning,
+                contentDescription = null,
+                tint = Accent,
+                modifier = Modifier.size(32.dp)
+            )
+        },
+        title = {
+            Text(
+                text = "Report Incorrect Data",
+                style = MaterialTheme.typography.headlineSmall,
+                color = TextColor,
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center
+            )
+        },
+        text = {
+            Column {
+                Text(
+                    text = "Select the classroom that is incorrectly marked as empty for slot $selectedSlot",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Accent,
+                    textAlign = TextAlign.Center
+                )
+                
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                Text(
+                    text = "Select Classroom:",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = TextColor,
+                    fontWeight = FontWeight.SemiBold
+                )
+                
+                Spacer(modifier = Modifier.height(12.dp))
+                
+                if (availableClassrooms.isEmpty()) {
+                    Text(
+                        text = "No classrooms available for slot $selectedSlot",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Accent,
+                        textAlign = TextAlign.Center
+                    )
+                } else {
+                    LazyColumn(
+                        modifier = Modifier.height(200.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        items(availableClassrooms) { classroom ->
+                            ClassroomSelectionItem(
+                                classroom = classroom,
+                                isSelected = selectedClassroom == classroom,
+                                onClick = { selectedClassroom = classroom }
+                            )
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = { 
+                    selectedClassroom?.let { classroom ->
+                        openEmailClient(classroom)
+                    }
+                },
+                enabled = selectedClassroom != null,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Accent,
+                    contentColor = Background,
+                    disabledContainerColor = Accent.copy(alpha = 0.3f)
+                ),
+                shape = RoundedCornerShape(8.dp)
+            ) {
+                Text(
+                    text = "Send Report",
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+        },
+        dismissButton = {
+            OutlinedButton(
+                onClick = onDismiss,
+                colors = ButtonDefaults.outlinedButtonColors(
+                    contentColor = TextColor
+                ),
+                shape = RoundedCornerShape(8.dp)
+            ) {
+                Text(
+                    text = "Cancel",
+                    fontWeight = FontWeight.Medium
+                )
+            }
+        },
+        containerColor = Secondary,
+        titleContentColor = TextColor,
+        textContentColor = Accent
+    )
+}
+
+@Composable
+private fun ClassroomSelectionItem(
+    classroom: String,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() },
+        colors = CardDefaults.cardColors(
+            containerColor = if (isSelected) Accent.copy(alpha = 0.2f) else Background
+        ),
+        shape = RoundedCornerShape(8.dp),
+        border = if (isSelected) BorderStroke(2.dp, Accent) else null
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(8.dp)
+                    .background(
+                        if (isSelected) Accent else TextColor.copy(alpha = 0.3f),
+                        CircleShape
+                    )
+            )
+            
+            Spacer(modifier = Modifier.width(12.dp))
+            
+            Text(
+                text = classroom,
+                style = MaterialTheme.typography.bodyMedium,
+                color = TextColor,
+                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
             )
         }
     }
