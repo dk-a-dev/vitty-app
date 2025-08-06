@@ -1224,10 +1224,8 @@ fun DrawerContent(
                         )
                     },
                     label = {
-                        Row(
-                            modifier = Modifier.padding(start = 24.dp).fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
+                        Column(
+                            modifier = Modifier.padding(start = 24.dp)
                         ) {
                             Text(
                                 text = "Find Empty Classroom",
@@ -1236,24 +1234,23 @@ fun DrawerContent(
                                     MaterialTheme.typography.labelLarge.copy(
                                         fontWeight = FontWeight.Normal,
                                     ),
-                                modifier = Modifier.weight(1f)
                             )
-                            Spacer(modifier = Modifier.width(8.dp))
+                            Spacer(modifier = Modifier.height(4.dp))
                             Box(
                                 modifier = Modifier
                                     .background(
                                         Accent,
-                                        RoundedCornerShape(8.dp)
+                                        RoundedCornerShape(6.dp)
                                     )
-                                    .padding(horizontal = 8.dp, vertical = 4.dp)
+                                    .padding(horizontal = 6.dp, vertical = 2.dp)
                             ) {
                                 Text(
                                     text = "BETA",
                                     color = Background,
-                                    style = MaterialTheme.typography.labelMedium.copy(
+                                    style = MaterialTheme.typography.labelSmall.copy(
                                         fontWeight = FontWeight.ExtraBold
                                     ),
-                                    fontSize = 12.sp
+                                    fontSize = 10.sp
                                 )
                             }
                         }
@@ -1606,7 +1603,7 @@ VITTY Android App User
                     fontWeight = FontWeight.Bold
                 )
                 
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(12.dp))
                 
                 val troubleshootingSteps = listOf(
                     "1. Update the app from Play Store",
@@ -1617,73 +1614,80 @@ VITTY Android App User
                 troubleshootingSteps.forEach { step ->
                     Text(
                         text = step,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = TextColor.copy(alpha = 0.8f),
-                        fontSize = 14.sp
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = TextColor.copy(alpha = 0.9f),
+                        fontSize = 15.sp,
+                        lineHeight = 20.sp
                     )
-                    Spacer(modifier = Modifier.height(6.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
                 }
                 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(20.dp))
                 
                 Text(
                     text = "Still need help?",
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = MaterialTheme.typography.titleSmall,
                     color = Accent,
                     fontWeight = FontWeight.SemiBold
                 )
                 
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(16.dp))
                 
                 // Email Support Button
-                OutlinedButton(
+                Button(
                     onClick = { openEmailSupport() },
                     modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        contentColor = Accent
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Accent,
+                        contentColor = Background
                     ),
-                    border = BorderStroke(1.dp, Accent),
-                    shape = RoundedCornerShape(8.dp)
+                    shape = RoundedCornerShape(12.dp),
+                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp)
                 ) {
                     Text(
                         text = "Email Support",
-                        fontWeight = FontWeight.Medium,
-                        fontSize = 16.sp
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 16.sp,
+                        modifier = Modifier.padding(vertical = 4.dp)
                     )
                 }
                 
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(12.dp))
                 
                 // GitHub Issues Button
                 OutlinedButton(
                     onClick = { openGitHub() },
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.outlinedButtonColors(
-                        contentColor = TextColor
+                        contentColor = Accent
                     ),
-                    border = BorderStroke(1.dp, TextColor.copy(alpha = 0.3f)),
-                    shape = RoundedCornerShape(8.dp)
+                    border = BorderStroke(2.dp, Accent),
+                    shape = RoundedCornerShape(12.dp)
                 ) {
                     Text(
                         text = "GitHub Issues",
-                        fontWeight = FontWeight.Medium,
-                        fontSize = 16.sp
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 16.sp,
+                        modifier = Modifier.padding(vertical = 4.dp)
                     )
                 }
             }
         },
         confirmButton = {},
         dismissButton = {
-            OutlinedButton(
+            Button(
                 onClick = onDismiss,
-                colors = ButtonDefaults.outlinedButtonColors(
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Secondary,
                     contentColor = TextColor
                 ),
-                shape = RoundedCornerShape(8.dp)
+                shape = RoundedCornerShape(12.dp),
+                border = BorderStroke(1.dp, TextColor.copy(alpha = 0.2f))
             ) {
                 Text(
                     text = "Close",
-                    fontWeight = FontWeight.Medium
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 16.sp
                 )
             }
         },
