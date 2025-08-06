@@ -214,7 +214,7 @@ interface APICommunity {
         @Path("username") username: String,
     ): Call<PostResponse>
 
-    @GET("/api/v3/timetable/emptyClassRooms")
+    @GET("/api/v3/users/emptyClassRooms")
     fun getEmptyClassrooms(
         @Header("Authorization") authToken: String,
         @Query("slot") slot: String,
