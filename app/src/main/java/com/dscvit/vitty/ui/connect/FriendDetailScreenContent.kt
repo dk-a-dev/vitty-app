@@ -68,6 +68,7 @@ import coil.compose.AsyncImage
 import com.dscvit.vitty.R
 import com.dscvit.vitty.model.PeriodDetails
 import com.dscvit.vitty.network.api.community.responses.timetable.TimetableResponse
+import com.dscvit.vitty.network.api.community.responses.user.ActiveFriendItem
 import com.dscvit.vitty.network.api.community.responses.user.UserResponse
 import com.dscvit.vitty.theme.Accent
 import com.dscvit.vitty.theme.Background
@@ -119,7 +120,10 @@ fun FriendDetailScreenContent(
 
     LaunchedEffect(activeFriends) {
         Timber.d("Active friends: $activeFriends")
-        activeFriends?.let { activeList -> isFriendGhosted = !activeList.contains(friend.username) }
+        activeFriends?.let { activeList ->
+            val friendItem = activeList.find { it.friend_username == friend.username }
+            isFriendGhosted = friendItem?.hide ?: false
+        }
     }
 
     LaunchedEffect(ghostModeResponse) {
@@ -130,15 +134,16 @@ fun FriendDetailScreenContent(
                 context.getSharedPreferences(Constants.USER_INFO, Context.MODE_PRIVATE)
 
             if (ghostModeResponse!!.success) {
-                val currentActiveFriends = activeFriends?.toMutableList() ?: mutableListOf()
+                val currentActiveFriends = activeFriends?.toMutableList() ?: mutableListOf<ActiveFriendItem>()
                 val gson = Gson()
 
-                if (isFriendGhosted) {
-                    currentActiveFriends.removeAll { it == friend.username }
+                val existingFriendIndex = currentActiveFriends.indexOfFirst { it.friend_username == friend.username }
+
+                if (existingFriendIndex != -1) {
+                    currentActiveFriends[existingFriendIndex] =
+                        currentActiveFriends[existingFriendIndex].copy(hide = isFriendGhosted)
                 } else {
-                    if (!currentActiveFriends.contains(friend.username)) {
-                        currentActiveFriends.add(friend.username)
-                    }
+                    currentActiveFriends.add(ActiveFriendItem(friend_username = friend.username, hide = isFriendGhosted))
                 }
 
                 val activeFriendsJson = gson.toJson(currentActiveFriends)
