@@ -45,7 +45,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -56,6 +55,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -429,6 +429,7 @@ private fun ReportIncorrectDataDialog(
     val campus = prefs.getString(Constants.COMMUNITY_CAMPUS, "") ?: "Unknown"
     
     var selectedClassroom by remember { mutableStateOf<String?>(null) }
+    var showOverlay by remember { mutableStateOf(true) }
     
     val currentDate = remember { 
         java.text.SimpleDateFormat("MMM dd, yyyy 'at' hh:mm a", java.util.Locale.getDefault())
@@ -484,8 +485,22 @@ VITTY Android App
         }
     }
 
-    AlertDialog(
-        onDismissRequest = onDismiss,
+    if (showOverlay) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Background.copy(alpha = 0.5f))
+                .clickable { 
+                    showOverlay = false
+                    onDismiss() 
+                },
+            contentAlignment = Alignment.Center
+        ) {
+            AlertDialog(
+                onDismissRequest = {
+                    showOverlay = false
+                    onDismiss()
+                },
         icon = {
             Icon(
                 imageVector = Icons.Default.Warning,
@@ -585,6 +600,8 @@ VITTY Android App
         titleContentColor = TextColor,
         textContentColor = Accent
     )
+        }
+    }
 }
 
 @Composable
