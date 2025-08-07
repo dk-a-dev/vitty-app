@@ -51,6 +51,7 @@ class ConnectViewModel : ViewModel() {
     private val _circleActionResponse = MutableLiveData<PostResponse?>()
     private val _activeFriends = MutableLiveData<List<ActiveFriendItem>??>()
     private val _ghostModeResponse = MutableLiveData<GhostModeResponse?>()
+    private val _pinnedFriends = MutableLiveData<Set<String>>()
 
     val ghostModeResponse: MutableLiveData<GhostModeResponse?> = _ghostModeResponse
     val friendList: MutableLiveData<FriendResponse?> = _friendList
@@ -73,6 +74,7 @@ class ConnectViewModel : ViewModel() {
     val isCircleRequestsLoading: MutableLiveData<Boolean> = _isCircleRequestsLoading
     val circleActionResponse: MutableLiveData<PostResponse?> = _circleActionResponse
     val activeFriends: MutableLiveData<List<ActiveFriendItem>??> = _activeFriends
+    val pinnedFriends: MutableLiveData<Set<String>> = _pinnedFriends
 
     fun getFriendList(
         token: String,
@@ -777,6 +779,95 @@ class ConnectViewModel : ViewModel() {
 
     fun updateActiveFriendsList(data: List<ActiveFriendItem>?) {
         _activeFriends.postValue(data)
+    }
+
+    fun pinFriend(
+        username: String,
+        prefs: SharedPreferences,
+    ): Boolean {
+        val pinnedFriend1 = prefs.getString(Constants.COMMUNITY_PINNED_FRIEND_1, "")
+        val pinnedFriend2 = prefs.getString(Constants.COMMUNITY_PINNED_FRIEND_2, "")
+        val pinnedFriend3 = prefs.getString(Constants.COMMUNITY_PINNED_FRIEND_3, "")
+
+        val success =
+            when {
+                pinnedFriend1.isNullOrEmpty() -> {
+                    prefs.edit { putString(Constants.COMMUNITY_PINNED_FRIEND_1, username) }
+                    true
+                }
+                pinnedFriend2.isNullOrEmpty() -> {
+                    prefs.edit { putString(Constants.COMMUNITY_PINNED_FRIEND_2, username) }
+                    true
+                }
+                pinnedFriend3.isNullOrEmpty() -> {
+                    prefs.edit { putString(Constants.COMMUNITY_PINNED_FRIEND_3, username) }
+                    true
+                }
+                else -> false
+            }
+
+        if (success) {
+            updatePinnedFriendsState(prefs)
+        }
+        return success
+    }
+
+    fun unpinFriend(
+        username: String,
+        prefs: SharedPreferences,
+    ) {
+        val pinnedFriend1 = prefs.getString(Constants.COMMUNITY_PINNED_FRIEND_1, "")
+        val pinnedFriend2 = prefs.getString(Constants.COMMUNITY_PINNED_FRIEND_2, "")
+        val pinnedFriend3 = prefs.getString(Constants.COMMUNITY_PINNED_FRIEND_3, "")
+
+        when (username) {
+            pinnedFriend1 -> prefs.edit { putString(Constants.COMMUNITY_PINNED_FRIEND_1, "") }
+            pinnedFriend2 -> prefs.edit { putString(Constants.COMMUNITY_PINNED_FRIEND_2, "") }
+            pinnedFriend3 -> prefs.edit { putString(Constants.COMMUNITY_PINNED_FRIEND_3, "") }
+        }
+
+        updatePinnedFriendsState(prefs)
+    }
+
+    fun isFriendPinned(
+        username: String,
+        prefs: SharedPreferences,
+    ): Boolean {
+        val pinnedFriend1 = prefs.getString(Constants.COMMUNITY_PINNED_FRIEND_1, "")
+        val pinnedFriend2 = prefs.getString(Constants.COMMUNITY_PINNED_FRIEND_2, "")
+        val pinnedFriend3 = prefs.getString(Constants.COMMUNITY_PINNED_FRIEND_3, "")
+
+        return username == pinnedFriend1 || username == pinnedFriend2 || username == pinnedFriend3
+    }
+
+    fun getPinnedFriends(prefs: SharedPreferences): List<String> {
+        val pinnedFriends = mutableListOf<String>()
+        val pinnedFriend1 = prefs.getString(Constants.COMMUNITY_PINNED_FRIEND_1, "")
+        val pinnedFriend2 = prefs.getString(Constants.COMMUNITY_PINNED_FRIEND_2, "")
+        val pinnedFriend3 = prefs.getString(Constants.COMMUNITY_PINNED_FRIEND_3, "")
+
+        if (!pinnedFriend1.isNullOrEmpty()) pinnedFriends.add(pinnedFriend1)
+        if (!pinnedFriend2.isNullOrEmpty()) pinnedFriends.add(pinnedFriend2)
+        if (!pinnedFriend3.isNullOrEmpty()) pinnedFriends.add(pinnedFriend3)
+
+        return pinnedFriends
+    }
+
+    fun initializePinnedFriends(prefs: SharedPreferences) {
+        updatePinnedFriendsState(prefs)
+    }
+
+    private fun updatePinnedFriendsState(prefs: SharedPreferences) {
+        val pinnedFriends = mutableSetOf<String>()
+        val pinnedFriend1 = prefs.getString(Constants.COMMUNITY_PINNED_FRIEND_1, "")
+        val pinnedFriend2 = prefs.getString(Constants.COMMUNITY_PINNED_FRIEND_2, "")
+        val pinnedFriend3 = prefs.getString(Constants.COMMUNITY_PINNED_FRIEND_3, "")
+
+        if (!pinnedFriend1.isNullOrEmpty()) pinnedFriends.add(pinnedFriend1)
+        if (!pinnedFriend2.isNullOrEmpty()) pinnedFriends.add(pinnedFriend2)
+        if (!pinnedFriend3.isNullOrEmpty()) pinnedFriends.add(pinnedFriend3)
+
+        _pinnedFriends.postValue(pinnedFriends)
     }
 
     data class GhostModeResponse(
