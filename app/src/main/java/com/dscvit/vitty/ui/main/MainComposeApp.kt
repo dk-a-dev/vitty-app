@@ -3,6 +3,7 @@ package com.dscvit.vitty.ui.main
 import android.app.Activity
 import android.content.Intent
 import android.content.SharedPreferences
+import android.os.Build
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
@@ -30,6 +31,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
@@ -44,6 +46,10 @@ import androidx.compose.material3.NavigationDrawerItem
 import androidx.compose.material3.NavigationDrawerItemDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberDrawerState
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -62,6 +68,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -1132,6 +1139,7 @@ fun DrawerContent(
     val name = remember { prefs.getString(Constants.COMMUNITY_NAME, "") ?: "Name" }
 
     var campus by remember { mutableStateOf(prefs.getString(Constants.COMMUNITY_CAMPUS, "") ?: "") }
+    var showSupportDialog by remember { mutableStateOf(false) }
 
     DisposableEffect(Unit) {
         val listener =
@@ -1216,15 +1224,36 @@ fun DrawerContent(
                         )
                     },
                     label = {
-                        Text(
-                            modifier = Modifier.padding(start = 24.dp),
-                            text = "Find Empty Classroom",
-                            color = TextColor,
-                            style =
-                                MaterialTheme.typography.labelLarge.copy(
-                                    fontWeight = FontWeight.Normal,
-                                ),
-                        )
+                        Column(
+                            modifier = Modifier.padding(start = 24.dp)
+                        ) {
+                            Text(
+                                text = "Find Empty Classroom",
+                                color = TextColor,
+                                style =
+                                    MaterialTheme.typography.labelLarge.copy(
+                                        fontWeight = FontWeight.Normal,
+                                    ),
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Box(
+                                modifier = Modifier
+                                    .background(
+                                        Accent,
+                                        RoundedCornerShape(6.dp)
+                                    )
+                                    .padding(horizontal = 6.dp, vertical = 2.dp)
+                            ) {
+                                Text(
+                                    text = "BETA",
+                                    color = Background,
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        fontWeight = FontWeight.ExtraBold
+                                    ),
+                                    fontSize = 10.sp
+                                )
+                            }
+                        }
                     },
                     selected = false,
                     onClick = {
@@ -1237,6 +1266,11 @@ fun DrawerContent(
                             selectedContainerColor = Secondary,
                         ),
                 )
+            } else {
+                Timber.d("DrawerContent: ❌ HIDING Empty Classroom option")
+                Timber.d("DrawerContent: Campus '$campus' is not 'vellore'")
+                Timber.d("DrawerContent: Campus is empty: ${campus.isEmpty()}")
+                Timber.d("DrawerContent: Campus is blank: ${campus.isBlank()}")
             }
 
             NavigationDrawerItem(
@@ -1338,7 +1372,7 @@ fun DrawerContent(
                 selected = false,
                 onClick = {
                     onCloseDrawer()
-                    UtilFunctions.openLink(context, context.getString(R.string.telegram_link))
+                    showSupportDialog = true
                 },
                 colors =
                     NavigationDrawerItemDefaults.colors(
@@ -1386,6 +1420,15 @@ fun DrawerContent(
                     ),
             )
         }
+    }
+    
+    // Support Dialog
+    if (showSupportDialog) {
+        SupportDialog(
+            context = context,
+            prefs = prefs,
+            onDismiss = { showSupportDialog = false }
+        )
     }
 }
 
@@ -1443,4 +1486,213 @@ private fun extractCoursesFromTimetable(userResponse: UserResponse): List<Course
                 isStarred = false,
             )
         }.sortedBy { it.title }
+}
+
+@Composable
+private fun SupportDialog(
+    context: android.content.Context,
+    prefs: SharedPreferences,
+    onDismiss: () -> Unit
+) {
+    val username = prefs.getString(Constants.COMMUNITY_USERNAME, "") ?: ""
+    val name = prefs.getString(Constants.COMMUNITY_NAME, "") ?: ""
+    val campus = prefs.getString(Constants.COMMUNITY_CAMPUS, "") ?: "Unknown"
+    
+    val deviceInfo = remember {
+        """
+        **Device Information:**
+        - Device: ${Build.MODEL}
+        - Manufacturer: ${Build.MANUFACTURER}
+        - OS: Android ${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT})
+        - App Version: ${context.packageManager.getPackageInfo(context.packageName, 0).versionName}
+        
+        **User Information:**
+        - Username: $username
+        - Name: $name
+        - Campus: $campus
+        """.trimIndent()
+    }
+    
+    fun openEmailSupport() {
+        val emailTemplate = """
+Dear VITTY Support Team,
+
+I am experiencing an issue with the VITTY Android app and would like to report it.
+
+$deviceInfo
+
+**Describe the bug**
+[Please provide a clear and concise description of what the bug is]
+
+**To Reproduce**
+Steps to reproduce the behavior:
+1. Go to '...'
+2. Click on '....'
+3. Scroll down to '....'
+4. See error
+
+**Expected behaviour**
+[Please provide a clear and concise description of what you expected to happen]
+
+**Screenshots**
+[If applicable, please attach screenshots to help explain your problem]
+
+**Additional context**
+[Add any other context about the problem here]
+
+Thank you for your time and assistance!
+
+Best regards,
+$name
+VITTY Android App User
+        """.trimIndent()
+
+        val emailIntent = Intent(Intent.ACTION_SEND).apply {
+            type = "text/plain"
+            putExtra(Intent.EXTRA_EMAIL, arrayOf("dscvit.vitty@gmail.com"))
+            putExtra(Intent.EXTRA_SUBJECT, "Bug Report - VITTY Android v${context.packageManager.getPackageInfo(context.packageName, 0).versionName}")
+            putExtra(Intent.EXTRA_TEXT, emailTemplate)
+        }
+        
+        try {
+            context.startActivity(Intent.createChooser(emailIntent, "Send Bug Report"))
+            onDismiss()
+        } catch (e: Exception) {
+            // Fallback if no email client available
+            val fallbackIntent = Intent(Intent.ACTION_SEND).apply {
+                type = "text/plain"
+                putExtra(Intent.EXTRA_TEXT, emailTemplate)
+            }
+            context.startActivity(Intent.createChooser(fallbackIntent, "Share Bug Report"))
+            onDismiss()
+        }
+    }
+    
+    fun openGitHub() {
+        UtilFunctions.openLink(context, "https://github.com/GDGVIT/vitty-app/issues")
+        onDismiss()
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        icon = {
+            Icon(
+                painter = painterResource(R.drawable.ic_support),
+                contentDescription = null,
+                tint = Accent,
+                modifier = Modifier.size(32.dp)
+            )
+        },
+        title = {
+            Text(
+                text = "Get Support",
+                style = MaterialTheme.typography.headlineSmall,
+                color = TextColor,
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center
+            )
+        },
+        text = {
+            Column(
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = "Troubleshooting Steps:",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = TextColor,
+                    fontWeight = FontWeight.Bold
+                )
+                
+                Spacer(modifier = Modifier.height(12.dp))
+                
+                val troubleshootingSteps = listOf(
+                    "1. Update the app from Play Store",
+                    "2. Log out and log back in",
+                    "3. Clear app cache (Settings > Apps > Vitty > Storage)"
+                )
+                
+                troubleshootingSteps.forEach { step ->
+                    Text(
+                        text = step,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = TextColor.copy(alpha = 0.9f),
+                        fontSize = 15.sp,
+                        lineHeight = 20.sp
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
+                
+                Spacer(modifier = Modifier.height(20.dp))
+                
+                Text(
+                    text = "Still need help?",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = Accent,
+                    fontWeight = FontWeight.SemiBold
+                )
+                
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                // Email Support Button
+                Button(
+                    onClick = { openEmailSupport() },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Accent,
+                        contentColor = Background
+                    ),
+                    shape = RoundedCornerShape(12.dp),
+                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp)
+                ) {
+                    Text(
+                        text = "Email Support",
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 16.sp,
+                        modifier = Modifier.padding(vertical = 4.dp)
+                    )
+                }
+                
+                Spacer(modifier = Modifier.height(12.dp))
+                
+                // GitHub Issues Button
+                OutlinedButton(
+                    onClick = { openGitHub() },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = Accent
+                    ),
+                    border = BorderStroke(2.dp, Accent),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text(
+                        text = "GitHub Issues",
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 16.sp,
+                        modifier = Modifier.padding(vertical = 4.dp)
+                    )
+                }
+            }
+        },
+        confirmButton = {},
+        dismissButton = {
+            Button(
+                onClick = onDismiss,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Secondary,
+                    contentColor = TextColor
+                ),
+                shape = RoundedCornerShape(12.dp),
+                border = BorderStroke(1.dp, TextColor.copy(alpha = 0.2f))
+            ) {
+                Text(
+                    text = "Close",
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 16.sp
+                )
+            }
+        },
+        containerColor = Secondary,
+        titleContentColor = TextColor,
+        textContentColor = Accent
+    )
 }
