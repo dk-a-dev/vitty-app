@@ -45,7 +45,7 @@ object LogoutHelper {
         }
 
         logout.setOnClickListener {
-            prefs.edit().apply {
+            prefs.edit {
                 putInt(Constants.TIMETABLE_AVAILABLE, 0)
                 putInt(Constants.UPDATE, 0)
                 putString(Constants.UID, "")
@@ -60,8 +60,9 @@ object LogoutHelper {
                 putString(Constants.CACHE_COMMUNITY_TIMETABLE, null)
                 putBoolean(Constants.ACTIVE_FRIENDS_FETCHED, false)
                 putString(Constants.ACTIVE_FRIENDS_FETCHED, null)
-
-                apply()
+                putString(Constants.COMMUNITY_PINNED_FRIEND_1, null)
+                putString(Constants.COMMUNITY_PINNED_FRIEND_2, null)
+                putString(Constants.COMMUNITY_PINNED_FRIEND_3, null)
             }
             prefs.edit { clear() }
             FirebaseAuth.getInstance().signOut()
