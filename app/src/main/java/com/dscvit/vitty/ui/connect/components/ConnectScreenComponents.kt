@@ -1,6 +1,7 @@
 package com.dscvit.vitty.ui.connect.components
 
 import android.content.Context
+import android.widget.Toast
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -48,6 +49,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -339,9 +342,41 @@ fun ConnectTabContent(
     onFriendsRefresh: () -> Unit = {},
     onCirclesRefresh: () -> Unit = {},
 ) {
+    val context = LocalContext.current
+    val sharedPreferences = context.getSharedPreferences(Constants.USER_INFO, Context.MODE_PRIVATE)
+    val pinnedFriends by viewModel.pinnedFriends.observeAsState()
+
     val allFriends = friendList?.data ?: emptyList()
+
+    val sortedFriends =
+        allFriends.sortedWith { friend1, friend2 ->
+            val currentPinnedFriends = pinnedFriends ?: emptySet()
+
+            val getPinPriority = { username: String ->
+                if (currentPinnedFriends.contains(username)) {
+                    val pinnedFriend1 = sharedPreferences.getString(Constants.COMMUNITY_PINNED_FRIEND_1, "")
+                    val pinnedFriend2 = sharedPreferences.getString(Constants.COMMUNITY_PINNED_FRIEND_2, "")
+                    val pinnedFriend3 = sharedPreferences.getString(Constants.COMMUNITY_PINNED_FRIEND_3, "")
+
+                    when (username) {
+                        pinnedFriend1 -> 1
+                        pinnedFriend2 -> 2
+                        pinnedFriend3 -> 3
+                        else -> 4
+                    }
+                } else {
+                    Int.MAX_VALUE
+                }
+            }
+
+            val priority1 = getPinPriority(friend1.username)
+            val priority2 = getPinPriority(friend2.username)
+
+            priority1.compareTo(priority2)
+        }
+
     val displayedFriends =
-        allFriends.filter { friend ->
+        sortedFriends.filter { friend ->
             val matchesSearch =
                 searchQuery.isBlank() ||
                     friend.name.contains(searchQuery, ignoreCase = true) ||
@@ -421,6 +456,22 @@ fun ConnectTabContent(
                             FriendCard(
                                 friend = friend,
                                 onClick = { onFriendClick(friend) },
+                                viewModel = viewModel,
+                                onPinToggle = { username, shouldPin ->
+                                    if (shouldPin) {
+                                        val success = viewModel.pinFriend(username, sharedPreferences)
+                                        if (!success) {
+                                            Toast
+                                                .makeText(
+                                                    context,
+                                                    "Maximum 3 friends can be pinned",
+                                                    android.widget.Toast.LENGTH_SHORT,
+                                                ).show()
+                                        }
+                                    } else {
+                                        viewModel.unpinFriend(username, sharedPreferences)
+                                    }
+                                },
                             )
                         }
                     }
@@ -532,7 +583,12 @@ fun EmptyStateContent(
 fun FriendCard(
     friend: UserResponse,
     onClick: () -> Unit = {},
+    viewModel: ConnectViewModel? = null,
+    onPinToggle: ((String, Boolean) -> Unit)? = null,
 ) {
+    val pinnedFriends by viewModel?.pinnedFriends?.observeAsState() ?: remember { mutableStateOf(emptySet<String>()) }
+    val isPinned = pinnedFriends?.contains(friend.username) ?: false
+
     Box(
         modifier =
             Modifier
@@ -615,6 +671,25 @@ fun FriendCard(
                         text = statusText,
                         color = Accent,
                         fontSize = 14.sp,
+                    )
+                }
+            }
+
+            if (viewModel != null && onPinToggle != null) {
+                IconButton(
+                    onClick = {
+                        onPinToggle(friend.username, !isPinned)
+                    },
+                    modifier = Modifier.size(40.dp),
+                ) {
+                    Icon(
+                        painter =
+                            painterResource(
+                                id = R.drawable.ic_pin,
+                            ),
+                        contentDescription = if (isPinned) "Unpin friend" else "Pin friend",
+                        tint = if (isPinned) Accent else Accent.copy(alpha = 0.3f),
+                        modifier = Modifier.size(20.dp),
                     )
                 }
             }
