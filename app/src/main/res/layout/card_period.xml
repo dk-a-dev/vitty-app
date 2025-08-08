@@ -15,7 +15,6 @@
     </data>
 
     <com.google.android.material.card.MaterialCardView
-        android:id="@+id/period_card"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginStart="20dp"
@@ -26,9 +25,7 @@
         app:cardBackgroundColor="@color/tab_back"
         app:cardCornerRadius="14dp"
         app:cardElevation="0dp"
-        app:rippleColor="@android:color/transparent"
-        app:strokeWidth="0dp"
-        app:strokeColor="@android:color/transparent">
+        app:rippleColor="@android:color/transparent">
 
         <ImageView
             android:id="@+id/expanded_background"
@@ -44,7 +41,7 @@
             android:layout_height="match_parent"
             android:alpha="0.6"
             android:contentDescription="@string/active_background"
-            android:src="@color/transparent"
+            android:src="@drawable/next_class_background"
             android:visibility="invisible" />
 
         <LinearLayout
@@ -59,11 +56,13 @@
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginEnd="5dp"
                 android:orientation="horizontal">
 
                 <LinearLayout
-                    android:layout_width="match_parent"
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
+                    android:layout_weight="1"
                     android:orientation="vertical">
 
                     <TextView
@@ -76,73 +75,109 @@
                         android:textSize="16sp"
                         tools:text="@string/sample_course" />
 
-                    <LinearLayout
-                        android:layout_width="match_parent"
+                    <TextView
+                        android:id="@+id/course_code"
+                        android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="10dp"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal">
+                        android:layout_marginBottom="4dp"
+                        android:alpha="0.9"
+                        android:text='@={periodDetails.courseCode}'
+                        android:textSize="11sp"
+                        android:visibility="gone"
+                        tools:text="@string/sample_course" />
 
-                        <TextView
-                            android:id="@+id/period_time"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:text=""
-                            android:textSize="15sp"
-                            tools:text="@string/sample_time" />
-
-                        <LinearLayout
-                            android:id="@+id/class_nav"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="0dp"
-                            android:layout_marginEnd="0dp"
-                            android:alpha="0.8"
-                            android:background="@drawable/slot_chip_background"
-                            android:gravity="center_vertical"
-                            android:orientation="horizontal"
-                            android:paddingStart="8dp"
-                            android:paddingTop="4dp"
-                            android:paddingEnd="8dp"
-                            android:paddingBottom="4dp">
-
-                            <ImageView
-                                android:layout_width="14dp"
-                                android:layout_height="14dp"
-                                android:layout_marginEnd="2dp"
-                                android:contentDescription="@string/directions"
-                                android:src="@drawable/ic_nav"
-                                android:visibility="gone"
-                                app:tint="@color/background" />
-
-                            <TextView
-                                android:id="@+id/textView"
-                                android:layout_width="0dp"
-                                android:layout_height="wrap_content"
-                                android:layout_weight="1"
-                                android:paddingRight="4dp"
-                                android:text="@string/compass" />
-
-                            <TextView
-                                android:id="@+id/class_id"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="@={periodDetails.roomNo}"
-                                android:textColor="@color/translucent"
-                                android:textSize="12sp" />
-                        </LinearLayout>
-                    </LinearLayout>
+                    <TextView
+                        android:id="@+id/period_time"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="5dp"
+                        android:text=""
+                        android:textSize="15sp"
+                        tools:text="@string/sample_time" />
                 </LinearLayout>
+
+                <ImageView
+                    android:id="@+id/arrow_more_info"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:layout_marginStart="15dp"
+                    android:contentDescription="@string/down_arrow"
+                    android:src="@drawable/ic_down_arrow"
+                    app:tint="?android:text" />
+
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/more_info"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:gravity="center"
+                android:orientation="horizontal"
+                android:visibility="gone"
+                tools:visibility="visible">
+
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <!--                    <TextView-->
+                    <!--                        android:id="@+id/course_code"-->
+                    <!--                        android:layout_width="wrap_content"-->
+                    <!--                        android:layout_height="wrap_content"-->
+                    <!--                        android:text='@{"Code: "+periodDetails.courseCode}'-->
+                    <!--                        android:textSize="11sp"-->
+                    <!--                        tools:text="@string/sample_course" />-->
+
+                    <TextView
+                        android:id="@+id/slot_id"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text='@={periodDetails.slot}'
+                        tools:text="@string/sample_slot" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/class_nav"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="3dp"
+                    android:alpha="0.8"
+                    android:background="@drawable/nav_button_background"
+                    android:gravity="center"
+                    android:orientation="horizontal"
+                    android:paddingStart="8dp"
+                    android:paddingTop="1.5dp"
+                    android:paddingEnd="2dp"
+                    android:paddingBottom="1.5dp">
+
+                    <TextView
+                        android:id="@+id/class_id"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginEnd="4dp"
+                        android:text="@={periodDetails.roomNo}" />
+
+                    <ImageView
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:contentDescription="@string/directions"
+                        android:src="@drawable/ic_nav"
+                        app:tint="@color/background" />
+
+                </LinearLayout>
+
 
                 <TextView
                     android:id="@+id/class_id_online"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_gravity="center_vertical"
                     android:layout_marginEnd="4dp"
                     android:text="@={periodDetails.roomNo}"
-                    android:textColor="@color/translucent"
                     android:visibility="gone" />
 
             </LinearLayout>

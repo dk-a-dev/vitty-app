@@ -94,23 +94,5 @@
 
     </PreferenceCategory>
 
-    <PreferenceCategory
-        app:iconSpaceReserved="false"
-        app:title="Support &amp; Feedback">
-
-        <Preference
-            app:icon="@android:drawable/ic_dialog_email"
-            app:key="support_email"
-            app:summary="dscvit.vitty@gmail.com"
-            app:title="Contact Support" />
-
-        <Preference
-            app:icon="@drawable/ic_github"
-            app:key="github_issues"
-            app:summary="Report bugs and request features"
-            app:title="Report Issue" />
-
-    </PreferenceCategory>
-
 
 </androidx.preference.PreferenceScreen>

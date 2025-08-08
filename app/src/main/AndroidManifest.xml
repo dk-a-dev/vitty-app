@@ -1,18 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
-
-    <uses-feature
-        android:name="android.hardware.camera"
-        android:required="false" />
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.dscvit.vitty">
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.VIBRATE" />
-    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
-    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
-    <uses-permission android:name="android.permission.CAMERA" />
 
     <queries>
         <intent>
@@ -30,16 +23,9 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.VITTY"
-        android:usesCleartextTraffic="true">
-        <activity
-            android:name=".activity.AddInfoActivity"
-            android:exported="false" />
+        android:theme="@style/Theme.VITTY">
         <activity
             android:name=".activity.VITEventsActivity"
-            android:exported="false" />
-        <activity
-            android:name=".activity.MaintenanceActivity"
             android:exported="false" />
         <activity
             android:name=".activity.NavigationActivity"
@@ -105,7 +91,6 @@
             </intent-filter>
         </activity>
         <activity android:name=".activity.HomeActivity" />
-        <activity android:name=".activity.HomeComposeActivity" />
 
         <receiver
             android:name=".receiver.DeviceBootReceiver"
@@ -117,9 +102,6 @@
         </receiver>
         <receiver android:name=".receiver.AlarmReceiver" />
         <receiver android:name=".receiver.ShareReceiver" />
-        <receiver
-            android:name=".receiver.ReminderBroadcastReceiver"
-            android:exported="false" />
 
         <service
             android:name=".service.TodayWidgetService"
