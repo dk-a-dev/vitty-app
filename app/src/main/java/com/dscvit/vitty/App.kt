@@ -16,7 +16,7 @@ class App : Application() {
 
     private val defaultConfig: HashMap<String, Any> =
         hashMapOf(
-            LATEST_VERSION to BuildConfig.VERSION_NAME,
+            LATEST_VERSION to BuildConfig.VERSION_CODE,
             ONLINE_MODE to false
         )
 

@@ -9,17 +9,10 @@
     <string name="sample_class_id">SJT 304</string>
     <string name="next">Next</string>
     <string name="greeting">Hello,</string>
-    <string name="continue_text">Continue</string>
     <string name="done">Done</string>
     <string name="no_classes_today">No classes today!</string>
     <string name="no_more_classes_today">No More Classes Today</string>
     <string name="no_classes_today_subtext">Catch up on some sleep</string>
-    <string name="no_friends_found">No Friends? </string>
-    <string name="no_friends_found_subtext">Add your friends and see their timetable!</string>
-    <string name="no_requests">Request and Suggestions</string>
-    <string name="no_requests_subtext">Your friend requests and suggested friends will be shown here.</string>
-    <string name="search_text_heading"> Search For Your Friends </string>
-    <string name="search_text_subheading"> Enter their Username </string>
     <string name="intro1_title">Never miss a class</string>
     <string name="intro1_subtitle">Notifications to remind you about your upcoming classes</string>
     <string name="intro2_title">Get a sneak peek</string>
@@ -31,9 +24,9 @@
     <string name="your_next_class">Your Next Class</string>
     <string name="today_schedule">Today\'s Schedule</string>
     <string name="share">Share</string>
-    <string name="share_text">Are you having trouble staying on top of your hectic college schedule? Don\'t know where your classes are? VITTY has got you covered, with VITTY you can have easy access to your timetable no matter where you are!\n\nSimply upload your VIT timetable as text or image and never miss another class again!\n\nGet VITTY Now!\n\nWebsite: https://dscv.it/vittyconnect\n\nChrome Extension: https://dscv.it/vitty-extension\n\nAndroid App: https://dscv.it/vitty-app\n\niOS App: https://dscv.it/vitty-ios</string>
+    <string name="share_text">Are you having trouble staying on top of your hectic college schedule? Don\'t know where your classes are? VITTY has got you covered, with VITTY you can have easy access to your timetable no matter where you are!\n\nSimply upload your VIT timetable as text or image and never miss another class again!\n\nGet VITTY Now!\n\nWebsite: https://dscv.it/vitty\n\nChrome Extension: https://dscv.it/vitty-extension\n\nAndroid App: https://dscv.it/vitty-app\n\niOS App: https://dscv.it/vitty-ios</string>
     <string name="instructions_1">1. Upload the timetable on:</string>
-    <string name="instructions_1_link"><u>https://dscv.it/vittyconnect</u></string>
+    <string name="instructions_1_link"><u>https://dscv.it/vitty</u></string>
     <string name="instructions_2">2. Log in with the same account as shown above.</string>
     <string name="instructions_3">3. Follow the instructions and upload your timetable.</string>
     <string name="instructions_3_a">\u25CB Ensure that the screenshot is taken directly from VTOP. It should fit in one single image.</string>
@@ -44,7 +37,6 @@
     <string name="instructions_5">5. When done, click on Confirm.</string>
     <string name="instructions_6">BRAVO! That\'s it. You did it!</string>
     <string name="instructions_7">In addition to this, you can have a sneak peek at your upcoming classes via the Widget.</string>
-    <string name="add_info_desc">Enter username and your registration number below. Your username will help your friends find you!</string>
     <string name="logout">Logout</string>
     <string name="logout_msg">Are you sure?</string>
     <string name="cancel">Cancel</string>
@@ -64,7 +56,7 @@
     <string name="about_notifications">Get control of the notifications by tapping on ⋮ > Settings > Notifications.\n\nThere you can:\n1. Turn on No CLasses Mode to pause your class notifications.\n2. Individually turn on/off notifications for your classes (Android 8+ only).</string>
     <string name="about_battery">To get notifications on time, keep the battery optimisations for the app turned off.\n\nTo change this setting, tap on ⋮ > Settings > Battery.</string>
     <string name="about_nav">Don\'t know which class is where? Don\'t worry, we\'ve got you covered!\n\nNow you can hit the directions button on the Next Class widget or tap on a room number in the app to start navigation to your class!</string>
-    <string name="about_new_updates">1. Add friends and see their timetable. \n Set Friend Requests Now!</string>
+    <string name="about_new_updates">1. Exam/Holiday Mode is now called No Classes Mode.</string>
     <string name="final_heading">Let\'s go!</string>
     <string name="about_final">You\'re all set to start using the app.</string>
     <string name="congratulations">Congratulations!</string>
@@ -88,18 +80,12 @@
     <string name="default_notification_channel_id">con.dscvit.vitty-Updates</string>
     <string name="directions">Directions</string>
     <string name="facing_issues_title">Facing any issues? Contact us!</string>
-    <string name="facing_issues_description">Reach out support in case of any issues!</string>
-    <string name="telegram_link"><u>https://vitty.dscvit.com</u></string>
+    <string name="facing_issues_description">We are available on Telegram throughout the day ready to fix your problems!</string>
+    <string name="telegram_link"><u>https://dscv.it/telegram</u></string>
     <string name="support">Support</string>
     <string name="sample_room">SJT101</string>
-    <string name="title_academics">Academics</string>
-    <string name="title_schedule">Schedule</string>
+    <string name="title_schedule">Timetable</string>
     <string name="title_community">Community</string>
-    <string name="title_connect">Connect</string>
-    <string name="fill_all_fields">Fill All Fields!</string>
-    <string name="invalid_regno">Invalid Registration Number!</string>
-    <string name="something_went_wrong">Something Went Wrong!</string>
-    <string name="compass">🧭</string>
     <string-array name="no_classes_today_subtext_list">
         <item>Don\'t you have a quiz coming up?</item>
         <item>Finish your DAs!</item>
@@ -130,14 +116,4 @@
         <item>thursday</item>
         <item>friday</item>
     </string-array>
-    <!-- TODO: Remove or change this placeholder text -->
-    <string name="hello_blank_fragment">Hello blank fragment</string>
-    
-    <string name="maintenance_title">Server Under Maintenance</string>
-    <string name="maintenance_message">We\'re currently performing server maintenance to improve your experience.</string>
-    <string name="maintenance_description">Please check back in a few minutes. We\'ll be back online soon!</string>
-    <string name="retry_connection">Try Again</string>
-    <string name="exit_app">Exit App</string>
-    <string name="maintenance_footer">Thank you for your patience</string>
-    <string name="maintenance_icon_desc">Maintenance Icon</string>
 </resources>

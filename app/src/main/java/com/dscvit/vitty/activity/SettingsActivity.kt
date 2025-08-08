@@ -40,7 +40,6 @@ class SettingsActivity : AppCompatActivity() {
                     onBackPressed()
                     true
                 }
-
                 else -> false
             }
         }

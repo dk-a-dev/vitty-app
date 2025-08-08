@@ -15,7 +15,6 @@
             android:layout_height="wrap_content"
             android:background="@color/background">
 
-
             <com.google.android.material.appbar.MaterialToolbar
                 android:id="@+id/schedule_toolbar"
                 android:layout_width="match_parent"
@@ -24,6 +23,7 @@
                 android:paddingTop="12dp"
                 android:paddingEnd="10dp"
                 android:paddingBottom="10dp"
+                app:menu="@menu/requests_menu"
                 app:title="Add Friends"
                 app:titleTextAppearance="@style/TitleTextAppearance"
                 app:titleTextColor="@color/white" />
@@ -72,174 +72,52 @@
             android:layout_marginStart="20dp"
             android:layout_marginTop="24dp"
             android:layout_marginEnd="20dp"
-            android:text="Pending Requests"
-            android:visibility="gone" />
+            android:layout_marginBottom="20dp"
+            android:text="Pending Requests" />
 
-        <RelativeLayout
-            android:id="@+id/request_layout"
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/req_krish"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_below="@id/pending_requests_text_view"
-            android:layout_marginStart="20dp"
-            android:visibility="gone">
-
-            <com.google.android.material.imageview.ShapeableImageView
-                android:id="@+id/icon"
-                android:layout_width="54dp"
-                android:layout_height="54dp"
-                android:layout_gravity="center"
-                android:layout_marginVertical="16dp"
-                android:adjustViewBounds="true"
-                app:shapeAppearanceOverlay="@style/roundedImageViewRounded"
-                tools:src="@tools:sample/avatars" />
-
-            <TextView
-                android:id="@+id/superscriptTextView"
-                android:layout_width="25dp"
-                android:layout_height="25dp"
-                android:layout_marginStart="-22dp"
-                android:layout_marginTop="12dp"
-                android:layout_toEndOf="@id/icon"
-                android:background="@drawable/circular_background"
-                android:ellipsize="end"
-                android:gravity="center"
-                android:maxLines="1"
-                android:padding="3dp"
-                android:text="2"
-                android:textColor="@color/white"
-                android:textSize="14sp" />
-
-            <TextView
-                android:id="@+id/requestsHeading"
-                style="@style/TitleTextAppearance"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="20dp"
-                android:layout_marginTop="18dp"
-                android:layout_toEndOf="@id/icon"
-                android:ellipsize="end"
-                android:gravity="center"
-                android:maxLines="1"
-                android:text="Follow Requests"
-                android:textColor="@color/white"
-                android:textSize="14dp" />
-
-            <TextView
-                android:id="@+id/requestsSubtext"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="20dp"
-                android:layout_marginTop="40dp"
-                android:layout_toEndOf="@id/icon"
-                android:ellipsize="end"
-                android:gravity="center"
-                android:maxLines="1"
-                android:text="Accept or reject requests"
-                android:textSize="14dp" />
-
-        </RelativeLayout>
-
-
-        <TextView
-            android:id="@+id/suggested_friends_text_view"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_below="@id/request_layout"
-            android:layout_marginStart="20dp"
-            android:layout_marginTop="24dp"
-            android:layout_marginEnd="20dp"
-            android:layout_marginBottom="20dp"
-            android:text="Suggested Friends"
-            android:visibility="gone" />
-
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/suggested_list"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_below="@id/suggested_friends_text_view"
-            android:clipToPadding="false"
-            android:layoutAnimation="@anim/layout_animation"
-            android:paddingBottom="10dp"
-            android:visibility="gone"
-            app:layout_behavior="@string/appbar_scrolling_view_behavior"
-            tools:listitem="@layout/card_friend" />
-
-
-        <RelativeLayout
-            android:id="@+id/no_requests"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:layout_below="@id/search_friends"
-            android:orientation="vertical"
-            android:visibility="invisible"
-            tools:visibility="visible">
-
-            <ImageView
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:contentDescription="@string/todo"
-                android:scaleType="centerCrop"
-                android:src="@drawable/no_period_background" />
+            android:layout_marginHorizontal="18dp"
+            app:cardBackgroundColor="@color/tab_back"
+            app:cardCornerRadius="12dp">
 
             <LinearLayout
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_centerInParent="true"
-                android:gravity="center"
-                android:orientation="vertical">
-
-                <TextView
-                    android:id="@+id/no_friends_found"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="20dp"
-                    android:layout_marginEnd="20dp"
-                    android:fontFamily="@font/poppins_700"
-                    android:text="@string/no_requests"
-                    android:textAlignment="center"
-                    android:textColor="@color/white"
-                    android:textSize="24sp" />
-
-                <TextView
-                    android:id="@+id/quote_line"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="20dp"
-                    android:layout_marginEnd="20dp"
-                    android:fontFamily="@font/poppins_300"
-                    android:text="@string/no_requests_subtext"
-                    android:textAlignment="center"
-                    android:textColor="@color/white"
-                    android:textSize="20sp" />
-            </LinearLayout>
-        </RelativeLayout>
-
-        <RelativeLayout
-            android:id="@+id/loading_view"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:orientation="vertical"
-            android:visibility="gone">
-
-            <View
                 android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:alpha="0.5"
-                android:background="@color/background" />
-
-            <com.github.ybq.android.spinkit.SpinKitView
-                android:id="@+id/loading_sign"
-                style="@style/SpinKitView.Large.ThreeBounce"
-                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_centerInParent="true"
-                android:layout_gravity="center"
-                app:SpinKit_Color="@color/white" />
+                android:orientation="horizontal"
+                android:paddingHorizontal="16dp"
+                android:paddingVertical="10dp">
 
-        </RelativeLayout>
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:layout_weight="1"
+                    android:fontFamily="@font/poppins_500"
+                    android:text="Krish Chatterjie"
+                    android:textColor="@color/white"
+                    android:textSize="18sp" />
+
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/logout"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="5dp"
+                    android:backgroundTint="@color/next_class"
+                    android:letterSpacing="0"
+                    android:text="Accept"
+                    android:textAllCaps="false"
+                    android:textColor="@color/white" />
+
+
+            </LinearLayout>
+
+        </com.google.android.material.card.MaterialCardView>
 
 
     </RelativeLayout>
-
-
 </layout>

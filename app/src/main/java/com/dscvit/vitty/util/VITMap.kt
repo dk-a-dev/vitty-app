@@ -7,7 +7,7 @@ import android.widget.Toast
 
 object VITMap {
     private const val VIT = "Vellore+Institute+of+Technology,+Vellore+India" // done
-    private val blocks: HashMap<String, String> = HashMap()
+    val blocks: HashMap<String, String> = HashMap()
 
     init {
         blocks["CDMM"] = "Centre+For+Disaster+Mitigation+And+Management,+$VIT"
@@ -38,7 +38,7 @@ object VITMap {
                 mapIntent.setPackage("com.google.android.apps.maps")
                 try {
                     Analytics.navigation(classBlock)
-                } catch (_: Exception) {
+                } catch (e: Exception) {
                 }
                 mapIntent.resolveActivity(context.packageManager)?.let {
                     context.startActivity(mapIntent)

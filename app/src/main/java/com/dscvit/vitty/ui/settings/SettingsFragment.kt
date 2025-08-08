@@ -9,7 +9,6 @@ import android.os.PowerManager
 import android.provider.Settings
 import android.view.View
 import android.widget.Toast
-import androidx.core.net.toUri
 import androidx.preference.ListPreference
 import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
@@ -22,18 +21,12 @@ import com.dscvit.vitty.util.UtilFunctions.getSatModeCode
 import com.dscvit.vitty.util.UtilFunctions.reloadWidgets
 
 class SettingsFragment : PreferenceFragmentCompat() {
-    override fun onCreatePreferences(
-            savedInstanceState: Bundle?,
-            rootKey: String?,
-    ) {
+    override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
         setPreferencesFromResource(R.xml.root_preferences, rootKey)
         setupPreferences()
     }
 
-    override fun onViewCreated(
-            view: View,
-            savedInstanceState: Bundle?,
-    ) {
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         val rv = listView
         rv.setPadding(24, 0, 24, 0)
@@ -63,9 +56,9 @@ class SettingsFragment : PreferenceFragmentCompat() {
         individualNotification?.setOnPreferenceClickListener {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 val settingsIntent: Intent =
-                        Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
-                                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                                .putExtra(Settings.EXTRA_APP_PACKAGE, context?.packageName)
+                    Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        .putExtra(Settings.EXTRA_APP_PACKAGE, context?.packageName)
                 startActivity(settingsIntent)
             }
             true
@@ -90,24 +83,22 @@ class SettingsFragment : PreferenceFragmentCompat() {
         val pm: PowerManager = context?.getSystemService(Context.POWER_SERVICE) as PowerManager
         if (pm.isIgnoringBatteryOptimizations(context?.packageName)) {
             batteryOptimization?.summary =
-                    "Keep the battery optimizations turned off to receive notifications on time"
+                "Keep the battery optimizations turned off to receive notifications on time"
         }
 
         batteryOptimization?.setOnPreferenceClickListener {
             if (!pm.isIgnoringBatteryOptimizations(context?.packageName)) {
                 Toast.makeText(
-                                context,
-                                "Please turn off the Battery Optimization Settings for VITTY to receive notifications on time.",
-                                Toast.LENGTH_LONG,
-                        )
-                        .show()
+                    context,
+                    "Please turn off the Battery Optimization Settings for VITTY to receive notifications on time.",
+                    Toast.LENGTH_LONG
+                ).show()
             } else {
                 Toast.makeText(
-                                context,
-                                "Please keep the Battery Optimization Settings for VITTY turned off to receive notifications on time.",
-                                Toast.LENGTH_LONG,
-                        )
-                        .show()
+                    context,
+                    "Please keep the Battery Optimization Settings for VITTY turned off to receive notifications on time.",
+                    Toast.LENGTH_LONG
+                ).show()
             }
             val pmIntent = Intent()
             pmIntent.action = Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS
@@ -116,18 +107,15 @@ class SettingsFragment : PreferenceFragmentCompat() {
         }
     }
 
-    private fun openWebsite(
-            key: String,
-            website: String,
-    ) {
+    private fun openWebsite(key: String, website: String) {
         val pref: Preference? = findPreference(key)
         pref?.setOnPreferenceClickListener {
             try {
                 startActivity(
-                        Intent(
-                                Intent.ACTION_VIEW,
-                                Uri.parse(website),
-                        ),
+                    Intent(
+                        Intent.ACTION_VIEW,
+                        Uri.parse(website)
+                    )
                 )
                 true
             } catch (e: Exception) {
@@ -139,8 +127,8 @@ class SettingsFragment : PreferenceFragmentCompat() {
 
     private fun setupAccountDetails() {
         val prefs = requireContext().getSharedPreferences(Constants.USER_INFO, 0)
-        //        val cat: PreferenceCategory? = findPreference("account_title")
-        //        cat?.title = prefs.getString("sign_in_method", "Google") + " Account Details"
+//        val cat: PreferenceCategory? = findPreference("account_title")
+//        cat?.title = prefs.getString("sign_in_method", "Google") + " Account Details"
         val account: Preference? = findPreference("account")
         account?.setOnPreferenceClickListener {
             LogoutHelper.logout(requireContext(), requireActivity(), prefs)
@@ -152,47 +140,6 @@ class SettingsFragment : PreferenceFragmentCompat() {
         openWebsite(Constants.GDSCVIT_TAG, Constants.GDSCVIT_WEBSITE)
         openWebsite(Constants.GITHUB_REPO, Constants.GITHUB_REPO_LINK)
         openWebsite(Constants.CHANGE_TIMETABLE, Constants.VITTY_URL)
-    }
-
-    private fun setupSupportAndFeedback() {
-
-        val supportEmail: Preference? = findPreference(Constants.SUPPORT_EMAIL)
-        supportEmail?.setOnPreferenceClickListener {
-            try {
-                val emailIntent =
-                        Intent(Intent.ACTION_SENDTO).apply {
-                            data = "mailto:".toUri()
-                            putExtra(Intent.EXTRA_EMAIL, arrayOf(Constants.SUPPORT_EMAIL_ADDRESS))
-                            putExtra(Intent.EXTRA_SUBJECT, "Vitty App Support Request")
-                            putExtra(
-                                    Intent.EXTRA_TEXT,
-                                    "Hi Vitty Support Team,\n\nI need help with:\n\n"
-                            )
-                        }
-                startActivity(Intent.createChooser(emailIntent, "Send Email"))
-                true
-            } catch (e: Exception) {
-
-                val clipboard =
-                        requireContext().getSystemService(Context.CLIPBOARD_SERVICE) as
-                                android.content.ClipboardManager
-                val clip =
-                        android.content.ClipData.newPlainText(
-                                "Support Email",
-                                Constants.SUPPORT_EMAIL_ADDRESS
-                        )
-                clipboard.setPrimaryClip(clip)
-                Toast.makeText(
-                                context,
-                                "Email address copied to clipboard: ${Constants.SUPPORT_EMAIL_ADDRESS}",
-                                Toast.LENGTH_LONG
-                        )
-                        .show()
-                false
-            }
-        }
-
-        openWebsite(Constants.GITHUB_ISSUES, Constants.GITHUB_ISSUES_LINK)
     }
 
     private fun setupClass() {
@@ -210,7 +157,7 @@ class SettingsFragment : PreferenceFragmentCompat() {
         val pref: Preference? = findPreference("refresh_widgets")
         pref?.setOnPreferenceClickListener {
             reloadWidgets(requireContext())
-            //            Toast.makeText(context, "Refreshed!", Toast.LENGTH_LONG).show()
+//            Toast.makeText(context, "Refreshed!", Toast.LENGTH_LONG).show()
             pref.isEnabled = false
             pref.isSelectable = false
             pref.summary = "Refreshed!"
@@ -222,10 +169,9 @@ class SettingsFragment : PreferenceFragmentCompat() {
         setupAccountDetails()
         setupClass()
         setupNotifications()
-        //        setupEffects()
+//        setupEffects()
         setupBattery()
         setupRefreshWidgets()
         setupAbout()
-        setupSupportAndFeedback()
     }
 }
