@@ -700,11 +700,6 @@ class ConnectViewModel : ViewModel() {
                 ) {
                     val list = response?.data ?: emptyList()
                     _activeFriends.postValue(list)
-
-                    prefs.edit {
-                        putBoolean(Constants.ACTIVE_FRIENDS_FETCHED, true)
-                            .putString(Constants.ACTIVE_FRIENDS_LIST, Gson().toJson(list))
-                    }
                 }
 
                 override fun onError(

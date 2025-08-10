@@ -221,7 +221,7 @@ fun ConnectHeader(
                     horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
                     Row {
-                        val options = listOf("Available", "View All")
+                        val options = listOf("All", "Available")
                         options.forEachIndexed { index, label ->
                             FilterChip(
                                 label = label,
@@ -384,8 +384,8 @@ fun ConnectTabContent(
 
             val matchesFilter =
                 when (friendsFilter) {
-                    0 -> friend.current_status?.status?.lowercase(Locale.ROOT) == "free"
-                    else -> true
+                    0 -> true
+                    else -> friend.current_status?.status?.lowercase(Locale.ROOT) == "free"
                 }
 
             matchesSearch && matchesFilter
@@ -433,9 +433,9 @@ fun ConnectTabContent(
                                         "No friends found"
                                     } else {
                                         if (friendsFilter == 0) {
-                                            "No friends available"
-                                        } else {
                                             "No friends added"
+                                        } else {
+                                            "No friends available"
                                         }
                                     },
                                 subtitle =
@@ -443,9 +443,9 @@ fun ConnectTabContent(
                                         "Try a different search term"
                                     } else {
                                         if (friendsFilter == 0) {
-                                            "Your friends are currently in class"
-                                        } else {
                                             "Start connecting with your classmates"
+                                        } else {
+                                            "Your friends are currently in class"
                                         }
                                     },
                                 icon = R.drawable.ic_community_outline,
