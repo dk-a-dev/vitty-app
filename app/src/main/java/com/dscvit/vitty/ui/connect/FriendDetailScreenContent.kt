@@ -130,12 +130,8 @@ fun FriendDetailScreenContent(
         if (ghostModeResponse != null && isTogglingGhostMode) {
             isTogglingGhostMode = false
 
-            val sharedPreferences =
-                context.getSharedPreferences(Constants.USER_INFO, Context.MODE_PRIVATE)
-
             if (ghostModeResponse!!.success) {
-                val currentActiveFriends = activeFriends?.toMutableList() ?: mutableListOf<ActiveFriendItem>()
-                val gson = Gson()
+                val currentActiveFriends = activeFriends?.toMutableList() ?: mutableListOf()
 
                 val existingFriendIndex = currentActiveFriends.indexOfFirst { it.friend_username == friend.username }
 
@@ -144,11 +140,6 @@ fun FriendDetailScreenContent(
                         currentActiveFriends[existingFriendIndex].copy(hide = isFriendGhosted)
                 } else {
                     currentActiveFriends.add(ActiveFriendItem(friend_username = friend.username, hide = isFriendGhosted))
-                }
-
-                val activeFriendsJson = gson.toJson(currentActiveFriends)
-                sharedPreferences.edit {
-                    putString(Constants.ACTIVE_FRIENDS_LIST, activeFriendsJson)
                 }
 
                 Toast
@@ -781,7 +772,7 @@ private fun DayScheduleContent(
         ) {
             items(
                 items = periods,
-                key = { period -> "${period.courseCode}_${period.slot}" },
+                key = { period -> "${periods.indexOf(period)}${period.startTime}_${period.courseCode}_${period.slot}_${period.endTime}" },
             ) { period ->
                 FriendPeriodCard(
                     period = period,
