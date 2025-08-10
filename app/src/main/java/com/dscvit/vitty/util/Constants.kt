@@ -66,9 +66,6 @@ object Constants {
     const val REMINDER_CHANNEL_DESC = "Notifications for course reminders"
 
     const val PREF_LAST_REVIEW_REQUEST = "last_review_request"
-
-    const val ACTIVE_FRIENDS_FETCHED = "active_friends_fetched"
-    const val ACTIVE_FRIENDS_LIST = "active_friends_list"
 }
 
 fun String.urlDecode(): String =
